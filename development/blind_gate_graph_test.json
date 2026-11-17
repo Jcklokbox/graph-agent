@@ -1,0 +1,1945 @@
+{
+  "test_1_compatibility": {
+    "repetitions": 80,
+    "table": [
+      {
+        "link": "V3 -> V5",
+        "Q": 0.9999999522688926,
+        "expected": "> 0.99",
+        "pass": true
+      },
+      {
+        "link": "V4 -> V6",
+        "Q": 0.9999999522688926,
+        "expected": "> 0.99",
+        "pass": true
+      },
+      {
+        "link": "(V1, V8) -> V0",
+        "Q": 0.9756974187921896,
+        "expected": "> 0.99",
+        "pass": false
+      },
+      {
+        "link": "(V1, V8) -> V1",
+        "Q": 0.0,
+        "expected": "< 0.01",
+        "pass": true
+      },
+      {
+        "link": "(V2, V8) -> V1",
+        "Q": 0.9756974187921896,
+        "expected": "> 0.99",
+        "pass": false
+      },
+      {
+        "link": "(V1, V10) -> V2",
+        "Q": 0.9756974187921896,
+        "expected": "> 0.99",
+        "pass": false
+      },
+      {
+        "link": "(V0, V10) -> V1",
+        "Q": 0.9756974187921896,
+        "expected": "> 0.99",
+        "pass": false
+      }
+    ],
+    "all_pass": false,
+    "pred_pool": {
+      "seeded": 0,
+      "spawned": 191,
+      "pruned": 0,
+      "active": 191
+    },
+    "chunks": [
+      {
+        "node": 12,
+        "components": [
+          1,
+          9
+        ]
+      },
+      {
+        "node": 13,
+        "components": [
+          1,
+          8
+        ]
+      },
+      {
+        "node": 14,
+        "components": [
+          1,
+          10
+        ]
+      },
+      {
+        "node": 15,
+        "components": [
+          2,
+          8
+        ]
+      },
+      {
+        "node": 16,
+        "components": [
+          0,
+          10
+        ]
+      },
+      {
+        "node": 17,
+        "components": [
+          0,
+          9
+        ]
+      },
+      {
+        "node": 18,
+        "components": [
+          2,
+          9
+        ]
+      }
+    ]
+  },
+  "test_2_noise_filtering": {
+    "comparison_table": [
+      {
+        "steps": 100,
+        "old_surviving_edges": 702,
+        "new_surviving_edges": 359,
+        "old_V7_edges_Q_ge_0_5": 8,
+        "new_V7_edges_Q_ge_0_5": 0,
+        "new_V7_max_Q": 0.4635867407576896
+      },
+      {
+        "steps": 1000,
+        "old_surviving_edges": null,
+        "new_surviving_edges": 689,
+        "old_V7_edges_Q_ge_0_5": null,
+        "new_V7_edges_Q_ge_0_5": 7,
+        "new_V7_max_Q": 0.9979376680454376
+      }
+    ],
+    "random_100": {
+      "steps": 100,
+      "surviving_pred_edges": 359,
+      "v7_edge_count": 83,
+      "v7_max_Q": 0.4635867407576896,
+      "v7_edges_Q_ge_0_5": 0,
+      "pred_pool_stats": {
+        "seeded": 0,
+        "spawned": 359,
+        "pruned": 0,
+        "active": 359
+      },
+      "v7_edges": [
+        {
+          "antecedents": [
+            7
+          ],
+          "consequent": 1,
+          "Q": 0.4410569877981322
+        },
+        {
+          "antecedents": [
+            7
+          ],
+          "consequent": 7,
+          "Q": 0.3653111991200453
+        },
+        {
+          "antecedents": [
+            7
+          ],
+          "consequent": 11,
+          "Q": 0.4635867407576896
+        },
+        {
+          "antecedents": [
+            0,
+            7
+          ],
+          "consequent": 1,
+          "Q": 0.2759828969646542
+        },
+        {
+          "antecedents": [
+            0,
+            7
+          ],
+          "consequent": 7,
+          "Q": 0.18074112188383987
+        },
+        {
+          "antecedents": [
+            0,
+            7
+          ],
+          "consequent": 11,
+          "Q": 0.043237573410742386
+        },
+        {
+          "antecedents": [
+            7,
+            10
+          ],
+          "consequent": 1,
+          "Q": 0.21286414797208414
+        },
+        {
+          "antecedents": [
+            7,
+            10
+          ],
+          "consequent": 7,
+          "Q": 0.2002999095586084
+        },
+        {
+          "antecedents": [
+            7,
+            10
+          ],
+          "consequent": 11,
+          "Q": 0.04528744378866494
+        },
+        {
+          "antecedents": [
+            1,
+            7
+          ],
+          "consequent": 1,
+          "Q": 0.23635713180865486
+        },
+        {
+          "antecedents": [
+            1,
+            7
+          ],
+          "consequent": 7,
+          "Q": 0.17877078742569474
+        },
+        {
+          "antecedents": [
+            1,
+            7
+          ],
+          "consequent": 11,
+          "Q": 0.05798652912457425
+        },
+        {
+          "antecedents": [
+            7,
+            9
+          ],
+          "consequent": 1,
+          "Q": 0.22329527813051853
+        },
+        {
+          "antecedents": [
+            7,
+            9
+          ],
+          "consequent": 7,
+          "Q": 0.2287650194634104
+        },
+        {
+          "antecedents": [
+            7,
+            9
+          ],
+          "consequent": 11,
+          "Q": 0.038919097416114296
+        },
+        {
+          "antecedents": [
+            7,
+            11
+          ],
+          "consequent": 1,
+          "Q": 0.20368909691642473
+        },
+        {
+          "antecedents": [
+            7,
+            11
+          ],
+          "consequent": 7,
+          "Q": 0.14367041915748566
+        },
+        {
+          "antecedents": [
+            7,
+            11
+          ],
+          "consequent": 11,
+          "Q": 0.04911034342418291
+        },
+        {
+          "antecedents": [
+            7
+          ],
+          "consequent": 2,
+          "Q": 0.39290917712236656
+        },
+        {
+          "antecedents": [
+            2,
+            7
+          ],
+          "consequent": 2,
+          "Q": 0.3483539569548997
+        },
+        {
+          "antecedents": [
+            5,
+            7
+          ],
+          "consequent": 2,
+          "Q": 0.17927096943866355
+        },
+        {
+          "antecedents": [
+            7,
+            9
+          ],
+          "consequent": 2,
+          "Q": 0.16872478622368162
+        },
+        {
+          "antecedents": [
+            7
+          ],
+          "consequent": 0,
+          "Q": 0.3052414999027796
+        },
+        {
+          "antecedents": [
+            7
+          ],
+          "consequent": 4,
+          "Q": 0.1662090922237965
+        },
+        {
+          "antecedents": [
+            0,
+            7
+          ],
+          "consequent": 0,
+          "Q": 0.18159156428874698
+        },
+        {
+          "antecedents": [
+            0,
+            7
+          ],
+          "consequent": 4,
+          "Q": 0.11726418108339431
+        },
+        {
+          "antecedents": [
+            7,
+            9
+          ],
+          "consequent": 0,
+          "Q": 0.13101168109480038
+        },
+        {
+          "antecedents": [
+            7,
+            9
+          ],
+          "consequent": 4,
+          "Q": 0.020589113209464906
+        },
+        {
+          "antecedents": [
+            7
+          ],
+          "consequent": 3,
+          "Q": 0.19662038398986692
+        },
+        {
+          "antecedents": [
+            0,
+            7
+          ],
+          "consequent": 3,
+          "Q": 0.1124045940978278
+        },
+        {
+          "antecedents": [
+            7,
+            10
+          ],
+          "consequent": 3,
+          "Q": 0.04529706247007457
+        },
+        {
+          "antecedents": [
+            5,
+            7
+          ],
+          "consequent": 1,
+          "Q": 0.05176468596672001
+        },
+        {
+          "antecedents": [
+            5,
+            7
+          ],
+          "consequent": 7,
+          "Q": 0.1643239093088334
+        },
+        {
+          "antecedents": [
+            5,
+            7
+          ],
+          "consequent": 11,
+          "Q": 0.011264685966720003
+        },
+        {
+          "antecedents": [
+            1,
+            7
+          ],
+          "consequent": 2,
+          "Q": 0.14164956877605095
+        },
+        {
+          "antecedents": [
+            7,
+            10
+          ],
+          "consequent": 2,
+          "Q": 0.25357314336422715
+        },
+        {
+          "antecedents": [
+            7,
+            11
+          ],
+          "consequent": 2,
+          "Q": 0.1459653880968594
+        },
+        {
+          "antecedents": [
+            2,
+            7
+          ],
+          "consequent": 4,
+          "Q": 0.13395777882446464
+        },
+        {
+          "antecedents": [
+            7,
+            10
+          ],
+          "consequent": 4,
+          "Q": 0.09743838192757996
+        },
+        {
+          "antecedents": [
+            2,
+            7
+          ],
+          "consequent": 1,
+          "Q": 0.14727989435970876
+        },
+        {
+          "antecedents": [
+            2,
+            7
+          ],
+          "consequent": 11,
+          "Q": 0.07046313571751203
+        },
+        {
+          "antecedents": [
+            6,
+            7
+          ],
+          "consequent": 1,
+          "Q": 0.08735819529320743
+        },
+        {
+          "antecedents": [
+            6,
+            7
+          ],
+          "consequent": 11,
+          "Q": 0.009116736463807765
+        },
+        {
+          "antecedents": [
+            7,
+            8
+          ],
+          "consequent": 1,
+          "Q": 0.16099706406155698
+        },
+        {
+          "antecedents": [
+            7
+          ],
+          "consequent": 6,
+          "Q": 0.09795102346130469
+        },
+        {
+          "antecedents": [
+            2,
+            7
+          ],
+          "consequent": 6,
+          "Q": 0.07522456218398677
+        },
+        {
+          "antecedents": [
+            2,
+            7
+          ],
+          "consequent": 7,
+          "Q": 0.16973693687029864
+        },
+        {
+          "antecedents": [
+            4,
+            7
+          ],
+          "consequent": 2,
+          "Q": 0.0819192791987509
+        },
+        {
+          "antecedents": [
+            4,
+            7
+          ],
+          "consequent": 6,
+          "Q": 0.1904823591546141
+        },
+        {
+          "antecedents": [
+            4,
+            7
+          ],
+          "consequent": 7,
+          "Q": 0.05183576983107344
+        },
+        {
+          "antecedents": [
+            4,
+            7
+          ],
+          "consequent": 11,
+          "Q": 0.10675813452414681
+        },
+        {
+          "antecedents": [
+            7,
+            10
+          ],
+          "consequent": 6,
+          "Q": 0.09024827785554397
+        },
+        {
+          "antecedents": [
+            6,
+            7
+          ],
+          "consequent": 2,
+          "Q": 0.08033102012435074
+        },
+        {
+          "antecedents": [
+            2,
+            7
+          ],
+          "consequent": 3,
+          "Q": 0.12774768806215278
+        },
+        {
+          "antecedents": [
+            7,
+            8
+          ],
+          "consequent": 3,
+          "Q": 0.11789464357296561
+        },
+        {
+          "antecedents": [
+            7,
+            8
+          ],
+          "consequent": 7,
+          "Q": 0.05446427422279179
+        },
+        {
+          "antecedents": [
+            7
+          ],
+          "consequent": 5,
+          "Q": 0.0561492999632827
+        },
+        {
+          "antecedents": [
+            1,
+            7
+          ],
+          "consequent": 0,
+          "Q": 0.10867384613531103
+        },
+        {
+          "antecedents": [
+            1,
+            7
+          ],
+          "consequent": 5,
+          "Q": 0.07213100669538479
+        },
+        {
+          "antecedents": [
+            3,
+            7
+          ],
+          "consequent": 0,
+          "Q": 0.06561000000000002
+        },
+        {
+          "antecedents": [
+            3,
+            7
+          ],
+          "consequent": 5,
+          "Q": 0.17400488497364963
+        },
+        {
+          "antecedents": [
+            3,
+            7
+          ],
+          "consequent": 11,
+          "Q": 0.047574068115176595
+        },
+        {
+          "antecedents": [
+            7,
+            8
+          ],
+          "consequent": 0,
+          "Q": 0.18376120086394135
+        },
+        {
+          "antecedents": [
+            7,
+            8
+          ],
+          "consequent": 5,
+          "Q": 0.081651466863432
+        },
+        {
+          "antecedents": [
+            7,
+            8
+          ],
+          "consequent": 11,
+          "Q": 0.02326722304619233
+        },
+        {
+          "antecedents": [
+            7,
+            11
+          ],
+          "consequent": 0,
+          "Q": 0.08135459738659043
+        },
+        {
+          "antecedents": [
+            7,
+            11
+          ],
+          "consequent": 5,
+          "Q": 0.05583528445863753
+        },
+        {
+          "antecedents": [
+            1,
+            7
+          ],
+          "consequent": 6,
+          "Q": 0.02931279195232703
+        },
+        {
+          "antecedents": [
+            4,
+            7
+          ],
+          "consequent": 1,
+          "Q": 0.09054955117124461
+        },
+        {
+          "antecedents": [
+            7,
+            9
+          ],
+          "consequent": 6,
+          "Q": 0.051721822338546115
+        },
+        {
+          "antecedents": [
+            7,
+            11
+          ],
+          "consequent": 6,
+          "Q": 0.02265064940082153
+        },
+        {
+          "antecedents": [
+            2,
+            7
+          ],
+          "consequent": 5,
+          "Q": 0.04020959115545546
+        },
+        {
+          "antecedents": [
+            3,
+            7
+          ],
+          "consequent": 1,
+          "Q": 0.05295310063335458
+        },
+        {
+          "antecedents": [
+            3,
+            7
+          ],
+          "consequent": 7,
+          "Q": 0.04655877726435757
+        },
+        {
+          "antecedents": [
+            7,
+            8
+          ],
+          "consequent": 4,
+          "Q": 0.17872157542543757
+        },
+        {
+          "antecedents": [
+            6,
+            7
+          ],
+          "consequent": 7,
+          "Q": 0.0945999509278293
+        },
+        {
+          "antecedents": [
+            3,
+            7
+          ],
+          "consequent": 2,
+          "Q": 0.05828389688972298
+        },
+        {
+          "antecedents": [
+            7,
+            10
+          ],
+          "consequent": 5,
+          "Q": 0.05559016763488046
+        },
+        {
+          "antecedents": [
+            1,
+            7
+          ],
+          "consequent": 4,
+          "Q": 0.060852945822722763
+        },
+        {
+          "antecedents": [
+            7,
+            11
+          ],
+          "consequent": 4,
+          "Q": 0.03390110099074524
+        },
+        {
+          "antecedents": [
+            6,
+            7
+          ],
+          "consequent": 0,
+          "Q": 0.0623906605045528
+        },
+        {
+          "antecedents": [
+            0,
+            7
+          ],
+          "consequent": 6,
+          "Q": 0.06523609615110683
+        },
+        {
+          "antecedents": [
+            7,
+            9
+          ],
+          "consequent": 3,
+          "Q": 0.08731616467261777
+        }
+      ]
+    },
+    "random_1000": {
+      "steps": 1000,
+      "surviving_pred_edges": 689,
+      "v7_edge_count": 123,
+      "v7_max_Q": 0.9979376680454376,
+      "v7_edges_Q_ge_0_5": 7,
+      "pred_pool_stats": {
+        "seeded": 0,
+        "spawned": 689,
+        "pruned": 0,
+        "active": 689
+      },
+      "v7_edges": [
+        {
+          "antecedents": [
+            7
+          ],
+          "consequent": 1,
+          "Q": 0.4746156000670841
+        },
+        {
+          "antecedents": [
+            7
+          ],
+          "consequent": 7,
+          "Q": 0.9968927968333539
+        },
+        {
+          "antecedents": [
+            7
+          ],
+          "consequent": 11,
+          "Q": 0.4116594986553607
+        },
+        {
+          "antecedents": [
+            0,
+            7
+          ],
+          "consequent": 1,
+          "Q": 0.2642269688211872
+        },
+        {
+          "antecedents": [
+            0,
+            7
+          ],
+          "consequent": 7,
+          "Q": 0.42073942107285184
+        },
+        {
+          "antecedents": [
+            0,
+            7
+          ],
+          "consequent": 11,
+          "Q": 0.07663478693923832
+        },
+        {
+          "antecedents": [
+            7,
+            10
+          ],
+          "consequent": 1,
+          "Q": 0.20786931032041275
+        },
+        {
+          "antecedents": [
+            7,
+            10
+          ],
+          "consequent": 7,
+          "Q": 0.404361987401675
+        },
+        {
+          "antecedents": [
+            7,
+            10
+          ],
+          "consequent": 11,
+          "Q": 0.004145802317367449
+        },
+        {
+          "antecedents": [
+            1,
+            7
+          ],
+          "consequent": 1,
+          "Q": 0.28021493710987533
+        },
+        {
+          "antecedents": [
+            1,
+            7
+          ],
+          "consequent": 7,
+          "Q": 0.23279581056400733
+        },
+        {
+          "antecedents": [
+            1,
+            7
+          ],
+          "consequent": 11,
+          "Q": 0.00949645652577317
+        },
+        {
+          "antecedents": [
+            7,
+            9
+          ],
+          "consequent": 1,
+          "Q": 0.2361975475204099
+        },
+        {
+          "antecedents": [
+            7,
+            9
+          ],
+          "consequent": 7,
+          "Q": 0.31541700465211175
+        },
+        {
+          "antecedents": [
+            7,
+            9
+          ],
+          "consequent": 11,
+          "Q": 0.042950494517724
+        },
+        {
+          "antecedents": [
+            7,
+            11
+          ],
+          "consequent": 1,
+          "Q": 0.25712277394094296
+        },
+        {
+          "antecedents": [
+            7,
+            11
+          ],
+          "consequent": 7,
+          "Q": 0.27538094623063203
+        },
+        {
+          "antecedents": [
+            7,
+            11
+          ],
+          "consequent": 11,
+          "Q": 0.01766843974611272
+        },
+        {
+          "antecedents": [
+            7
+          ],
+          "consequent": 2,
+          "Q": 0.9979376680454376
+        },
+        {
+          "antecedents": [
+            2,
+            7
+          ],
+          "consequent": 2,
+          "Q": 0.4053908426271208
+        },
+        {
+          "antecedents": [
+            5,
+            7
+          ],
+          "consequent": 2,
+          "Q": 0.2879267393628295
+        },
+        {
+          "antecedents": [
+            7,
+            9
+          ],
+          "consequent": 2,
+          "Q": 0.4521653062949926
+        },
+        {
+          "antecedents": [
+            7
+          ],
+          "consequent": 0,
+          "Q": 0.8729373159707229
+        },
+        {
+          "antecedents": [
+            7
+          ],
+          "consequent": 4,
+          "Q": 0.15456547307382923
+        },
+        {
+          "antecedents": [
+            0,
+            7
+          ],
+          "consequent": 0,
+          "Q": 0.3904868647368765
+        },
+        {
+          "antecedents": [
+            0,
+            7
+          ],
+          "consequent": 4,
+          "Q": 0.09120983262198759
+        },
+        {
+          "antecedents": [
+            7,
+            9
+          ],
+          "consequent": 0,
+          "Q": 0.3523452366359603
+        },
+        {
+          "antecedents": [
+            7,
+            9
+          ],
+          "consequent": 4,
+          "Q": 0.1097660145800999
+        },
+        {
+          "antecedents": [
+            7
+          ],
+          "consequent": 3,
+          "Q": 0.14365191605519861
+        },
+        {
+          "antecedents": [
+            0,
+            7
+          ],
+          "consequent": 3,
+          "Q": 0.04695208594116693
+        },
+        {
+          "antecedents": [
+            7,
+            10
+          ],
+          "consequent": 3,
+          "Q": 0.08431565172312984
+        },
+        {
+          "antecedents": [
+            5,
+            7
+          ],
+          "consequent": 1,
+          "Q": 0.04410514721572959
+        },
+        {
+          "antecedents": [
+            5,
+            7
+          ],
+          "consequent": 7,
+          "Q": 0.2754018852015054
+        },
+        {
+          "antecedents": [
+            5,
+            7
+          ],
+          "consequent": 11,
+          "Q": 0.0011672880348659615
+        },
+        {
+          "antecedents": [
+            1,
+            7
+          ],
+          "consequent": 2,
+          "Q": 0.3879713811563525
+        },
+        {
+          "antecedents": [
+            7,
+            10
+          ],
+          "consequent": 2,
+          "Q": 0.4292017920759391
+        },
+        {
+          "antecedents": [
+            7,
+            11
+          ],
+          "consequent": 2,
+          "Q": 0.3764270751553006
+        },
+        {
+          "antecedents": [
+            2,
+            7
+          ],
+          "consequent": 4,
+          "Q": 0.084911913764524
+        },
+        {
+          "antecedents": [
+            7,
+            10
+          ],
+          "consequent": 4,
+          "Q": 0.015003460542744915
+        },
+        {
+          "antecedents": [
+            2,
+            7
+          ],
+          "consequent": 1,
+          "Q": 0.14964213958200193
+        },
+        {
+          "antecedents": [
+            2,
+            7
+          ],
+          "consequent": 11,
+          "Q": 0.08968270154546404
+        },
+        {
+          "antecedents": [
+            6,
+            7
+          ],
+          "consequent": 1,
+          "Q": 0.20954103773843907
+        },
+        {
+          "antecedents": [
+            6,
+            7
+          ],
+          "consequent": 11,
+          "Q": 0.00806676279744375
+        },
+        {
+          "antecedents": [
+            7,
+            8
+          ],
+          "consequent": 1,
+          "Q": 0.23082756128584309
+        },
+        {
+          "antecedents": [
+            7
+          ],
+          "consequent": 6,
+          "Q": 0.1483622865732997
+        },
+        {
+          "antecedents": [
+            2,
+            7
+          ],
+          "consequent": 6,
+          "Q": 0.08400208037814501
+        },
+        {
+          "antecedents": [
+            2,
+            7
+          ],
+          "consequent": 7,
+          "Q": 0.3020203664962786
+        },
+        {
+          "antecedents": [
+            4,
+            7
+          ],
+          "consequent": 2,
+          "Q": 0.3226917062752609
+        },
+        {
+          "antecedents": [
+            4,
+            7
+          ],
+          "consequent": 6,
+          "Q": 0.24696350705829356
+        },
+        {
+          "antecedents": [
+            4,
+            7
+          ],
+          "consequent": 7,
+          "Q": 0.1768335943400798
+        },
+        {
+          "antecedents": [
+            4,
+            7
+          ],
+          "consequent": 11,
+          "Q": 0.20230999961396437
+        },
+        {
+          "antecedents": [
+            7,
+            10
+          ],
+          "consequent": 6,
+          "Q": 0.10298135066297051
+        },
+        {
+          "antecedents": [
+            6,
+            7
+          ],
+          "consequent": 2,
+          "Q": 0.3295486774638701
+        },
+        {
+          "antecedents": [
+            2,
+            7
+          ],
+          "consequent": 3,
+          "Q": 0.03499617400483165
+        },
+        {
+          "antecedents": [
+            7,
+            8
+          ],
+          "consequent": 3,
+          "Q": 0.07353719568363144
+        },
+        {
+          "antecedents": [
+            7,
+            8
+          ],
+          "consequent": 7,
+          "Q": 0.36756956864946655
+        },
+        {
+          "antecedents": [
+            7
+          ],
+          "consequent": 5,
+          "Q": 0.22290303458337507
+        },
+        {
+          "antecedents": [
+            1,
+            7
+          ],
+          "consequent": 0,
+          "Q": 0.2953157710931256
+        },
+        {
+          "antecedents": [
+            1,
+            7
+          ],
+          "consequent": 5,
+          "Q": 0.10880300661636341
+        },
+        {
+          "antecedents": [
+            3,
+            7
+          ],
+          "consequent": 0,
+          "Q": 0.18372055591037514
+        },
+        {
+          "antecedents": [
+            3,
+            7
+          ],
+          "consequent": 5,
+          "Q": 0.32802422486367067
+        },
+        {
+          "antecedents": [
+            3,
+            7
+          ],
+          "consequent": 11,
+          "Q": 0.13279824664941306
+        },
+        {
+          "antecedents": [
+            7,
+            8
+          ],
+          "consequent": 0,
+          "Q": 0.3651745319103987
+        },
+        {
+          "antecedents": [
+            7,
+            8
+          ],
+          "consequent": 5,
+          "Q": 0.1426390259167103
+        },
+        {
+          "antecedents": [
+            7,
+            8
+          ],
+          "consequent": 11,
+          "Q": 0.021520398343194906
+        },
+        {
+          "antecedents": [
+            7,
+            11
+          ],
+          "consequent": 0,
+          "Q": 0.316202382239813
+        },
+        {
+          "antecedents": [
+            7,
+            11
+          ],
+          "consequent": 5,
+          "Q": 0.08499258062087789
+        },
+        {
+          "antecedents": [
+            1,
+            7
+          ],
+          "consequent": 6,
+          "Q": 0.04659989350538411
+        },
+        {
+          "antecedents": [
+            4,
+            7
+          ],
+          "consequent": 1,
+          "Q": 0.3375272872709241
+        },
+        {
+          "antecedents": [
+            7,
+            9
+          ],
+          "consequent": 6,
+          "Q": 0.09476927564874016
+        },
+        {
+          "antecedents": [
+            7,
+            11
+          ],
+          "consequent": 6,
+          "Q": 0.05902883323830578
+        },
+        {
+          "antecedents": [
+            2,
+            7
+          ],
+          "consequent": 5,
+          "Q": 0.16513048857097987
+        },
+        {
+          "antecedents": [
+            3,
+            7
+          ],
+          "consequent": 1,
+          "Q": 0.3139247155602496
+        },
+        {
+          "antecedents": [
+            3,
+            7
+          ],
+          "consequent": 7,
+          "Q": 0.19375906782696242
+        },
+        {
+          "antecedents": [
+            7,
+            8
+          ],
+          "consequent": 4,
+          "Q": 0.12008800394490528
+        },
+        {
+          "antecedents": [
+            6,
+            7
+          ],
+          "consequent": 7,
+          "Q": 0.22275814146659234
+        },
+        {
+          "antecedents": [
+            3,
+            7
+          ],
+          "consequent": 2,
+          "Q": 0.3004564481501779
+        },
+        {
+          "antecedents": [
+            7,
+            10
+          ],
+          "consequent": 5,
+          "Q": 0.2003022677738792
+        },
+        {
+          "antecedents": [
+            1,
+            7
+          ],
+          "consequent": 4,
+          "Q": 0.06458840024314919
+        },
+        {
+          "antecedents": [
+            7,
+            11
+          ],
+          "consequent": 4,
+          "Q": 0.05697028274778159
+        },
+        {
+          "antecedents": [
+            6,
+            7
+          ],
+          "consequent": 0,
+          "Q": 0.1778788787369137
+        },
+        {
+          "antecedents": [
+            0,
+            7
+          ],
+          "consequent": 6,
+          "Q": 0.09862661345295712
+        },
+        {
+          "antecedents": [
+            7,
+            9
+          ],
+          "consequent": 3,
+          "Q": 0.07963278595695794
+        },
+        {
+          "antecedents": [
+            7,
+            9
+          ],
+          "consequent": 5,
+          "Q": 0.07494175343883328
+        },
+        {
+          "antecedents": [
+            0,
+            7
+          ],
+          "consequent": 5,
+          "Q": 0.1633307278743892
+        },
+        {
+          "antecedents": [
+            5,
+            7
+          ],
+          "consequent": 0,
+          "Q": 0.32093137162118873
+        },
+        {
+          "antecedents": [
+            4,
+            7
+          ],
+          "consequent": 0,
+          "Q": 0.2294421959757846
+        },
+        {
+          "antecedents": [
+            7,
+            8
+          ],
+          "consequent": 6,
+          "Q": 0.004425146402782395
+        },
+        {
+          "antecedents": [
+            1,
+            7
+          ],
+          "consequent": 3,
+          "Q": 0.15808879233927065
+        },
+        {
+          "antecedents": [
+            7,
+            11
+          ],
+          "consequent": 3,
+          "Q": 0.13158139205282385
+        },
+        {
+          "antecedents": [
+            7,
+            12
+          ],
+          "consequent": 1,
+          "Q": 0.9667755914552459
+        },
+        {
+          "antecedents": [
+            7,
+            12
+          ],
+          "consequent": 3,
+          "Q": 0.03832319434826047
+        },
+        {
+          "antecedents": [
+            7,
+            12
+          ],
+          "consequent": 11,
+          "Q": 9.054709165594652e-05
+        },
+        {
+          "antecedents": [
+            7,
+            13
+          ],
+          "consequent": 1,
+          "Q": 0.9868897811658258
+        },
+        {
+          "antecedents": [
+            7,
+            13
+          ],
+          "consequent": 7,
+          "Q": 0.06251382443332851
+        },
+        {
+          "antecedents": [
+            7,
+            13
+          ],
+          "consequent": 5,
+          "Q": 0.12999037253429402
+        },
+        {
+          "antecedents": [
+            7,
+            13
+          ],
+          "consequent": 11,
+          "Q": 5.370802318203944e-06
+        },
+        {
+          "antecedents": [
+            7,
+            12
+          ],
+          "consequent": 4,
+          "Q": 0.05956325744576939
+        },
+        {
+          "antecedents": [
+            7,
+            12
+          ],
+          "consequent": 7,
+          "Q": 0.017734786867269266
+        },
+        {
+          "antecedents": [
+            7,
+            13
+          ],
+          "consequent": 3,
+          "Q": 0.0627092796817849
+        },
+        {
+          "antecedents": [
+            7,
+            13
+          ],
+          "consequent": 4,
+          "Q": 0.14424950974497697
+        },
+        {
+          "antecedents": [
+            7,
+            13
+          ],
+          "consequent": 6,
+          "Q": 0.13594133913036896
+        },
+        {
+          "antecedents": [
+            7,
+            12
+          ],
+          "consequent": 5,
+          "Q": 0.3057370450344961
+        },
+        {
+          "antecedents": [
+            7,
+            14
+          ],
+          "consequent": 1,
+          "Q": 0.9788162014859544
+        },
+        {
+          "antecedents": [
+            7,
+            14
+          ],
+          "consequent": 7,
+          "Q": 0.02439850527775833
+        },
+        {
+          "antecedents": [
+            7,
+            14
+          ],
+          "consequent": 3,
+          "Q": 0.005415310343430138
+        },
+        {
+          "antecedents": [
+            7,
+            14
+          ],
+          "consequent": 4,
+          "Q": 0.042814436629391904
+        },
+        {
+          "antecedents": [
+            7,
+            14
+          ],
+          "consequent": 5,
+          "Q": 0.2405985048182015
+        },
+        {
+          "antecedents": [
+            7,
+            12
+          ],
+          "consequent": 6,
+          "Q": 0.05084034816496822
+        },
+        {
+          "antecedents": [
+            7,
+            14
+          ],
+          "consequent": 6,
+          "Q": 0.20202523887473106
+        },
+        {
+          "antecedents": [
+            7,
+            15
+          ],
+          "consequent": 0,
+          "Q": 0.7231386682200123
+        },
+        {
+          "antecedents": [
+            7,
+            15
+          ],
+          "consequent": 6,
+          "Q": 0.003963309618854826
+        },
+        {
+          "antecedents": [
+            7,
+            15
+          ],
+          "consequent": 7,
+          "Q": 0.02278190600458246
+        },
+        {
+          "antecedents": [
+            7,
+            16
+          ],
+          "consequent": 0,
+          "Q": 0.47675967156850935
+        },
+        {
+          "antecedents": [
+            7,
+            16
+          ],
+          "consequent": 7,
+          "Q": 0.0810297609782496
+        },
+        {
+          "antecedents": [
+            7,
+            16
+          ],
+          "consequent": 3,
+          "Q": 0.15804450121727676
+        },
+        {
+          "antecedents": [
+            7,
+            15
+          ],
+          "consequent": 4,
+          "Q": 0.0026307718999910084
+        },
+        {
+          "antecedents": [
+            7,
+            15
+          ],
+          "consequent": 3,
+          "Q": 0.10050547917423011
+        },
+        {
+          "antecedents": [
+            7,
+            16
+          ],
+          "consequent": 5,
+          "Q": 0.010972253475899774
+        },
+        {
+          "antecedents": [
+            7,
+            16
+          ],
+          "consequent": 11,
+          "Q": 0.0018231883071336775
+        },
+        {
+          "antecedents": [
+            7,
+            16
+          ],
+          "consequent": 6,
+          "Q": 0.02243051902498209
+        },
+        {
+          "antecedents": [
+            7,
+            15
+          ],
+          "consequent": 5,
+          "Q": 0.11071834388806823
+        },
+        {
+          "antecedents": [
+            7,
+            15
+          ],
+          "consequent": 11,
+          "Q": 0.055621249680869164
+        }
+      ]
+    },
+    "pass": false
+  },
+  "test_3_chunking_and_trace": {
+    "soft_decay": {
+      "rows": [
+        {
+          "link": "((V1, V8), V3) -> V11",
+          "Q": 0.22531478631912372,
+          "expected": "high"
+        },
+        {
+          "link": "((V1, V10), V4) -> V11",
+          "Q": 0.0,
+          "expected": "high"
+        },
+        {
+          "link": "(V1, V8) -> V11",
+          "Q": 0.023832872426610984,
+          "expected": "low"
+        },
+        {
+          "link": "(V3) -> V11",
+          "Q": 0.6309422895913376,
+          "expected": "low / insufficient"
+        },
+        {
+          "link": "(V4) -> V11",
+          "Q": 0.694722413068255,
+          "expected": "low / insufficient"
+        }
+      ],
+      "chunks": [
+        {
+          "node": 12,
+          "components": [
+            1,
+            8
+          ]
+        },
+        {
+          "node": 13,
+          "components": [
+            4,
+            8
+          ]
+        },
+        {
+          "node": 14,
+          "components": [
+            3,
+            8
+          ]
+        }
+      ],
+      "trace_mode": "no destructive consumption; normal decay"
+    },
+    "hard_consumption": {
+      "rows": [
+        {
+          "link": "((V1, V8), V3) -> V11",
+          "Q": 0.22531478631912372,
+          "expected": "high"
+        },
+        {
+          "link": "((V1, V10), V4) -> V11",
+          "Q": 0.0,
+          "expected": "high"
+        },
+        {
+          "link": "(V1, V8) -> V11",
+          "Q": 0.023832872426610984,
+          "expected": "low"
+        },
+        {
+          "link": "(V3) -> V11",
+          "Q": 0.6309422895913376,
+          "expected": "low / insufficient"
+        },
+        {
+          "link": "(V4) -> V11",
+          "Q": 0.694722413068255,
+          "expected": "low / insufficient"
+        }
+      ],
+      "chunks": [
+        {
+          "node": 12,
+          "components": [
+            1,
+            8
+          ]
+        },
+        {
+          "node": 13,
+          "components": [
+            4,
+            8
+          ]
+        },
+        {
+          "node": 14,
+          "components": [
+            3,
+            8
+          ]
+        }
+      ],
+      "trace_mode": "confirmed antecedent traces are zeroed after learning"
+    },
+    "same_step_probe": {
+      "soft_decay": {
+        "transition_Q_before": 0.999999999999998,
+        "transition_Q_after": 0.9999999999999981,
+        "wellbeing_Q_before": 0.22531478631912372,
+        "wellbeing_Q_after": 0.2709910647538779,
+        "active_trace_before_learn_V1": 1.0,
+        "active_trace_before_learn_V8": 1.0,
+        "trace_after_learn_V1": 1.0,
+        "trace_after_learn_V8": 1.0
+      },
+      "hard_consumption": {
+        "transition_Q_before": 0.999999999999998,
+        "transition_Q_after": 0.9999999999999981,
+        "wellbeing_Q_before": 0.22531478631912372,
+        "wellbeing_Q_after": 0.2709910647538779,
+        "active_trace_before_learn_V1": 1.0,
+        "active_trace_before_learn_V8": 1.0,
+        "trace_after_learn_V1": 1.0,
+        "trace_after_learn_V8": 1.0
+      }
+    },
+    "chunk_constraints": {
+      "soft_decay": {
+        "count": 3,
+        "within_max_chunks": true,
+        "chunk_with_own_component_blocked": true,
+        "chunk_with_chunk_blocked": true
+      },
+      "hard_consumption": {
+        "count": 3,
+        "within_max_chunks": true,
+        "chunk_with_own_component_blocked": true,
+        "chunk_with_chunk_blocked": true
+      }
+    },
+    "pass": false
+  },
+  "trace_decay_reference": [
+    1.0,
+    0.95,
+    0.8999999999999999,
+    0.8499999999999999,
+    0.7999999999999998,
+    0.7499999999999998,
+    0.6999999999999997,
+    0.6499999999999997,
+    0.5999999999999996
+  ],
+  "all_pass": false
+}
