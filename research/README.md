@@ -1,13 +1,15 @@
 # Research workspace
 
-This directory is the project's open-ended theoretical workspace. It is a place to develop and revise the mathematical, algorithmic, and biological foundations of the Blind Gate Graph project. It may explore mechanisms, extensions, alternative formulations, and questions that do not yet exist in `development/`.
+This directory is the project's open-ended theoretical workspace. It develops the mathematical, algorithmic, and biological foundations of the project. It may explore mechanisms, extensions, alternative formulations, and questions not yet represented in `development/`.
 
-These notes are descriptive and exploratory rather than a binding specification. They are not expected to be a snapshot of the executable prototype, nor does every research idea need an implementation. Conversely, implementation details may change without requiring research notes to be treated as a contract. When useful, notes can identify assumptions, distinguish evidence from conjecture, and link to relevant implementation files.
+These documents are agent-oriented context, not rigid implementation instructions or a binding specification. Research is not a snapshot of the finished software: theories may precede code, code may expose weaknesses in theories, and either may change independently. When useful, distinguish established observations, modeling assumptions, hypotheses, and open questions.
 
-## Orientation
+## Start here
 
-- [Mathematical core](mathematical-core.md) describes the value algebra and learning quantities visible in the current prototype, alongside open formalization opportunities.
-- [Algorithmic core](algorithmic-core.md) sketches the graph-based prediction, action evaluation, and temporal learning approach.
-- [Biological core](biological-core.md) frames the prototype in biological terms and separates inspiration from demonstrated neuroscience.
+1. [Foundational research principles](foundational-principles.md) — scientific orientation, biological framing, architectural aspirations, mathematical constraints, functional capabilities, and standards for honest evidence. Use as a reasoning compass, not a checklist to satisfy mechanically.
+2. [Current development map](current-development.md) — a factual guide to the checked-in environment, learner, support code, tests, and gaps. This is a time-sensitive description; check the source when details matter.
+3. [Mathematical core](mathematical-core.md) — bounded operations, estimates, evidence strengths, inhibition, and temporal quantities.
+4. [Algorithmic core](algorithmic-core.md) — the current predictive graph approach and directions for alternatives.
+5. [Biological core](biological-core.md) — biological motivation, limits of analogy, and empirical questions.
 
-Agents can use these documents to understand the intended research landscape, while treating them as context rather than mandatory instructions.
+Agents can use these notes to orient themselves, then inspect the implementation and tests for concrete behavior. A principle describes an intended scientific direction; it does not imply that current development already fulfills it.
