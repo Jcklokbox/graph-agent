@@ -1,644 +1,314 @@
-"""Homogeneous causal-temporal hypergraph controller.
+"""Local predictive hypergraph learner for anonymous input and motor channels.
 
-All vertices are ordinary input/output channels.  A directed hyperedge stores
-its own causal strength, continuous target expectation and temporal profile;
-there are no synthetic chunk vertices or separate motor/value tables.
+Transition expectations, relative associations, and eligibility traces live on
+hyperedges. Environment channel identities are supplied as topology, not
+interpreted as sensor semantics by the learning rules.
 """
 from __future__ import annotations
 
-from collections import defaultdict
 from itertools import combinations
 from typing import Any, Iterable
 
 import numpy as np
 
-from brain_p2 import DynamicQPool
-from ops import A, D, M
+from ops import A, D, M, N, update_Q
 
 Antecedents = tuple[int, ...]
 EdgeKey = tuple[Antecedents, int]
 
 
-class _ValueStats(dict):
-    """Dictionary with a projection for retired virtual chunk identifiers."""
-    def get(self, key: Any, default: Any = None) -> Any:
-        value = super().get(key, None)
-        if value is not None:
-            return value
-        if (isinstance(key, tuple) and len(key) == 2
-                and isinstance(key[0], tuple)):
-            # Old callers may include non-vertex virtual IDs in a query.
-            # Project onto the real vertices without assigning them graph state.
-            real = tuple(sorted(x for x in key[0] if 0 <= x <= 10))
-            if real and len(real) <= 3:
-                return super().get((real, key[1]), default)
-        return default
-
-
 class BlindGateGraphBrain:
-    ETA_PLUS = 0.10
-    ETA_MINUS = 0.01
-    MAX_ORDER = 3
-    MAX_CHUNKS = 0  # compatibility constant; the hypergraph creates no chunks
+    """Learn local predictions and choose among internally generated actions.
 
-    def __init__(self, seed: int = 0, *, consume_trace: bool = False,
-                 max_chunks: int = 16, temporal_enabled: bool = True,
-                 compact_learning: bool = False) -> None:
-        # Legacy switches remain accepted; temporal edge dynamics are always on.
-        del consume_trace, max_chunks, temporal_enabled, compact_learning
-        self.rng = np.random.default_rng(seed)
-        self.sensor_nodes = tuple(range(8))
-        self.action_nodes = (8, 9, 10)
-        self.value_node = 11
+    `action_nodes` reserves graph vertices for candidate motor events. Every
+    other observation slot is treated uniformly as an input, including the
+    wellbeing channel. The task declares which input vertex represents
+    wellbeing so candidate actions can be ranked by its predicted activation.
+
+    The defaults match `BlindGateEnv`; alternate channel/action wiring can be
+    supplied without changing the learner's association rules.
+    """
+
+    def __init__(self, *, observation_size: int = 12,
+                 action_nodes: Iterable[int] = (8, 9, 10),
+                 wellbeing_node: int = 11, expectation_rate: float = 0.1,
+                 association_rate: float = 0.1,
+                 extinction_rate: float = 0.01, trace_decay: float = 0.8) -> None:
+        self.action_nodes = tuple(int(node) for node in action_nodes)
+        self.observation_size = int(observation_size)
+        self.wellbeing_node = int(wellbeing_node)
+        if self.observation_size <= 0:
+            raise ValueError("observation_size must be positive")
+        if not self.action_nodes or len(set(self.action_nodes)) != len(self.action_nodes):
+            raise ValueError("action_nodes must contain distinct graph vertices")
+        if any(node < 0 or node >= self.observation_size for node in self.action_nodes):
+            raise ValueError("action nodes must lie within the graph observation width")
+        if self.wellbeing_node < 0 or self.wellbeing_node >= self.observation_size:
+            raise ValueError("wellbeing_node must lie within the graph observation width")
+        if self.wellbeing_node in self.action_nodes:
+            raise ValueError("wellbeing_node cannot also be an action node")
+        for name, rate in (("expectation_rate", expectation_rate),
+                           ("association_rate", association_rate),
+                           ("extinction_rate", extinction_rate)):
+            if not np.isfinite(rate) or not 0.0 <= rate <= 1.0:
+                raise ValueError(f"{name} must be in [0, 1]")
+        if not np.isfinite(trace_decay) or not 0.0 <= trace_decay < 1.0:
+            raise ValueError("trace_decay must be in [0, 1)")
+
+        self.input_nodes = tuple(node for node in range(self.observation_size)
+                                 if node not in self.action_nodes)
+        self.expectation_rate = float(expectation_rate)
+        self.association_rate = float(association_rate)
+        self.extinction_rate = float(extinction_rate)
+        self.trace_decay = float(trace_decay)
         self.hyperedges: dict[EdgeKey, dict[str, Any]] = {}
-        self.edge_trace: dict[EdgeKey, np.ndarray] = {}
-        self.edge_age: dict[EdgeKey, int] = {}
-        self._trace_index_by_target: dict[int, set[EdgeKey]] = defaultdict(set)
-        self._discharged: set[EdgeKey] = set()
-        self._trace_source_strength = np.zeros(8, dtype=float)
-        self.p_base = np.full(12, 0.5, dtype=float)
-        self._base_ema = np.full(12, 0.5, dtype=float)
-        self._base_counts = np.zeros(12, dtype=np.int64)
-        self.total_steps = 0
-        self.S_fast = np.zeros(12, dtype=float)  # read-only compatibility projections
-        self.S_mid = np.zeros(12, dtype=float)
-        self.S_slow = np.zeros(12, dtype=float)
-        self.S_trace = np.zeros(12, dtype=float)
-        self.pred_pool = DynamicQPool("hyperedge_positive", 50000)
-        self.pred_mid_pool = DynamicQPool("hyperedge_mid", 50000)
-        self.pred_slow_pool = DynamicQPool("hyperedge_slow", 50000)
-        self.pred_inhib = DynamicQPool("hyperedge_negative", 50000)
-        self.q_minus_pool = self.pred_inhib
-        self.vessel_q: dict[tuple[int, str, int], float] = {}
-        self.q_val_stats: dict[tuple[Any, int], list[float]] = _ValueStats()
-        # Compatibility-only virtual handles for old nested chunk queries.
-        # They are never vertices in the causal graph or in activation arrays.
-        self.chunk_components: dict[int, tuple[int, int]] = {}
-        self.chunk_by_components: dict[tuple[int, int], int] = {}
-        self._virtual_pairs: dict[int, tuple[int, int]] = {}
-        self._next_virtual = 100
         self._pending = False
-        self._pending_source = np.zeros(12, dtype=float)
-        self._pending_obs = np.zeros(12, dtype=float)
-        self._pending_action = 1
-        self.last_debug: dict[str, Any] = {}
-        self.base_rate = self.p_base.copy()
-        self._edge_index: dict[int, set[EdgeKey]] = defaultdict(set)
-        self._value_index_by_action: dict[int, set[EdgeKey]] = defaultdict(set)
-        self._prediction_index_by_target: dict[int, set[EdgeKey]] = defaultdict(set)
-        self._traceable_targets: dict[Antecedents, set[int]] = defaultdict(set)
+        self._pending_source = np.zeros(self.observation_size, dtype=float)
+        self._pending_observation = np.zeros(self.observation_size, dtype=float)
 
-    @staticmethod
-    def _validate_observation(observation: np.ndarray) -> np.ndarray:
-        v = np.asarray(observation, dtype=float)
-        if v.shape != (12,):
-            raise ValueError(f"Expected observation shape (12,), got {v.shape}")
-        if not np.all(np.isfinite(v)) or np.any(v < 0.0) or np.any(v > 1.0):
+    def _validate_observation(self, observation: np.ndarray) -> np.ndarray:
+        value = np.asarray(observation, dtype=float)
+        if value.shape != (self.observation_size,):
+            raise ValueError(
+                f"Expected observation shape ({self.observation_size},), got {value.shape}"
+            )
+        if not np.all(np.isfinite(value)) or np.any(value < 0.0) or np.any(value > 1.0):
             raise ValueError("Observation values must be finite and in [0, 1]")
-        if np.any(v[8:11] != 0.0):
-            raise ValueError("Environment must not feed output neurons 8..10 back as inputs")
-        return v.copy()
-
-    def _expand_legacy_antecedents(self, antecedents: Any) -> Antecedents:
-        if isinstance(antecedents, (int, np.integer)):
-            raw = (int(antecedents),)
-        else:
-            raw_list: list[int] = []
-            for item in antecedents:
-                if isinstance(item, (tuple, list)):
-                    raw_list.extend(int(x) for x in item)
-                else:
-                    value = int(item)
-                    if value in self._virtual_pairs:
-                        raw_list.extend(self._virtual_pairs[value])
-                    else:
-                        raw_list.append(value)
-            raw = tuple(raw_list)
-        # A legacy virtual handle may be nested with a cue; flatten and dedupe.
-        raw = tuple(sorted(set(raw)))
-        if not raw or len(raw) > self.MAX_ORDER:
-            raise ValueError("Hyperedge antecedents must contain 1..3 distinct vertices")
-        if any(x < 0 or x > 10 for x in raw):
-            raise ValueError("Antecedent vertex must be in 0..10")
-        return raw
-
-    def _register_legacy_pair(self, pair: tuple[int, int]) -> int:
-        if pair not in self.chunk_by_components:
-            handle = self._next_virtual
-            self._next_virtual += 1
-            self.chunk_by_components[pair] = handle
-            self.chunk_components[handle] = pair
-            self._virtual_pairs[handle] = pair
-        return self.chunk_by_components[pair]
+        if any(value[node] != 0.0 for node in self.action_nodes):
+            raise ValueError("Environment must not feed motor nodes back as observations")
+        return value.copy()
 
     @staticmethod
-    def _subsets(ants: Antecedents) -> Iterable[Antecedents]:
-        for size in range(1, len(ants)):
-            yield from combinations(ants, size)
+    def _subsets(antecedents: Antecedents) -> Iterable[Antecedents]:
+        for size in range(1, len(antecedents)):
+            yield from combinations(antecedents, size)
 
-    def _edge(self, key: EdgeKey) -> dict[str, Any] | None:
-        return self.hyperedges.get(key)
-
-    def _q(self, ants: Antecedents, target: int) -> float:
-        edge = self.hyperedges.get((ants, target))
-        return float(edge["q"]) if edge else 0.0
-
-    def _mu(self, ants: Antecedents, target: int) -> float:
-        edge = self.hyperedges.get((ants, target))
-        return float(edge["mu"]) if edge else float(self.p_base[target])
-
-    def _reference_mu(self, ants: Antecedents, target: int) -> float:
-        if len(ants) == 1:
-            return float(self.p_base[target])
-        return max([float(self.p_base[target])] + [self._mu(sub, target) for sub in self._subsets(ants)])
-
-    def _make_source(self, obs: np.ndarray, action: int) -> np.ndarray:
-        source = np.zeros(12, dtype=float)
-        source[:8] = np.maximum(obs[:8], self._trace_source_strength)
+    def _source(self, observation: np.ndarray, action: int) -> np.ndarray:
+        source = np.zeros(self.observation_size, dtype=float)
+        source[list(self.input_nodes)] = observation[list(self.input_nodes)]
         source[self.action_nodes[action]] = 1.0
         return source
 
-    def _active_keys(self, source: np.ndarray,
-                     observed: np.ndarray | None = None) -> list[tuple[Antecedents, float]]:
-        active: list[int] = []
-        for node in range(11):
-            if source[node] < 0.08:
+    @staticmethod
+    def _active_hyperedges(source: np.ndarray) -> list[tuple[Antecedents, float]]:
+        active = [int(node) for node, value in enumerate(source) if value > 0.0]
+        edges: list[tuple[Antecedents, float]] = []
+        for size in range(1, len(active) + 1):
+            for members in combinations(active, size):
+                antecedents = tuple(members)
+                activation = min(float(source[node]) for node in antecedents)
+                edges.append((antecedents, activation))
+        return edges
+
+    def _reference(self, antecedents: Antecedents, target: int) -> float:
+        background = self.hyperedges.get(((), target))
+        values = [float(background["expectation"]) if background is not None else 0.5]
+        for subset in self._subsets(antecedents):
+            edge = self.hyperedges.get((subset, target))
+            if edge is not None and edge["confidence"] > 0.0:
+                values.append(float(edge["expectation"]))
+        return max(values)
+
+    def _new_edge(self) -> dict[str, Any]:
+        return {"expectation": 0.5, "confidence": 0.0,
+                "positive": 0.0, "inhibition": 0.0,
+                "trace": 0.0, "age": 0, "delays": {}}
+
+    def _update_edge(self, antecedents: Antecedents, target: int,
+                     activation: float, outcome: float) -> None:
+        key = (antecedents, target)
+        edge = self.hyperedges.get(key)
+        if edge is None:
+            edge = self._new_edge()
+            self.hyperedges[key] = edge
+        alpha = self.expectation_rate * activation
+        edge["expectation"] = float(A(
+            M(N(alpha), float(edge["expectation"])), M(alpha, outcome)
+        ))
+        reference = self._reference(antecedents, target)
+        confirmation = float(M(activation, D(float(edge["expectation"]), reference)))
+        falsification = float(M(activation, D(reference, float(edge["expectation"]))))
+        edge["positive"] = float(update_Q(
+            float(edge["positive"]), confirmation, falsification,
+            self.association_rate, self.extinction_rate,
+        ))
+        edge["inhibition"] = float(update_Q(
+            float(edge["inhibition"]), falsification, confirmation,
+            self.association_rate, self.extinction_rate,
+        ))
+        evidence = float(M(self.association_rate, activation))
+        edge["confidence"] = float(A(
+            float(edge["confidence"]), M(evidence, N(float(edge["confidence"])))
+        ))
+
+    def _update_background(self, target: int, outcome: float) -> None:
+        """Update the antecedent-free background relation in the same graph."""
+        key: EdgeKey = ((), target)
+        edge = self.hyperedges.get(key)
+        if edge is None:
+            edge = self._new_edge()
+            self.hyperedges[key] = edge
+        alpha = self.expectation_rate
+        edge["expectation"] = float(A(
+            M(N(alpha), float(edge["expectation"])), M(alpha, outcome)
+        ))
+        edge["confidence"] = float(A(
+            float(edge["confidence"]), M(self.association_rate, N(float(edge["confidence"])))
+        ))
+
+    def _predict_wellbeing(self, source: np.ndarray) -> float:
+        """Combine bounded excitation and inhibition over active graph edges."""
+        background = self.hyperedges.get(((), self.wellbeing_node))
+        prediction = float(background["expectation"]) if background is not None else 0.5
+        excitation = 0.0
+        inhibition = 0.0
+        for antecedents, activation in self._active_hyperedges(source):
+            edge = self.hyperedges.get((antecedents, self.wellbeing_node))
+            if edge is None:
                 continue
-            if node < 8 and observed is not None and observed[node] < 0.08:
+            confidence = float(edge["confidence"])
+            positive_support = M(activation, M(confidence, float(edge["positive"])))
+            inhibitory_support = M(activation, M(confidence, float(edge["inhibition"])))
+            excitation = max(excitation, float(positive_support))
+            inhibition = max(inhibition, float(inhibitory_support))
+        return float(D(A(prediction, excitation), inhibition))
+
+    def _local_novelty(self, source: np.ndarray, action_node: int) -> float:
+        """Strongest locally active uncertainty for one candidate action."""
+        novelty = 0.0
+        for antecedents, activation in self._active_hyperedges(source):
+            if action_node not in antecedents:
                 continue
-            active.append(node)
-
-        # A single edge-local trace can supply the missing cue in a new
-        # conjunction. Additional trace-only cues remain available for
-        # prediction through their own indexed edges, without multiplying
-        # candidate conjunctions combinatorially.
-        if observed is not None:
-            strongest_node = -1
-            strongest_value = 0.08
-            for node in range(8):
-                value = float(source[node])
-                if observed[node] < 0.08 and value > strongest_value:
-                    strongest_node = node
-                    strongest_value = value
-            if strongest_node >= 0:
-                active.append(strongest_node)
-        active.sort()
-        values = [float(source[i]) for i in active]
-        keys: list[tuple[Antecedents, float]] = []
-        count = len(active)
-        for i in range(count):
-            a, va = active[i], values[i]
-            keys.append(((a,), va))
-            for j in range(i + 1, count):
-                b, vb = active[j], values[j]
-                strength2 = va if va < vb else vb
-                keys.append(((a, b), strength2))
-                for k in range(j + 1, count):
-                    c, vc = active[k], values[k]
-                    # Three-sensor-only conjunctions are admitted when all
-                    # three cues are simultaneously observed. Otherwise the
-                    # third vertex must be the action channel.
-                    if c < 8 and a < 8 and b < 8:
-                        if observed is None or min(observed[a], observed[b], observed[c]) < 0.08:
-                            continue
-                    strength3 = strength2 if strength2 < vc else vc
-                    keys.append(((a, b, c), strength3))
-        return keys
-
-    def _sync_compatibility_pools(self) -> None:
-        self.pred_pool.nodes.clear()
-        self.pred_mid_pool.nodes.clear()
-        self.pred_slow_pool.nodes.clear()
-        self.pred_inhib.nodes.clear()
-        self.vessel_q.clear()
-        for (ants, target), edge in self.hyperedges.items():
-            q = float(edge["q"])
-            if q > 0.0:
-                self.pred_pool.nodes[(ants, target)] = q
-            self.pred_mid_pool.nodes[(ants, target)] = q * float(edge["lag"][1])
-            self.pred_slow_pool.nodes[(ants, target)] = q * float(edge["lag"][2])
-            if edge["q_minus"] > 0.0:
-                self.pred_inhib.nodes[(ants, target)] = float(edge["q_minus"])
-            if len(ants) == 1:
-                self.vessel_q[(ants[0], "mid", target)] = q * float(edge["lag"][1])
-                self.vessel_q[(ants[0], "slow", target)] = q * float(edge["lag"][2])
-
-    def _project_traces(self) -> None:
-        self.S_fast.fill(0.0)
-        self.S_mid.fill(0.0)
-        self.S_slow.fill(0.0)
-        self._trace_source_strength.fill(0.0)
-        for (ants, _target), trace in self.edge_trace.items():
-            strength = max(float(trace[0]), float(trace[1]), float(trace[2]))
-            for node in ants:
-                if node < 8:
-                    if trace[0] > self.S_fast[node]:
-                        self.S_fast[node] = float(trace[0])
-                    if trace[1] > self.S_mid[node]:
-                        self.S_mid[node] = float(trace[1])
-                    if trace[2] > self.S_slow[node]:
-                        self.S_slow[node] = float(trace[2])
-                    if len(ants) == 1 and strength >= 0.08 and strength > self._trace_source_strength[node]:
-                        self._trace_source_strength[node] = strength
-        self.S_trace[:8] = np.maximum.reduce((self.S_fast[:8], self.S_mid[:8], self.S_slow[:8]))
-
-    def _predict_targets(self, source: np.ndarray) -> np.ndarray:
-        predictions = np.zeros(8, dtype=float)
-        for target, indexed in self._prediction_index_by_target.items():
-            best = 0.0
-            for key in indexed:
-                ants, _ = key
-                strength = 1.0
-                for node in ants:
-                    value = float(source[node])
-                    if value < 0.08:
-                        strength = 0.0
-                        break
-                    if value < strength:
-                        strength = value
-                if strength == 0.0:
-                    continue
-                edge = self.hyperedges[key]
-                lag = edge["lag"]
-                temporal = max(float(lag[0]), float(lag[1]), float(lag[2]))
-                confidence = min(1.0, edge["n"] / 3.0)
-                value = float(edge["mu"]) * max(float(edge["q"]), 0.15) * confidence
-                value *= max(strength, temporal)
-                if value > best:
-                    best = value
-            predictions[target] = best
-        return predictions
-
-    def _best_indexed_value(self, source: np.ndarray, action_node: int) -> tuple[float, bool]:
-        best = 0.0
-        matched = False
-        edges = self.hyperedges
-        for key in self._value_index_by_action[action_node]:
-            ants, _target = key
-            strength = 1.0
-            valid = True
-            for node in ants:
-                value = float(source[node])
-                if value < 0.08:
-                    valid = False
-                    break
-                if value < strength:
-                    strength = value
-            if not valid:
-                continue
-            matched = True
-            edge = edges[key]
-            count = edge["n"]
-            if count < 1:
-                continue
-            confidence = min(1.0, count / 3.0)
-            score = float(edge["mu"]) * max(float(edge["q"]), 0.12) * confidence * strength
-            if score > best:
-                best = score
-        return best, matched
-
-    def _score_action(self, obs: np.ndarray, action: int) -> float:
-        source = self._make_source(obs, action)
-        action_node = self.action_nodes[action]
-        direct, matched_action_edge = self._best_indexed_value(source, action_node)
-
-        # Two-step graph rollout. Value edges are retrieved from the action
-        # index; no scan of the full hyperedge dictionary is required.
-        second_best = 0.0
-        first_predictions = self._predict_targets(source)
-        for j, p_j in enumerate(first_predictions):
-            if p_j < 0.12:
-                continue
-            for action2 in range(3):
-                future = np.zeros(12, dtype=float)
-                future[j] = p_j
-                for cue in range(8):
-                    if cue != j:
-                        future[cue] = source[cue] * 0.85
-                future[self.action_nodes[action2]] = 1.0
-                future_best, _ = self._best_indexed_value(future, self.action_nodes[action2])
-                if future_best > second_best:
-                    second_best = 0.90 * future_best
-        score = max(direct, second_best)
-
-        if not matched_action_edge:
-            score = max(score, 0.52 if action != 1 else 0.50)
-        return 0.0 if score < 0.0 else 1.0 if score > 1.0 else float(score)
-
-    def _select_action_validated(self, obs: np.ndarray, *, autonomous: bool = False) -> int:
-        scores = [self._score_action(obs, action) for action in range(3)]
-        choice = int(np.argmax(scores))
-        self.last_debug["selection"] = {
-            "scores": [{"action": a, "value": float(scores[a])} for a in range(3)],
-            "chosen": choice,
-            "exploration": bool(autonomous and scores[choice] <= 0.52),
-        }
-        return choice
+            edge = self.hyperedges.get((antecedents, self.wellbeing_node))
+            confidence = 0.0 if edge is None else float(edge["confidence"])
+            novelty = max(novelty, float(M(activation, N(confidence))))
+        return novelty
 
     def select_action(self, observation: np.ndarray) -> int:
         if self._pending:
             raise RuntimeError("Call learn() after each forward()")
-        return self._select_action_validated(self._validate_observation(observation))
+        obs = self._validate_observation(observation)
+        scores = []
+        for action, action_node in enumerate(self.action_nodes):
+            source = self._source(obs, action)
+            estimate = self._predict_wellbeing(source)
+            novelty = self._local_novelty(source, action_node)
+            # Optimism is bounded by unresolved wellbeing and driven by local
+            # edge evidence, not elapsed time or an unrelated random generator.
+            scores.append(float(A(estimate, M(novelty, N(estimate)))))
+        return int(np.argmax(scores))
 
     def forward(self, observation: np.ndarray, action: int | None = None) -> int:
         if self._pending:
             raise RuntimeError("Call learn() after each forward()")
         obs = self._validate_observation(observation)
         if action is None:
-            action = self._select_action_validated(obs, autonomous=True)
-        if action not in (0, 1, 2):
-            raise ValueError("action must be 0, 1, 2, or None")
+            action = self.select_action(obs)
+        if not isinstance(action, (int, np.integer)) or int(action) not in range(len(self.action_nodes)):
+            raise ValueError(f"action must be an index in 0..{len(self.action_nodes) - 1}, or None")
         action = int(action)
-        self._pending_obs = obs.copy()
-        self._pending_action = action
-        self._pending_source = self._make_source(obs, action)
+        self._pending_observation = obs
+        self._pending_source = self._source(obs, action)
         self._pending = True
-        self.last_debug["action"] = action
         return action
-
-    def _update_edge(self, ants: Antecedents, target: int, strength: float,
-                     actual: float, ref: float) -> None:
-        key = (ants, target)
-        edge = self.hyperedges.get(key)
-        if edge is None:
-            if len(ants) == 2:
-                self._register_legacy_pair((ants[0], ants[1]))
-            edge = {"q": 0.0, "q_minus": 0.0, "n": 0, "total": 0.0,
-                    "ema": 0.5, "mu": 0.5, "lag": np.zeros(3, dtype=float),
-                    "lag_n": np.zeros(3, dtype=np.int64),
-                    "in_pred_pool": False, "in_inhib_pool": False,
-                    "prediction_indexed": False, "traceable": False}
-            self.hyperedges[key] = edge
-            for node in ants:
-                self._edge_index[node].add(key)
-                if target == self.value_node and node in self.action_nodes:
-                    self._value_index_by_action[node].add(key)
-
-        n = edge["n"] + 1
-        total = edge["total"] + actual
-        ema = 0.88 * edge["ema"] + 0.12 * actual
-        mu = 0.5 * (total / n) + 0.5 * ema
-        if mu < 0.0:
-            mu = 0.0
-        elif mu > 1.0:
-            mu = 1.0
-
-        q = edge["q"]
-        delta = mu - ref
-        if delta > 0.10:
-            confirm = strength if mu >= 0.80 else strength * min(1.0, delta / 0.25)
-            q += self.ETA_PLUS * confirm * (1.0 - q)
-        else:
-            q -= self.ETA_MINUS * strength * q
-        if q < 0.0:
-            q = 0.0
-        elif q > 1.0:
-            q = 1.0
-
-        q_minus = edge["q_minus"]
-        if actual < 0.5 and len(ants) > 1 and ref >= 0.5:
-            q_minus += self.ETA_PLUS * strength * (1.0 - q_minus)
-        elif actual >= 0.5:
-            q_minus -= self.ETA_MINUS * strength * q_minus
-        if q_minus < 0.0:
-            q_minus = 0.0
-        elif q_minus > 1.0:
-            q_minus = 1.0
-
-        edge["n"] = n
-        edge["total"] = total
-        edge["ema"] = ema
-        edge["mu"] = mu
-        edge["q"] = q
-        edge["q_minus"] = q_minus
-
-        traceable = q >= 0.05 or q_minus >= 0.05
-        if traceable != edge["traceable"]:
-            if traceable:
-                self._traceable_targets[ants].add(target)
-            else:
-                self._traceable_targets[ants].discard(target)
-            edge["traceable"] = traceable
-
-        pool_key = key
-        if q > 0.0:
-            self.pred_pool.nodes[pool_key] = q
-            edge["in_pred_pool"] = True
-        elif edge["in_pred_pool"]:
-            self.pred_pool.nodes.pop(pool_key, None)
-            edge["in_pred_pool"] = False
-        if q_minus > 0.0:
-            self.pred_inhib.nodes[pool_key] = q_minus
-            edge["in_inhib_pool"] = True
-        elif edge["in_inhib_pool"]:
-            self.pred_inhib.nodes.pop(pool_key, None)
-            edge["in_inhib_pool"] = False
-
-        if target < 8:
-            eligible = mu * max(q, 0.15) * min(1.0, n / 3.0) >= 0.12
-            if eligible != edge["prediction_indexed"]:
-                index = self._prediction_index_by_target[target]
-                if eligible:
-                    index.add(pool_key)
-                else:
-                    index.discard(pool_key)
-                edge["prediction_indexed"] = eligible
-        elif target == self.value_node:
-            self.q_val_stats[(ants, target)] = [mu, float(n)]
-
-        if len(ants) == 1:
-            lag = edge["lag"]
-            if lag[1] or lag[2]:
-                self.vessel_q[(ants[0], "mid", target)] = q * float(lag[1])
-                self.vessel_q[(ants[0], "slow", target)] = q * float(lag[2])
-
-    def _update_temporal_edges(self, source: np.ndarray, target: np.ndarray,
-                               active_keys: list[tuple[Antecedents, float]]) -> None:
-        active_antecedents = {ants for ants, _ in active_keys}
-
-        # A discharged edge cannot fire again until its antecedent becomes
-        # inactive. This prevents repeated consumption while a cue is held.
-        for key in tuple(self._discharged):
-            if key[0] not in active_antecedents:
-                self._discharged.discard(key)
-
-        # Only live traces are decayed. Inactive edges are never enumerated.
-        for key, trace in tuple(self.edge_trace.items()):
-            trace[0] *= 0.25
-            trace[1] = max(0.85 * trace[0], 0.55 * trace[1])
-            trace[2] = max(0.80 * trace[1], 0.70 * trace[2])
-            self.edge_age[key] = self.edge_age.get(key, 0) + 1
-            if max(trace) < 0.03:
-                self.edge_trace.pop(key, None)
-                self.edge_age.pop(key, None)
-                self._trace_index_by_target[key[1]].discard(key)
-
-        # Activate only indexed hyperedges belonging to current active subsets.
-        for ants, strength in active_keys:
-            for j in self._traceable_targets.get(ants, ()):
-                key = (ants, j)
-                if key in self._discharged:
-                    continue
-                if key not in self.edge_trace:
-                    self.edge_trace[key] = np.zeros(3, dtype=float)
-                    self.edge_age[key] = 0
-                    self._trace_index_by_target[j].add(key)
-                trace = self.edge_trace[key]
-                if strength > trace[0]:
-                    trace[0] = strength
-
-        # Only inspect traces whose own target actually occurred.
-        for j in np.flatnonzero(target >= 0.5):
-            for key in tuple(self._trace_index_by_target[int(j)]):
-                trace = self.edge_trace.get(key)
-                if trace is None:
-                    continue
-                edge = self.hyperedges.get(key)
-                if edge is None or edge["mu"] < 0.5 or max(trace) < 0.08:
-                    continue
-                lag_index = 0 if self.edge_age.get(key, 0) <= 1 else 1 if self.edge_age.get(key, 0) <= 2 else 2
-                edge["lag_n"][lag_index] += 1
-                edge["lag"][lag_index] += 1.0
-                total = float(np.sum(edge["lag"]))
-                if total:
-                    edge["lag"] /= total
-                q = float(edge["q"])
-                self.pred_mid_pool.nodes[key] = q * float(edge["lag"][1])
-                self.pred_slow_pool.nodes[key] = q * float(edge["lag"][2])
-                if len(key[0]) == 1:
-                    node = key[0][0]
-                    self.vessel_q[(node, "mid", j)] = q * float(edge["lag"][1])
-                    self.vessel_q[(node, "slow", j)] = q * float(edge["lag"][2])
-                self.edge_trace.pop(key, None)
-                self.edge_age.pop(key, None)
-                self._trace_index_by_target[int(j)].discard(key)
-                self._discharged.add(key)
-
-        self._project_traces()
 
     def learn(self, next_observation: np.ndarray) -> None:
         if not self._pending:
             raise RuntimeError("Call forward() before learn()")
         target = self._validate_observation(next_observation)
         source = self._pending_source
-        active_keys = self._active_keys(source, self._pending_obs)
-        # Subset expectations are prepared once per active antecedent, after
-        # all lower-order subsets have been updated in this same transition.
-        for ants, strength in active_keys:
-            refs = self.p_base.copy()
-            if len(ants) > 1:
-                for subset in self._subsets(ants):
-                    for j in range(12):
-                        subset_edge = self.hyperedges.get((subset, j))
-                        if subset_edge is not None and subset_edge["mu"] > refs[j]:
-                            refs[j] = float(subset_edge["mu"])
-            for j in range(12):
-                self._update_edge(ants, j, strength, float(target[j]), float(refs[j]))
+        active_edges = self._active_hyperedges(source)
 
-        # Refresh base-rate statistics after edge updates.
-        self.total_steps += 1
-        self._base_counts += (target >= 0.5).astype(np.int64)
-        exact_base = self._base_counts / max(1, self.total_steps)
-        self._base_ema = 0.98 * self._base_ema + 0.02 * (target >= 0.5)
-        self.p_base = 0.5 * exact_base + 0.5 * self._base_ema
-        self.base_rate = self.p_base.copy()
+        # Merge current activity with eligibility from each edge's own trace.
+        updates: dict[EdgeKey, float] = {}
+        for antecedents, activation in active_edges:
+            for node in self.input_nodes:
+                updates[(antecedents, node)] = activation
+        for key, edge in self.hyperedges.items():
+            eligibility = float(edge["trace"])
+            if eligibility > 0.0:
+                updates[key] = max(updates.get(key, 0.0), eligibility)
 
-        self._update_temporal_edges(source, target, active_keys)
-        self.last_debug.update({"W": float(target[11]), "active_hyperedges": len(active_keys),
-                                "active_edge_traces": len(self.edge_trace)})
+        # Simple antecedents update first; compounds compare with the best
+        # lower-order explanation, so redundant conjunctions add no evidence.
+        for (antecedents, target_node), activation in sorted(
+                updates.items(), key=lambda item: len(item[0][0])):
+            self._update_edge(antecedents, target_node, activation, float(target[target_node]))
+
+        for node in self.input_nodes:
+            self._update_background(node, float(target[node]))
+
+        self._update_temporal(target, self._pending_observation, active_edges)
         self._pending = False
 
-    def _normalize_antecedents(self, antecedents: int | Iterable[int]) -> Antecedents:
-        return self._expand_legacy_antecedents(antecedents)
-
-    def q_pred(self, antecedents: int | Iterable[int], consequent: int) -> float:
-        ants = self._normalize_antecedents(antecedents)
-        target = int(consequent)
-        edge = self.hyperedges.get((ants, target))
-        if edge is not None:
-            return float(edge["q"])
-        # Compatibility projection for a one-node action query: the strongest
-        # learned hyperedge containing that action vertex and the target.
-        if len(ants) == 1 and ants[0] in self.action_nodes:
-            return max((float(e["q"]) for (a, j), e in self.hyperedges.items()
-                        if j == target and ants[0] in a), default=0.0)
-        return 0.0
-
-    def q_pred_temporal(self, antecedents: int | Iterable[int], consequent: int) -> dict[str, float]:
-        ants = self._normalize_antecedents(antecedents)
-        edge = self.hyperedges.get((ants, int(consequent)))
-        if edge is None:
-            return {"fast": 0.0, "mid": 0.0, "slow": 0.0}
-        q = float(edge["q"])
-        lag = edge["lag"]
-        return {"fast": q * float(lag[0]), "mid": q * float(lag[1]), "slow": q * float(lag[2])}
-
-    def q_inhib(self, antecedents: int | Iterable[int], consequent: int) -> float:
-        ants = self._normalize_antecedents(antecedents)
-        edge = self.hyperedges.get((ants, int(consequent)))
-        return float(edge["q_minus"]) if edge else 0.0
-
-    def q_val(self, antecedents: int | Iterable[int], consequent: int) -> float:
-        ants = self._normalize_antecedents(antecedents)
-        edge = self.hyperedges.get((ants, int(consequent)))
-        return float(edge["mu"]) if edge and int(consequent) == 11 else 0.0
-
-    def expected_at_delay(self, antecedent: int | Iterable[int], consequent: int, delay: int) -> float:
-        if delay < 1:
-            raise ValueError("delay must be >= 1")
-        ants = self._normalize_antecedents(antecedent)
-        edge = self.hyperedges.get((ants, int(consequent)))
-        if edge is None:
-            return 0.0
-        index = 0 if delay == 1 else 1 if delay == 2 else 2
-        return float(edge["q"] * edge["lag"][index])
-
-    def predict_from_trace(self, trace: np.ndarray | None = None,
-                           *, include_inhibition: bool = True) -> np.ndarray:
-        source = self.S_trace.copy() if trace is None else np.asarray(trace, dtype=float).copy()
-        out = np.zeros(12, dtype=float)
-        for (ants, target), edge in self.hyperedges.items():
-            strength = min((float(source[i]) for i in ants), default=0.0)
+    def _update_temporal(self, target: np.ndarray, previous_observation: np.ndarray,
+                         active_edges: list[tuple[Antecedents, float]]) -> None:
+        for edge in self.hyperedges.values():
+            if edge["trace"] > 0.0:
+                edge["trace"] *= self.trace_decay
+                edge["age"] += 1
+        for antecedents, activation in active_edges:
+            for target_node in self.input_nodes:
+                edge = self.hyperedges.get((antecedents, target_node))
+                if edge is not None:
+                    edge["trace"] = max(float(edge["trace"]), activation)
+                    # Activity on the preceding transition makes the next
+                    # observation one step away.
+                    if edge["age"] == 0:
+                        edge["age"] = 1
+        for (antecedents, target_node), edge in self.hyperedges.items():
+            strength = float(edge["trace"])
             if strength <= 0.0:
                 continue
-            positive = float(edge["q"]) * float(edge["mu"]) * strength
-            negative = float(edge["q_minus"]) * strength if include_inhibition else 0.0
-            out[target] = float(D(A(out[target], positive), negative))
-        return out
+            if target_node == self.wellbeing_node:
+                outcome_occurred = target[target_node] != previous_observation[target_node]
+            else:
+                outcome_occurred = target[target_node] > 0.0 and previous_observation[target_node] <= 0.0
+            if outcome_occurred:
+                delay = int(edge["age"])
+                learning = float(M(self.association_rate, strength))
+                retention = float(N(learning))
+                for previous_delay in tuple(edge["delays"]):
+                    edge["delays"][previous_delay] = float(
+                        M(retention, float(edge["delays"][previous_delay]))
+                    )
+                old_probability = float(edge["delays"].get(delay, 0.0))
+                edge["delays"][delay] = float(A(M(retention, old_probability), learning))
+                edge["trace"] = 0.0
+                edge["age"] = 0
 
-    def pool_snapshot(self) -> list[dict[str, Any]]:
-        return [{"antecedents": list(ants), "consequent": target, "Q": float(edge["q"])}
-                for (ants, target), edge in self.hyperedges.items() if edge["q"] > 0.0]
+    def _normalize_antecedents(self, antecedents: int | Iterable[int]) -> Antecedents:
+        values = ((int(antecedents),) if isinstance(antecedents, (int, np.integer))
+                  else tuple(int(node) for node in antecedents))
+        normalized = tuple(sorted(set(values)))
+        if not normalized or any(node < 0 or node >= self.observation_size for node in normalized):
+            raise ValueError(f"Antecedents must be graph nodes in 0..{self.observation_size - 1}")
+        return normalized
 
-    def inhibitory_snapshot(self) -> list[dict[str, Any]]:
-        return [{"antecedents": list(ants), "consequent": target, "Q_minus": float(edge["q_minus"])}
-                for (ants, target), edge in self.hyperedges.items() if edge["q_minus"] > 0.0]
+    def predictive_strength(self, antecedents: int | Iterable[int], consequent: int) -> float:
+        """Return bounded positive association strength for one graph edge."""
+        ants = self._normalize_antecedents(antecedents)
+        edge = self.hyperedges.get((ants, int(consequent)))
+        return float(edge["positive"]) if edge else 0.0
 
-    def chunk_snapshot(self) -> list[dict[str, Any]]:
-        # No chunk vertices exist in the homogeneous hypergraph.
-        return []
+    def inhibitory_strength(self, antecedents: int | Iterable[int], consequent: int) -> float:
+        """Return bounded inhibitory association strength for one graph edge."""
+        ants = self._normalize_antecedents(antecedents)
+        edge = self.hyperedges.get((ants, int(consequent)))
+        return float(edge["inhibition"]) if edge else 0.0
 
-    def _valid_pair(self, a: int, b: int) -> bool:
-        return a != b and 0 <= a <= 10 and 0 <= b <= 10
+    def observed_delay_distribution(
+            self, antecedents: int | Iterable[int], consequent: int) -> dict[int, float]:
+        """Return the bounded, recency-weighted distribution of event delays."""
+        ants = self._normalize_antecedents(antecedents)
+        edge = self.hyperedges.get((ants, int(consequent)))
+        return {} if edge is None else dict(edge["delays"])
 
-
-def make_observation(position: int, precursor: int | None = None, food: int | None = None,
-                     noise: float = 0.0, wellbeing: float = 0.5) -> np.ndarray:
-    if position not in (0, 1, 2):
-        raise ValueError("position must be in {0, 1, 2}")
-    obs = np.zeros(12, dtype=float)
-    obs[position] = 1.0
-    if precursor in (0, 1):
-        obs[3 + precursor] = 1.0
-    elif precursor is not None:
-        raise ValueError("precursor must be None, 0, or 1")
-    if food in (0, 1):
-        obs[5 + food] = 1.0
-    elif food is not None:
-        raise ValueError("food must be None, 0, or 1")
-    obs[7] = float(noise)
-    obs[11] = float(wellbeing)
-    return obs
+    def observed_delay_probability(
+            self, antecedents: int | Iterable[int], consequent: int, delay: int) -> float:
+        if delay < 1:
+            raise ValueError("delay must be positive")
+        return self.observed_delay_distribution(antecedents, consequent).get(delay, 0.0)
 
 
-__all__ = ["BlindGateGraphBrain", "make_observation"]
+__all__ = ["BlindGateGraphBrain"]

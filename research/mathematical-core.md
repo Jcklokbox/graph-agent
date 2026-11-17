@@ -1,53 +1,45 @@
 # Mathematical core
 
-This note maps the mathematical ideas currently visible in `development/` and identifies where the formal theory remains incomplete. The code is not a proof that the desired mathematical properties hold.
+This note maps the current model's mathematical quantities and identifies what remains unproved. The implementation is not a proof that the desired mathematical or biological properties hold.
 
 ## Bounded operation vocabulary
 
-`development/ops.py` defines scalar- and array-valued operations intended for values in `[0,1]`:
+`development/ops.py` defines scalar- and array-valued operations intended for `[0,1]`:
 
 - `N(x) = 1 - x`: complement;
 - `A(x,y) = min(1, x+y)`: saturating addition;
 - `M(x,y) = xy`: multiplication;
 - `D(x,y) = N(A(N(x),y)) = max(0,x-y)`: bounded difference;
-- `B(x,k)`: repeated self-combination using `A`;
 - `update_Q`: a confirm/falsify update helper built from bounded operations.
 
-The first four are a small closed operation set for bounded quantities. `B` and `update_Q` are helpers built around it. These algebraic primitives are not the same thing as the five functional capabilities (AND, NOT, OR, TIME, VALUE CHAIN) described in [the foundational principles](foundational-principles.md); a derivation connecting them is still needed.
+`update_Q` is a helper; these algebraic primitives are not the same level of description as the five functional capabilities (AND, NOT, OR, TIME, VALUE CHAIN) in [Foundational Research Principles](foundational-principles.md). A derivation relating the levels remains open.
 
-## Quantities in the current learner
+## Quantities stored on graph edges
 
-The graph implementation (`development/blind_gate_graph.py`) stores per-antecedent/target edge records. Among other fields, these include:
+The learner stores learned state in one hyperedge map. A key is `(antecedent_nodes, target_node)`; the empty antecedent `()` holds the target's background expectation in the same graph. Edge records contain:
 
-- `n`, `total`, and `ema`: sample count, accumulated target activity, and an exponentially weighted activity estimate;
-- `mu`: a blend of empirical frequency and EMA, used as an outcome estimate/reference;
-- `q`: positive predictive association strength, updated with separate positive and decay rates according to improvement over a reference;
-- `q_minus`: inhibitory strength, updated from selected unexpected absences and reduced on target activity;
-- `lag`: normalized proportions over three approximate delay categories, with accompanying counts;
-- edge-local trace intensity: a short/mid/slow activity record with decay and target-triggered discharge.
+- `expectation`: an exponentially updated target activity estimate;
+- `confidence`: bounded accumulated evidence for the relation;
+- `positive` and `inhibition`: separate bounded strengths, allowing excitation and suppression to coexist;
+- `trace` and `age`: eligibility intensity in `[0,1]` and elapsed integer steps;
+- `delays`: recency-weighted event-delay probabilities whose values remain in `[0,1]`.
 
-The exact meanings and calibration of these quantities are implementation-specific. In particular, `q` is not automatically a calibrated conditional probability, and `mu`, `q`, and action scores should not be treated as interchangeable. The learner uses baseline-rate estimates and lower-order edge estimates as references for compound edges. It also updates values and action scores through additional structures; see the [development map](current-development.md).
+The wellbeing estimate combines the background expectation with active excitation and inhibition using bounded `A`, `M`, `N`, and `D`. Novelty is derived from low local confidence and gives candidate actions optimistic wellbeing only within the unresolved range. All learned activation-like quantities are bounded; discrete node identifiers and elapsed step age are indices, not activation variables.
 
-## Intended mathematical constraints
+The current expectation, confidence, association, and delay distribution are model estimates, not automatically calibrated causal probabilities. Initialization and default update rates remain hypotheses. Constructor rates are explicit and bounded (`expectation_rate`, `association_rate`, `extinction_rate`, and `trace_decay`) rather than hidden inside per-scenario branches.
 
-The research direction favors quantities bounded in `[0,1]`, transparent update equations, and local learning based on an edge's active antecedents and target, with explicit reference statistics. This does not mean all current code updates literally use only `N`, `A`, `M`, and `D`: source contains direct arithmetic, clipping, thresholds, and parameterized EMA formulas. Record these accurately when deriving or auditing the model.
+## Locality and remaining mathematical questions
+
+Updates are made per active antecedent/target edge or its local trace. The empty-antecedent background is also represented as a graph edge. Action selection aggregates only active relations. The graph does enumerate every active subset; this preserves the possibility of higher-order conjunctions but creates exponential computational cost. A principled complexity mechanism is an open problem, not grounds for an arbitrary fixed order cap.
 
 For each quantity or equation, specify:
 
-1. domain and intended interpretation (probability, expectation, evidence strength, inhibition, trace, or score);
+1. domain and meaning (expectation, confidence, excitation, inhibition, trace, delay probability, or action score);
 2. observations used in its update and the locality boundary;
-3. initialization, saturation, decay, and parameter units;
-4. whether it is calibrated and how calibration is evaluated;
-5. interactions with correlated predictors, absent events, repeated outcomes, and nonstationarity.
+3. initialization, decay, saturation, and parameter interpretation;
+4. calibration and uncertainty, if probability-like language is used;
+5. behavior under correlated predictors, absent events, repeated outcomes, and nonstationarity.
 
-## Open formal questions
+Open questions include whether max lower-order reference produces informative association and blocking; how absent events should be represented under sparse observation; how independent excitatory and inhibitory strengths behave under reversal; what temporal kernel follows from trace decay; whether saturating combination overcounts correlated predictors; and whether local novelty is a defensible uncertainty estimate. Deep value propagation is not implemented.
 
-- Under what assumptions does baseline-relative strengthening implement an informative-association or blocking effect?
-- How should evidence for a target's absence be represented when observations are sparse or partially observed?
-- Can positive and inhibitory associations coexist without erasure, and what prevents order-dependent interference?
-- What temporal kernel is implied by the current trace cascade, and how does it behave across delays outside the three bins?
-- Does saturating accumulation preserve useful evidence under correlated or redundant inputs?
-- Which numerical parameters have a physical/statistical interpretation, and which are provisional engineering choices?
-- How can local edge updates produce stable long-horizon value propagation without an unacknowledged global optimizer or task-specific table?
-
-Derivations and experiments should make assumptions explicit and may propose a different bounded algebra if it explains data better.
+Derivations and experiments should make assumptions explicit and may propose different bounded operations if they better explain evidence.

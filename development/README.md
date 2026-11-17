@@ -1,26 +1,26 @@
 # Development workspace
 
-This directory contains the executable project and its current empirical/test artifacts. It is the place for implementation work on the agent and its environment; the broader theoretical workspace lives in [`../research/`](../research/README.md).
+This directory contains the executable project and its current behavioral experiments. The theoretical workspace is [`../research/`](../research/README.md).
 
 ## Files
 
-- `blind_gate.py` — three-position delayed-food environment, baseline policies, and benchmark helpers.
-- `blind_gate_graph.py` — graph-based agent, transition learning, temporal relations, action evaluation, and query/snapshot APIs.
-- `brain_p2.py` — lightweight `DynamicQPool` compatibility/statistics helper.
-- `ops.py` — bounded activation/evidence operations.
-- `test_*.py` — behavioral and structural test suites.
-- `*_test.json` — recorded task or benchmark data used by the project.
+- `blind_gate.py` — delayed-food environment and baseline policies.
+- `blind_gate_graph.py` — topology-configurable predictive hypergraph learner/controller.
+- `ops.py` — bounded algebra operations.
+- `benchmark_envs.py` — cancellation, variable-delay, and distant-goal environments used by behavioral experiments.
+- `test_despecialized.py` — five principle-level experiments: informative prediction and conjunctions, autonomous behavior under channel permutations, conditional inhibition and variable-delay learning, distant value seeking, and reversal learning.
 
 ## Running
 
-Run commands from this directory so the local modules resolve:
+From this directory:
 
 ```bash
-python -m py_compile ops.py brain_p2.py blind_gate.py blind_gate_graph.py test_despecialized.py
-python test_despecialized.py
+python -m py_compile ops.py blind_gate.py blind_gate_graph.py benchmark_envs.py test_despecialized.py
 python -m pytest -q
 ```
 
-The prototype depends on NumPy; pytest is needed for the pytest runner. Test targets are exploratory and should not be read as a release guarantee. The previously committed README reported partial passes on a five-test run, including failures in autonomous generalization, a distant two-step gate, and reversal learning. Re-run tests in the current environment before relying on that historical status.
+The code requires NumPy; pytest runs the behavioral suite. The thresholds are falsifiable research criteria, not a release checklist. A red result should trigger analysis of the failed principle and experiment, not a task-specific patch. The previous implementation-coupled tests and their stale JSON outputs were removed because they measured virtual chunks, pools, and compatibility structures rather than the learning principles now being evaluated.
 
-The implementation is one evolving realization of the project, not a complete specification of the research program. Changes to code and tests can proceed alongside independent theoretical development in `research/`.
+## Current model boundary
+
+Bounded expectations, confidence, separate excitation/inhibition, and temporal eligibility are stored on directed hyperedges. Action selection combines predicted wellbeing with local novelty from active edge evidence. The model has no task policy, separate action-value table, fixed-order pruning, or legacy API path. Known limitations include exponentially many active subsets, deterministic tie-breaking, weak autonomous results, and shallow value propagation. See `../research/current-development.md` and `../research/foundational-principles.md`.
