@@ -7,9 +7,11 @@ These documents are agent-oriented context, not rigid implementation instruction
 ## Start here
 
 1. [Foundational research principles](foundational-principles.md) — scientific orientation, biological framing, architectural aspirations, mathematical constraints, functional capabilities, and standards for honest evidence. Use as a reasoning compass, not a checklist to satisfy mechanically.
-2. [Current development map](current-development.md) — a factual guide to the checked-in environment, learner, support code, tests, and gaps. This is a time-sensitive description; check the source when details matter.
-3. [Mathematical core](mathematical-core.md) — bounded operations, estimates, evidence strengths, inhibition, and temporal quantities.
-4. [Algorithmic core](algorithmic-core.md) — the current predictive graph approach and directions for alternatives.
-5. [Biological core](biological-core.md) — biological motivation, limits of analogy, and empirical questions.
+2. [Theoretical synthesis](theoretical-synthesis.md) — candidate equations, assumptions, evidence status, falsifiers, and a diagnostic mapping to the five behavioral tests.
+3. [Current development map](current-development.md) — a factual guide to the checked-in environment, learner, support code, tests, and gaps. This is a time-sensitive description; check the source when details matter.
+4. [Implementation equation audit](implementation-equation-audit.md) — equations as currently coded, consequences for the five capabilities, and open design decisions.
+5. [Mathematical core](mathematical-core.md) — bounded operations, estimates, evidence strengths, inhibition, and temporal quantities.
+6. [Algorithmic core](algorithmic-core.md) — the current predictive graph approach and directions for alternatives.
+7. [Biological core](biological-core.md) — biological motivation, limits of analogy, and empirical questions.
 
 Agents can use these notes to orient themselves, then inspect the implementation and tests for concrete behavior. A principle describes an intended scientific direction; it does not imply that current development already fulfills it.
