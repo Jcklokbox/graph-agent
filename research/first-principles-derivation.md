@@ -106,7 +106,15 @@ With `k` active vertices, the set of all non-empty antecedent subsets has size `
 
 **Consequence.** Structural selection is unavoidable at scale; the *selection rule* is the research question. A general rule should trade predictive/decision value against storage, compute, and uncertainty, not recognize benchmark identities.
 
-### R10 — Learning an action's consequence requires action support
+### R10 — No efficient learner can guarantee exact inference for arbitrary Boolean dependencies
+
+A target over `k` binary inputs is an arbitrary Boolean function with `2^k` possible input patterns. There are `2^(2^k)` such functions. A learner that has not observed one input pattern cannot distinguish two functions that agree on all observed patterns and differ only on that unobserved pattern; those functions require different predictions there. Therefore exact worst-case identification needs observations covering all patterns, or a prior/structural assumption that rules out most functions. Storing a fully general exact truth table also needs information growing exponentially with `k`.
+
+This is not an argument that every implementation must enumerate all subsets: sparse/low-order/circuit-like function classes can be learned with far fewer samples and local structure. It is a limit on the simultaneous requirements of arbitrary expressivity, guaranteed correctness, and polynomial resources.
+
+**Consequence.** The project must state the environment class it expects to learn—e.g. sparse, compositional, low-order dependencies with bounded noise. “Only add structure when simple explanations fail” is not enough without a bias/prior specifying which structures are reachable and what happens when evidence is insufficient. No benchmark pass can establish universal function learning.
+
+### R11 — Learning an action's consequence requires action support
 
 Consider two environments that generate identical observations and rewards for every action taken so far, but in one environment an untried action yields high future return and in the other it yields low return. Before that action is tried (or its outcome inferred from another identified relation), the data distributions under the two environments are identical. Any learner that never selects the action has no evidence to distinguish them and therefore cannot guarantee correct action ranking in both.
 
@@ -114,7 +122,7 @@ This is an identifiability argument, not a theorem that random exploration is ne
 
 **Consequence.** The choice mechanism needs a principled way to acquire decision-relevant evidence, and its exploration policy needs safety/coverage assumptions. Under anonymous action permutations, deterministic order-based tie breaking is an especially poor substitute: the first selected action changes under relabeling without any evidence-based reason.
 
-### R11 — Action-conditioned prediction is not causal identification without support
+### R12 — Action-conditioned prediction is not causal identification without support
 
 Suppose the graph predicts outcomes from observation features `x` but omits the chosen action `a`. In general, `P(y|x)` averages consequences over the historical action-selection policy; it cannot answer what would happen under a candidate action. To evaluate candidate actions, the target must at least condition on them: `P(y|x,a)`, or use an equivalent transition model. Even this conditional is estimated only on the support of the observed data. If `P(a|x)=0` for an action/context pair, its outcome is not identified from passive observations without structural assumptions or an intervention.
 

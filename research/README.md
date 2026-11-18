@@ -10,6 +10,7 @@ These documents are agent-oriented context, not rigid implementation instruction
 2. [First-principles derivation](first-principles-derivation.md) — necessary conditions derived from the adaptive learning problem, with proofs/sketches and limits on what follows.
 3. [Benchmark logic audit](benchmark-logic-audit.md) — what the existing scenarios and assertions establish, including measured results and failures.
 4. [Minimal discriminating experiments](minimal-discriminating-experiments.md) — controlled task designs that separate candidate mechanisms rather than merely exercise them.
+5. [Architecture synthesis](architecture-synthesis.md) — provisional sparse posterior predictive graph, its common mechanism, assumptions, costs and go/no-go criteria.
 5. [Mechanism landscape](mechanism-landscape.md) — the research target, competing candidate mechanisms, conditional deductions, and a claim ledger for choosing a development direction.
 6. [Theoretical synthesis](theoretical-synthesis.md) — candidate equations, assumptions, evidence status, falsifiers, and a diagnostic mapping to the five behavioral tests.
 7. [Current development map](current-development.md) — a factual guide to the checked-in environment, learner, support code, tests, and gaps. This is a time-sensitive description; check the source when details matter.
