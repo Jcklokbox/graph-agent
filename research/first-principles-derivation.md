@@ -38,6 +38,10 @@ For `p=σ(u)`, `∂ℓ/∂u = p−y`; thus a gradient step changes the predictio
 
 **Consequence.** Edge weights, confidence, activity, and value cannot be treated as synonyms. A quantity needs a definition from an update and a test of its intended meaning. In particular, repeated exposure alone is not evidence of predictive reliability if outcomes conflict.
 
+**Concrete probabilistic candidate under narrow assumptions.** If a specific edge represents a stationary Bernoulli event probability `θ` whenever its antecedent is active, and the prior is `θ~Beta(a,b)`, then after `s` positive and `f` negative observed outcomes its posterior is `Beta(a+s,b+f)`. The posterior predictive mean is `(a+s)/(a+b+s+f)` and variance is `(a+s)(b+f)/[(a+b+s+f)^2(a+b+s+f+1)]`. This gives one quantity for prediction and another for epistemic uncertainty, unlike exposure count alone. This derivation assumes a binary, correctly observed target, a fixed edge/context, conditionally independent samples and stationarity. Fractional activations, overlapping graph edges, hidden contexts, and drift break the simple count interpretation; discounting counts is an approximation, not this exact posterior.
+
+For competing graph structures `G0` and `G1`, Bayes' rule gives posterior odds `P(G1|D)/P(G0|D) = [P(D|G1)/P(D|G0)] [P(G1)/P(G0)]`. The first ratio is evidence from predictive fit; the second is a structural prior/complexity preference. This derives a way to trade explanatory gain against graph complexity, but it does not supply a free universal prior or make exact marginal likelihood cheap. A held-out predictive criterion is a practical alternative with its own data-splitting assumptions.
+
 ### R3 — General relational learning requires a representation of interactions
 
 If the target depends on two inputs jointly but neither input alone predicts it, a purely additive predictor `f(x_1,x_2)=g_1(x_1)+g_2(x_2)` cannot represent all such functions. For the binary XOR relation, changing either input while holding the other fixed reverses the outcome; no additive independent effects reproduce XOR exactly. The learner must add an interaction term, transform its representation, or infer a latent state that makes the mapping simple.
@@ -70,6 +74,8 @@ Let one relation's target mean be `μ_A` in regime A and `μ_B` in regime B. A c
 
 under independent observations with mean `μ_B`. Larger `α` shortens the adaptation time; it also gives more influence to each noisy sample. Under recurring A/B regimes, a single estimate converges toward a history-weighted mixture rather than preserving both conditional predictions. No choice of one fixed `α` simultaneously provides instantaneous switching, noise immunity, and perfect retention for all regime schedules.
 
+**Quantified consequence under this simple model.** The response to a step change has half-life `n_1/2 = ln(1/2)/ln(1−α)`. It is about 69 samples for `α=.01`, 6.6 for `.1`, and 1 for `.5`. If observations have independent variance `σ²`, the stationary variance of the estimate is `α σ²/(2−α)`: respectively about `.0050σ²`, `.0526σ²`, and `.3333σ²`. Thus in this model the faster setting reduces adaptation lag but passes more observation noise into the estimate. These values are consequences of the EMA assumptions, not recommended learning rates.
+
 **Consequence.** Fast plasticity and preserved old knowledge require either accepting this trade-off, inferring context/regime and conditioning retrieval, storing multiple hypotheses/episodes, or another memory organization. These are alternatives with costs, not an automatic mandate for a Bayesian change-point module. A single reversal score cannot establish which solution is needed.
 
 ### R7 — Surprise, uncertainty, and information value are distinct
@@ -99,6 +105,22 @@ when the task's objective and action effects are relabeled consistently. This is
 With `k` active vertices, the set of all non-empty antecedent subsets has size `2^k−1`. If every subset is materialized/updated, compute and storage grow exponentially in `k`. Any scalable implementation must impose a resource bound, exploit sparsity, factorize interactions, or selectively create structure. A fixed maximum conjunction order is one bound, but it excludes higher-order functions regardless of evidence; unrestricted growth risks explosion.
 
 **Consequence.** Structural selection is unavoidable at scale; the *selection rule* is the research question. A general rule should trade predictive/decision value against storage, compute, and uncertainty, not recognize benchmark identities.
+
+### R10 — Learning an action's consequence requires action support
+
+Consider two environments that generate identical observations and rewards for every action taken so far, but in one environment an untried action yields high future return and in the other it yields low return. Before that action is tried (or its outcome inferred from another identified relation), the data distributions under the two environments are identical. Any learner that never selects the action has no evidence to distinguish them and therefore cannot guarantee correct action ranking in both.
+
+This is an identifiability argument, not a theorem that random exploration is necessary. Alternatives include prior knowledge, transferable structure, safe probes, or causal inference from observed related transitions. But each is an information source that must be made explicit. A deterministic tie rule does not create evidence.
+
+**Consequence.** The choice mechanism needs a principled way to acquire decision-relevant evidence, and its exploration policy needs safety/coverage assumptions. Under anonymous action permutations, deterministic order-based tie breaking is an especially poor substitute: the first selected action changes under relabeling without any evidence-based reason.
+
+### R11 — Action-conditioned prediction is not causal identification without support
+
+Suppose the graph predicts outcomes from observation features `x` but omits the chosen action `a`. In general, `P(y|x)` averages consequences over the historical action-selection policy; it cannot answer what would happen under a candidate action. To evaluate candidate actions, the target must at least condition on them: `P(y|x,a)`, or use an equivalent transition model. Even this conditional is estimated only on the support of the observed data. If `P(a|x)=0` for an action/context pair, its outcome is not identified from passive observations without structural assumptions or an intervention.
+
+The positivity condition is a direct information requirement: if no samples occur for `(x,a)`, two environments can agree on all observed pairs and disagree on that pair's outcome. Their likelihood for the collected data is identical, so a learner cannot distinguish them from those data alone.
+
+**Consequence.** An action vertex in the graph is useful only if the observation/action/outcome update actually preserves the action-conditioned relation and experiences provide adequate support. Mere co-activation of sensory input and wellbeing, aggregated across actions, can learn a predictive correlation while still ranking actions incorrectly. Action coverage is part of the learning problem, not a free consequence of graph representation.
 
 ## 3. What these deductions do and do not select
 
