@@ -1,0 +1,14 @@
+{"25": 4.61, "50": 4.25, "100": 5.88, "200": 9.06}
+T1 dscale: 1 seeds x 600 steps, random policy, second half; GC = gap closed between base rates (0) and the exact filter (1)
+world                      factor-L4-P-C               markov4  filter LL    gap
+s-2x3                  0.79 [+nan,+nan]     0.27 [+nan,+nan]      0.492  0.133
+s-4x3                  0.80 [+nan,+nan]    -0.36 [+nan,+nan]      0.481  0.142
+mean                   0.79                 -0.05             
+
+T1 dscale: 1 seeds x 600 steps, random policy, second half; HGC = hidden gap closed between the 4-step window (0) and the exact filter (1)
+world                      factor-L4-P-C  filter LL    gap
+s-2x3                  0.71 [+nan,+nan]      0.492  0.097
+s-4x3                  0.85 [+nan,+nan]      0.481  0.193
+mean                   0.78             
+
+sec per episode: factor-L4-P-C 37.1  markov4 0.1  marginal 0.0   wall 47s

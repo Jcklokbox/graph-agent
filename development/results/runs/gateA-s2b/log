@@ -1,0 +1,13 @@
+stage S0 seeds=0..0 new=0 0s dup=0 bad=0
+stage S1 seeds=0..1 new=10 117s dup=0 bad=0
+  factor-L4-P-C    blocking                 n=2 +0.507 [+0.501,+0.513] yes
+  factor-L4-P-C    cond-inhibition          n=2 +0.861 [+0.599,+1.124] yes
+  factor-L4-P-C    contingency              n=2 +0.463 [+0.408,+0.518] yes
+  factor-L4-P-C    pree                     n=2 +0.005 [-0.541,+0.550] -
+  factor-L4-P-C    reinstatement            n=2 -0.006 [-0.341,+0.329] -
+  factor-L4-P-C    renewal-ABA              n=2 +0.596 [+0.374,+0.819] yes
+  factor-L4-P-C    renewal-ABC              n=2 +0.410 [+0.274,+0.547] yes
+  factor-L4-P-C    savings                  n=2 +0.018 [-0.200,+0.236] -
+  factor-L4-P-C    spont-recovery-sessions  n=2 +0.395 [-0.542,+1.332] -
+  factor-L4-P-C    spontaneous-recovery     n=2 +0.221 [-0.390,+0.833] -
+PROVISIONAL (n<16, not a verdict) factor-L4-P-C=5/10

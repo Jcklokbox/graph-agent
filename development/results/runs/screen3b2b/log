@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/tmp/gsnap/cdd7de16e70c/harness/staged.py", line 250, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ^^^^^^^^^^^^^^^^^^
+  File "/tmp/gsnap/cdd7de16e70c/harness/staged.py", line 241, in main
+    v = run(argv[0], agents, opt("--set", "v1"), rows, opt("--journal"), stages,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/gsnap/cdd7de16e70c/harness/staged.py", line 146, in run
+    journal.append(jpath, {"k": [h, s, task], "m": m, "dt": dt})
+  File "/tmp/gsnap/cdd7de16e70c/harness/journal.py", line 13, in append
+    fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '../runs/screen3b2/j.jsonl'

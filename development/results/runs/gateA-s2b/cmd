@@ -1,0 +1,3 @@
+tree cdd7de16e70c
+cpu 0
+python3 -m harness.staged t2 --agents factor-L4-P-C --set v1 --stages 0:0-1 --procs 1 --journal ../gateA-s2/j.jsonl

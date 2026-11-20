@@ -1,0 +1,15 @@
+T1 d3: 1 seeds x 2000 steps, random policy, second half; GC = gap closed between base rates (0) and the exact filter (1)
+world                      factor-L4-P-C               markov4  filter LL    gap
+d3-ctrl                0.96 [+nan,+nan]     0.62 [+nan,+nan]      0.524  0.179
+d3-and                 0.93 [+nan,+nan]     0.63 [+nan,+nan]      0.486  0.188
+d3-and-ctrl            0.85 [+nan,+nan]     0.63 [+nan,+nan]      0.501  0.171
+mean                   0.91                  0.63             
+
+T1 d3: 1 seeds x 2000 steps, random policy, second half; HGC = hidden gap closed between the 4-step window (0) and the exact filter (1)
+world                      factor-L4-P-C  filter LL    gap
+d3-ctrl                0.89 [+nan,+nan]      0.524  0.068
+d3-and                 0.81 [+nan,+nan]      0.486  0.070
+d3-and-ctrl            0.58 [+nan,+nan]      0.501  0.063
+mean                   0.76             
+
+sec per episode: factor-L4-P-C 74.0  markov4 0.3  marginal 0.0   wall 130s

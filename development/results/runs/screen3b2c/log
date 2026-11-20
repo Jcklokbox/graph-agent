@@ -1,0 +1,13 @@
+stage S0 seeds=0..0 new=0 0s dup=0 bad=0
+stage S1 seeds=0..3 new=51 123s dup=0 bad=0
+SCREEN-PASS through S1 (no row z <= -3.7328); verdict needs S2 at N_p = 200
+  factor-L4-P-C-N25  blocking                 n=4 mean=+0.487 z=+13.05
+  factor-L4-P-C-N25  cond-inhibition          n=4 mean=+0.860 z=+5.65
+  factor-L4-P-C-N25  contingency              n=4 mean=+0.470 z=+7.99
+  factor-L4-P-C-N25  pree                     n=4 mean=+0.083 z=+1.70
+  factor-L4-P-C-N25  reinstatement            n=4 mean=+0.031 z=+1.82
+  factor-L4-P-C-N25  renewal-ABA              n=4 mean=+0.561 z=+18.97
+  factor-L4-P-C-N25  renewal-ABC              n=4 mean=+0.306 z=+65.83
+  factor-L4-P-C-N25  savings                  n=4 mean=-0.076 z=-1.66
+  factor-L4-P-C-N25  spont-recovery-sessions  n=4 mean=+0.288 z=+8.41
+  factor-L4-P-C-N25  spontaneous-recovery     n=4 mean=+0.359 z=+3.76

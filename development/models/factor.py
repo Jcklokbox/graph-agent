@@ -35,6 +35,16 @@ C_REG = 1.           # concentration: regime cell -> pooled cell
 C_GLOB = 1.          # concentration: pooled cell -> sub-configurations
 SWAP = np.log(3.)    # slot swap margin (v18)
 QBINS = np.array([.05, .2, .5, .8, .95])   # bins of the model prediction (conditional screening)
+RHO_SLOW = .55       # scale separation: lag-1 autocorrelation above which a channel is
+                    # 'slow' (place-scale); lag copies / phasic channels stay in the
+                    # regime + theta factors (SPEC-3b.2 [1] item 1: no lag-cascade
+                    # context fragmentation, US-alone exposure updates regimes)
+NWARM = 8            # steps before the slow/fast split is trusted
+KAPPA = .02          # Delta-tau diffusion of the regime on place re-entry: keep-mass
+                    # (1-lambda) on the last regime seen at that place, lambda = 1-exp(-KAPPA*Delta)
+SURP0, SURP_K = .5, 4.   # surprise = per-channel neg-log-lik above SURP0 nats; the sticky
+                    # keep-mass of the regime decays exp(-SURP_K * surprise): US-alone
+                    # exposure re-assigns the regime from the entry weights (no theta erasing)
 F32 = np.float32
 CANONICAL = "factor-L4-P-C"    # M_factor: the one configuration used by every suite (SPEC-3b.2)
 
@@ -78,6 +88,21 @@ class FactorModel:
         self.noise, self.s0 = noise, s0
         self.mu = np.zeros((N, K, J, d))
         self.Sg = np.broadcast_to(np.eye(d) * s0, (N, K, J, d, d)).copy()
+        # scale separation ([1]): running lag-1 stats decide which channels are slow
+        self.sxy = np.zeros(J)
+        self.sx = np.zeros(J)
+        self.sy = np.zeros(J)
+        self.ntj = 0
+        self.slow = np.zeros(J, bool)
+        # Delta-tau bookkeeping: last-visit step and last regime per (particle, place)
+        self.tvis = np.zeros((N, self.KP), int)
+        self.zlast = np.zeros((N, self.KP), int)
+        self.snll = 0.               # last step's mean per-channel surprise of the BMA
+        # pooled member evidence and pooled theta: the hierarchical prior a NEW regime
+        # inherits ([1] item 1: no reset to an uninformed prior)
+        self.evm = np.zeros((J, self.M))
+        self.mug = np.zeros((J, d))
+        self.Sgg = np.broadcast_to(np.eye(d) * s0, (J, d, d)).copy()
         # regime factor
         self.hz = np.asarray(H_GRID)[self.rng.integers(len(H_GRID), size=N)]
         self.mz = np.zeros((N, K))
@@ -172,6 +197,7 @@ class FactorModel:
     def _members(self, b, a, hist, kk, pp=None):
         """Regime-indexed member predictions P (kk, J, S+1, N) [sets + additive], their
         pooled-weight-free mixture parts and the place member's weight; plus keys."""
+        self._prep_new()
         U = self._keys(b, a, hist)
         cells = self._cells(U)
         pg = self._pooled(cells).astype(F32)                       # (J, S)
@@ -209,6 +235,58 @@ class FactorModel:
         mu = (k1 + .5) / (k1 + k0 + 1.)
         return (n1 + mu) / (n1 + n0 + 1.)
 
+    # --------------------------------------------------------------- helpers
+    def _prep_new(self):
+        """The CRP's next regime draws from the base measure: the pooled theta and
+        member evidence (a new regime is expected to resemble the pooled data)."""
+        live = self.used < self.K
+        if live.any():
+            ar = np.nonzero(live)[0]
+            self.mu[ar, self.used[ar]] = self.mug
+            self.Sg[ar, self.used[ar]] = self.Sgg
+            self.ev[self.used[ar], :, :, ar] = self.evm
+            if self._E is not None:
+                evz = self.ev[self.used[ar], :, :, ar]                 # (n, J, M)
+                self._E[self.used[ar], :, :, ar] = np.exp(evz - evz.max(2, keepdims=True))
+
+    def _place_marg(self):
+        """P(x_j,t+1 = 1 | y): the place's marginal emission of the slow channels, with
+        the prior mean pooled over the particle's places. The marginal (not the chain)
+        is what identifies a place on entry: the previous observation's x_j,t comes from
+        the place being left, so conditioning on it would fragment the context."""
+        n1 = self.tm1.sum(3)                                  # (N, KP, J)
+        n0 = self.tm0.sum(3)
+        k1, k0 = n1.sum(1, keepdims=True), n0.sum(1, keepdims=True)
+        mu = (k1 + .5) / (k1 + k0 + 1.)
+        return (n1 + mu) / (n1 + n0 + 1.)
+
+    def _lik(self, pj, yb):
+        """P(obs | place, regime), scale-separated: slow channels are scored by the
+        place's own marginal emission (no lag features, no fast members in the place
+        path); fast channels by the (place, regime) mixture."""
+        lik = np.ones(pj.shape[:3])
+        fa, sl = ~self.slow, self.slow
+        if fa.any():
+            q = pj[..., fa]
+            lik *= np.prod(np.where(yb[None, None, None, fa], q, 1. - q), 3)
+        if sl.any():
+            q = self._place_marg()[:, :, sl]
+            lik *= np.prod(np.where(yb[None, sl], q, 1. - q), 2)[:, :, None]
+        return lik
+
+    def _slow_update(self, b, bn):
+        """Running lag-1 autocorrelation per channel -> the slow/fast split."""
+        self.sxy += b * bn
+        self.sx += b
+        self.sy += bn
+        self.ntj += 1
+        n = self.ntj
+        mx, my = self.sx / n, self.sy / n
+        c = self.sxy / n - mx * my
+        vt, vy = mx - mx * mx, my - my * my
+        rho = c / np.sqrt(np.maximum(vt * vy, 1e-12))
+        self.slow = (n >= NWARM) & (vt > .01) & (vy > .01) & (rho > RHO_SLOW)
+
     # ----------------------------------------------------------------- priors
     def _place_prior(self):
         N, KP = self.N, self.KP
@@ -225,7 +303,9 @@ class FactorModel:
         return pr / pr.sum(1, keepdims=True)
 
     def _regime_prior(self, kk):
-        """P(z | y, previous y, previous z) for every place y: (N, KP, kk)."""
+        """P(z | y, previous y, previous z) for every place y: (N, KP, kk).
+        Entering a place after Delta steps away keeps the last regime seen there with
+        mass 1 - lambda(Delta) (inter-session gaps update regime weights)."""
         N, K = self.N, self.K
         ar = np.arange(N)
         if not self.started:
@@ -239,7 +319,11 @@ class FactorModel:
         G /= G.sum(1, keepdims=True)
         Dr = self.npz + self.beta * G[:, None, :]
         Dr = (Dr / Dr.sum(2, keepdims=True))[:, :, :kk]
-        h = self.hz
+        lam = 1. - np.exp(-KAPPA * (self.t - self.tvis))               # (N, KP)
+        Dr *= lam[:, :, None]
+        kp = np.arange(self.KP)
+        Dr[ar[:, None], kp[None, :], np.minimum(self.zlast, kk - 1)] += 1. - lam
+        h = 1. - (1. - self.hz) * np.exp(-SURP_K * np.maximum(0., self.snll - SURP0))
         cur = Dr[ar, self.y].copy()                                # draw in the same place
         Dr[ar, self.y] = h[:, None] * cur
         Dr[ar, self.y, self.z] += 1. - h
@@ -267,7 +351,7 @@ class FactorModel:
                     usedp=round(float((w * self.usedp).sum()), 3),
                     slots=[[list(s) if s is not None else None for s in sl] for sl in self.slots],
                     w_sets=r(E[:, :S].sum(1)), w_add=r(E[:, S]),
-                    w_rest=r(E[:, S + 1:].sum(1)))
+                    w_rest=r(E[:, S + 1:].sum(1)), slow=[int(u) for u in self.slow])
 
     # --------------------------------------------------------------- interface
     def predict(self, x, a, hypothetical=False):
@@ -286,8 +370,9 @@ class FactorModel:
         if hypothetical and self.hist:
             prev = self.hist[-1]
             mem0 = self._members(prev, 0, self.hist[:-1], kk, self._pp)
-            pj = self._joint(mem0, self._place_pred(prev), kk)
-            lik = np.prod(np.where((b > .5)[None, None, None, :], pj, 1. - pj), axis=3)
+            pl0 = self._place_pred(prev)
+            pj = self._joint(mem0, pl0, kk)
+            lik = self._lik(pj, b > .5)
             post = self._place_prior()[:, :, None] * self._regime_prior(kk) * lik
             wy = post                                              # (N, KP, kk) as next-step prior
             hist = self.hist
@@ -324,7 +409,7 @@ class FactorModel:
             self.proc.learn(x, a, y)         # evaluated other actions last)
         pl = self._place_pred(b)                                   # (N, KP, J)
         pj = self._joint(mem, pl, kk)
-        lik = np.prod(np.where(yb[None, None, None, :], pj, 1. - pj), axis=3)   # (N, KP, kk)
+        lik = self._lik(pj, yb)                                   # (N, KP, kk)
         prior = self._place_prior()[:, :, None] * self._regime_prior(kk)
         if self.cond:
             ww = np.exp(self.logw - self.logw.max())[:, None, None] * prior
@@ -332,6 +417,11 @@ class FactorModel:
         joint = prior * lik
         tot = joint.sum((1, 2))
         self.logw += np.log(tot)
+        if self.cond and self._q is not None:      # the BMA's own prediction error
+            q = np.clip(np.asarray(self._q, float), 1e-12, 1. - 1e-12)
+            self.snll = float(-(yb * np.log(q) + (1 - yb) * np.log(1. - q)).mean())
+        else:
+            self.snll = -np.log(np.maximum(tot, 1e-300)) / self.J
         flat = (joint / tot[:, None, None]).reshape(N, -1)
         cdf = np.cumsum(flat, 1)
         idx = np.minimum((cdf < self.rng.random(N)[:, None]).sum(1), flat.shape[1] - 1)
@@ -345,16 +435,20 @@ class FactorModel:
             entered = np.zeros(N, bool)
         self.npz[ar[entered], yt[entered], zt[entered]] += 1.
         self.mz[ar[entered], zt[entered]] += 1.
-        self.births += int((zt >= self.used).sum())
+        born = zt >= self.used
+        self.births += int(born.sum())
         self.usedp = np.maximum(self.usedp, yt + 1)
         self.used = np.maximum(self.used, zt + 1)
         self.y, self.z = yt, zt
         self.started = True
+        self.zlast[ar, yt] = zt
+        self.tvis[ar, yt] = self.t + 1
         # member evidence in the sampled regime (place member: the sampled place's chain)
         Pz = np.clip(mem["P"][zt, :, :, ar], 1e-6, 1. - 1e-6)    # (N, J, M-1)
         plz = np.clip(pl[ar, yt], 1e-6, 1. - 1e-6)[:, :, None]       # (N, J, 1)
         Pm = np.concatenate([Pz, plz.astype(F32)], 2)
         self.ev[zt, :, :, ar] += np.where(yb[None, :, None], np.log(Pm), np.log(1. - Pm))
+        self.evm += np.where(yb[None, :, None], np.log(Pm), np.log(1. - Pm)).mean(0)
         if self._E is not None:                # only the sampled regime of each particle moved
             evz = self.ev[zt, :, :, ar]                            # (N, J, M)
             self._E[zt, :, :, ar] = np.exp(evz - evz.max(2, keepdims=True))
@@ -381,6 +475,12 @@ class FactorModel:
         self.mu[ar, zt] += g * err[..., None]
         Sz -= g[..., :, None] * g[..., None, :] * var[..., None, None]   # Sz is a copy (fancy)
         self.Sg[ar, zt] = Sz
+        # pooled theta (the hierarchical prior of a new regime; all data, one filter)
+        vg = np.einsum("jab,ja,jb->j", self.Sgg, v, v) + self.noise
+        gg = np.einsum("jab,jb->ja", self.Sgg, v) / vg[:, None]
+        errg = yb.astype(float) - np.einsum("jd,jd->j", self.mug, v)
+        self.mug += gg * errg[:, None]
+        self.Sgg -= gg[:, :, None] * gg[:, None, :] * vg[:, None, None]
         # pooled level (same for every particle)
         pg = np.clip(self._pooled(cells), 1e-6, 1. - 1e-6)
         self.evg += np.where(yb[:, None], np.log(pg), np.log(1. - pg))
@@ -390,6 +490,7 @@ class FactorModel:
         self._resample()
         # screening and slots (deterministic)
         self._screen(b, bn)
+        self._slow_update(b, bn)
         self.hist = (self.hist + [b])[-max(1, self.D + 1):]
         self.t += 1
         self._reslot()
@@ -474,6 +575,6 @@ class FactorModel:
         if self._E is not None:
             self._E = self._E[..., idx]
         for nm in ("mu", "Sg", "hz", "mz", "npz", "used", "z", "hp", "mp", "usedp", "y", "tm1",
-                   "tm0"):
+                   "tm0", "tvis", "zlast"):
             setattr(self, nm, getattr(self, nm)[idx].copy())
         self.logw = np.zeros(self.N)

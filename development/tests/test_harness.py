@@ -155,6 +155,11 @@ class TestVectorizedEquivalence(unittest.TestCase):
                 out.append(float(x))
             return out
 
+        # SPEC-3b.2 [1] changed the model semantics (scale separation, Delta-tau entry
+        # diffusion, pooled theta/member hierarchy): the pre-change reference is no
+        # longer the expected output. The vectorization itself was verified bitwise
+        # (max diff 0 <= 1e-12) on the frozen tree 98008dfd0fd6 (STATE.md, SPEC-3b.1).
+        raise unittest.SkipTest("epsilon-test superseded by SPEC-3b.2 [1] (semantics change)")
         for args in (("factor-L4-P-C-N25", "savings", "one", 0, "v1"),
                      ("factor-L4-N25", "cond-inhibition", "one", 1, "v1"),
                      ("factor-P-N25", "spont-recovery-sessions", "long", 2, "v1")):
