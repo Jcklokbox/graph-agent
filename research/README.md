@@ -1,22 +1,30 @@
 # Research workspace
 
-This directory is the project's open-ended theoretical workspace. It develops the mathematical, algorithmic, and biological foundations of the project. It may explore mechanisms, extensions, alternative formulations, and questions not yet represented in `development/`.
-
-These documents are agent-oriented context, not rigid implementation instructions or a binding specification. Research is not a snapshot of the finished software: theories may precede code, code may expose weaknesses in theories, and either may change independently. When useful, distinguish established observations, modeling assumptions, hypotheses, and open questions.
+The theoretical side of the project. These notes are context for agents and contributors,
+not a binding specification; where it matters they separate established observations,
+modelling assumptions, hypotheses and open questions.
 
 ## Start here
 
-1. [Foundational research principles](foundational-principles.md) — scientific orientation, biological framing, architectural aspirations, mathematical constraints, functional capabilities, and standards for honest evidence. Use as a reasoning compass, not a checklist to satisfy mechanically.
-2. [First-principles derivation](first-principles-derivation.md) — necessary conditions derived from the adaptive learning problem, with proofs/sketches and limits on what follows.
-3. [Benchmark logic audit](benchmark-logic-audit.md) — what the existing scenarios and assertions establish, including measured results and failures.
-4. [Minimal discriminating experiments](minimal-discriminating-experiments.md) — controlled task designs that separate candidate mechanisms rather than merely exercise them.
-5. [Architecture synthesis](architecture-synthesis.md) — provisional sparse posterior predictive graph, its common mechanism, assumptions, costs and go/no-go criteria.
-5. [Mechanism landscape](mechanism-landscape.md) — the research target, competing candidate mechanisms, conditional deductions, and a claim ledger for choosing a development direction.
-6. [Theoretical synthesis](theoretical-synthesis.md) — candidate equations, assumptions, evidence status, falsifiers, and a diagnostic mapping to the five behavioral tests.
-7. [Current development map](current-development.md) — a factual guide to the checked-in environment, learner, support code, tests, and gaps. This is a time-sensitive description; check the source when details matter.
-8. [Implementation equation audit](implementation-equation-audit.md) — equations as currently coded, consequences for the five capabilities, and open design decisions.
-9. [Mathematical core](mathematical-core.md) — bounded operations, estimates, evidence strengths, inhibition, and temporal quantities.
-10. [Algorithmic core](algorithmic-core.md) — the current predictive graph approach and directions for alternatives.
-11. [Biological core](biological-core.md) — biological motivation, limits of analogy, and empirical questions.
+**Checkpoint:** [checkpoint-ru.md](checkpoint-ru.md) — goal, working pipeline, standing rules,
+current state and known drifts in one page; read it first. Full inventory of agents,
+prototypes, test sets, results and speeds: [revision-2026-11-20-ru.md](revision-2026-11-20-ru.md).
 
-Agents can use these notes to orient themselves, then inspect the implementation and tests for concrete behavior. A principle describes an intended scientific direction; it does not imply that current development already fulfills it.
+0. [Goal, environment family and evidence tiers](goal.md) — the central question of the
+   current research programme (slices 0–3), the FHP environment family, tiers T0–T4 and the
+   statistical rules. [Decision log](decisions.md) — every run with its prediction written
+   beforehand and its outcome. [Insights](insights.md) — durable lessons.
+1. [The posterior-graph model](model.md) — the mathematical model of the current agent as
+   one system: one statistic (the discounted conjugate cell), one structure test (the split
+   Bayes factor), one way to combine context (a chain of shrinkage), expectation windows,
+   latent regimes and the planner.
+2. [Results](results.md) — measured behaviour (DEV selection, held-out sets run once),
+   ablations of the consolidation round and the open failures.
+3. [Foundational research principles](foundational-principles.md) — scientific orientation,
+   architectural aspirations and standards for honest evidence.
+4. [First-principles derivation](first-principles-derivation.md) — necessary conditions
+   derived from the adaptive learning problem, with limits on what follows.
+5. [Biological core](biological-core.md) — biological motivation and limits of the analogy.
+
+Superseded notes (the earlier hypergraph theory, equation audits, the posterior-graph probe,
+the full Round 1–12 log) are in [`../archive/research/`](../archive/research/).

@@ -15,28 +15,28 @@ The graph contains:
 - directed conditional factors for transitions and objective outcomes;
 - local posterior/evidence state on factors and local pending-event state for delayed predictions.
 
-For a binary target `Y` conditional on a parent/context pattern `C`, use a Beta-Bernoulli posterior as the exact reference model:
+For a binary target `Y` conditional on parent/context `C`, use the Beta-Bernoulli posterior:
 
-`θ_C ~ Beta(a,b)`
+`θ_C ~ Beta(a,b);  θ_C|D ~ Beta(a+n_+,b+n_-);  p(Y=1|C,D)=(a+n_+)/(a+b+n_++n_-)`.
 
-`θ_C | D ~ Beta(a+n_+, b+n_−)`
-
-`p(Y=1|C,D) = (a+n_+)/(a+b+n_++n_−)`.
-
-Uncertainty follows from that posterior, not exposure alone. For categorical targets use a Dirichlet posterior; continuous wellbeing needs an explicitly chosen likelihood. These are local, interpretable updates under stationarity/complete-observation assumptions, not valid automatically for fractional activations, missing events, or changing regimes.
+This likelihood is defined for observations in `{0,1}`. Fractional `y=.5` is not a half-success/half-failure. For a continuous target, use an explicitly separate likelihood, e.g. a Normal-Inverse-Gamma model with `y|μ,σ² ~ Normal(μ,σ²)`, `μ|σ² ~ Normal(μ0,σ²/κ0)`, `σ² ~ InvGamma(α0,β0)`. Its posterior updates with `κn=κ0+n`, `μn=(κ0μ0+nȳ)/κn`, `αn=α0+n/2`, `βn=β0+M2/2+κ0n(ȳ−μ0)^2/(2κn)`. The integrated likelihood then responds to residual variance: repeated deterministic `.5` and Bernoulli `{0,1}` at rate .5 have different likelihoods. A bounded-support model (e.g. Beta with concentration) is preferable if calibrated tails near 0/1 matter; Gaussian is only a tractable reference and can assign mass outside `[0,1]`. The outcome family/type must be identified or inferred with model comparison, never by feeding fractional values into Bernoulli counts. For categorical targets use Dirichlet-multinomial. These assumptions do not automatically cover missing events or regime shifts.
 
 Learning the graph means updating a posterior over both parameters and structures:
 
 `p(G,θ|D) ∝ p(D|G,θ)p(θ|G)p(G)`.
 
-The graph prior `p(G)` supplies the complexity preference. Exact marginalization over structures is generally intractable. The implementation hypothesis is local residual-triggered proposals, followed by a predictive-evidence/complexity comparison; it must not enumerate all `2^k−1` subsets. A possible proposal is a co-active pair/context assembly after simpler factors repeatedly leave structured residuals, with recursive composition for higher-order dependencies. This only searches a restricted sparse/compositional model class; misses outside that class are a known limitation, not grounds for secretly broadening search.
+The graph prior `p(G)` supplies the complexity preference. For a proposed assembly `g` versus its simpler parent graph `G0`, admit it only when its posterior odds exceed the declared threshold:
+
+`log O(g:G0 | D) = log p(D|g,G0) - log p(D|G0) + log p(g|G0)/p(not g|G0)`.
+
+For a binary target with independent Beta(1,1) context parameters, the integrated log evidence of one context with counts `(n1,n0)` is `log B(1+n1,1+n0)-log B(1,1)`, summed over contexts. This is a useful small-sample reference, not a universal likelihood: correlated contexts, repeated adaptive proposals and nonstationarity require an explicit model/prior. A local residual-triggered proposal still needs multiplicity control: testing many pairs raises the chance of spurious birth. Use a prior whose total birth mass is bounded per node (or an explicit proposal correction), and report that choice rather than treating per-pair Bayes factors as cost-free. Never enumerate all `2^k−1` subsets. A possible proposal is a co-active pair/context assembly after simpler factors repeatedly leave structured residuals, with recursive composition for higher-order dependencies. This only searches a restricted sparse/compositional model class; misses outside that class are a known limitation, not grounds for secretly broadening search.
 
 ## 2. How the five behaviors could arise from this one model
 
 The unifying mechanism is the **conditional transition posterior**. The bullets below describe computations over the same graph, not claims that one scalar can have five meanings.
 
 1. **Conjunction and parsimony.** A compound parent is admitted only if its conditional predictive evidence improves over a simpler parent set enough to outweigh its structural prior cost. AND is therefore a residual dependency, not automatic storage of every co-occurring set. Test AND and XOR truth tables plus held-out recombinations; measure predictive score and graph growth.
-2. **Conditional NOT with retention.** Learn `p(Y|A,X)` separately from `p(Y|A)`. If X predicts omission of Y only in the presence of A, the conditioned probability falls while the A-only factor remains stored. This predicts summation-like transfer only if the representation supports shared outcomes and retrieval; require both summation and retardation controls before calling it conditioned inhibition.
+2. **Conditional NOT with retention.** A table containing `p(Y|A,X)` and `p(Y|A)` alone does *not* identify an inhibitor or imply transfer to a new excitor B: AX− can be stored as an indivisible exception. A transfer-capable hypothesis needs a shared signed factor, for example `logit p(Y|C)=b_Y+Σ_{e∈C} w_{eY}+Σ_{(i,j)∈C}u_{ijY}`, with shrinkage favoring reusable singleton effects over isolated exceptions. Inhibition is the negative conditional effect `w_XY<0`, established by comparing `p(Y|X,other parents)` with matched no-X contexts; summation predicts the same learned `w_XY` reduces prediction under B+X. This transfer is an explicit generalization assumption, not identified from A+/AX− alone. Require A+/AX−/neutral Y training, then held-out B+X summation and X+ versus Y+ retardation; separately report AX fit and B transfer. Context-specific interactions may be necessary if inhibition is not shared, at a structural-complexity cost.
 3. **OR / route convergence.** Predictions from competing causes/routes are combined by posterior marginalization, e.g. `p(Y|D)=Σ_c p(Y|c,D)p(c|D)`, or by a calibrated factorization justified for the dependency structure. Do not use a raw maximum or assume independent causes for noisy-OR.
 4. **Time, pauses and consumption.** A relation carrying a delayed event maintains a local pending-event/survival state. Its hazard is `h(τ)=P(event at age τ | no event before τ,C)`; an observed event consumes that pending prediction, while an observed omission updates survival. This is not a global step schedule. Eligibility traces may assign delayed evidence to active graph factors, but trace credit and event-time prediction are measured separately. Absence updates require complete observation.
 5. **Value propagation and directed curiosity.** From the learned transition posterior, evaluate downstream objective by Bellman recursion:
