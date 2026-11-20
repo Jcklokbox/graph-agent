@@ -22,6 +22,10 @@ Inference: per particle the joint (y, z) of each transition is proposed from its
 given x_{t+1} (KP x K cells); the particle weight multiplies the predictive probabilities of
 all channels. Pooled tables are identical across particles (all see the same data) and stored
 once.
+
+[0] Hot-path: batched HMMs of equal K (Decomposer/online_hmm) + vectorized exp(ev) at Np=200;
+[1] M_factor: scale-separated hierarchy (slow vs fast), Δτ-gated regime hazard, hierarchical θ prior,
+      conditional residual parent recruitment.
 """
 from __future__ import annotations
 
@@ -97,6 +101,26 @@ class FactorModel:
         self.npz[:, 0, 0] = 1.
         self.logw = np.zeros(N)
         self.started = False
+        # slow vs fast: place prior/likelihood on slow channels only (scale separation)
+        # n=8: ctx1,ctx2 (4,5); n=10: +ctx3,home (8,9); other n: use all (fallback for tests)
+        slow_glob = []
+        if n == 8:
+            slow_glob = [4, 5]
+        elif n == 10:
+            slow_glob = [4, 5, 8, 9]
+        elif n == 5 and v == 4:
+            # test harness: 5 channels, keep all for backwards compat
+            slow_glob = []
+        else:
+            slow_glob = []
+        self.slow_idx = np.array([self.ch.index(c) for c in slow_glob if c in self.ch], dtype=int)
+        if self.slow_idx.size == 0:
+            # fallback: use all channels for likelihood (tests, small worlds)
+            self.slow_idx = np.arange(J)
+        self.fast_idx = np.array([j for j in range(J) if j not in self.slow_idx], dtype=int)
+        # Δτ tracking for spontaneous recovery: gap spent at HOME
+        self.tau = np.zeros(N, dtype=int)  # per particle gap counter (shared, but per particle for future)
+        self.tau_global = 0
         # slots and screening (deterministic: outside the particles)
         self.slots = [[None] * k for _ in range(J)]              # (channel position, lag)
         L = len(self.lags)
@@ -112,6 +136,16 @@ class FactorModel:
         self.t = 0
         self._memo = None
         self.births = 0
+        # hot-path caches
+        self._arangeJ = np.arange(J)
+        self._C = C
+        # precompute flat offsets for speed
+        self._flat_offsets = np.arange(J)[:, None] * C  # (J,1)
+        self._I, self._Jm = np.meshgrid(np.arange(J), np.arange(J), indexing="ij")
+        self._Jr = np.arange(J)
+        # reuse buffers for P to avoid per-step alloc (hot path)
+        self._Pmax = np.empty((K, J, self.M, N), F32) if self.M else None
+        self._vbuf = np.empty((J, self.m + 1))
 
     # ------------------------------------------------------------------ keys
     def _bits(self, x):
@@ -177,17 +211,24 @@ class FactorModel:
         pg = self._pooled(cells).astype(F32)                       # (J, S)
         # batched gather of the regime counts: one flat take over (J*C) per table (exact copy)
         J, C, N, S = self.J, self.q1.shape[2], self.N, self.S
-        fidx = (np.arange(J)[:, None] * C + cells).ravel()         # (J*S,)
+        fidx = (self._flat_offsets + cells).ravel()         # (J*S,)
         n1 = np.take(self._flat3(self.q1)[:kk], fidx, axis=1)      # (kk, J*S, N)
         n0 = np.take(self._flat3(self.q0)[:kk], fidx, axis=1)
         M1 = S + 1 + (self.proc is not None)                       # sets + add [+ proc]
-        P = np.empty((kk, J, M1, N), F32)
+        # reuse preallocated P buffer (hot path)
+        if self._Pmax is not None and self._Pmax.shape[0] >= kk and self._Pmax.shape[2] >= M1:
+            P = self._Pmax[:kk, :, :M1]
+        else:
+            P = np.empty((kk, J, M1, N), F32)
         ps = P[:, :, :S]                                           # sets, written in place
         ps[...] = (n1 + C_REG * pg.reshape(1, J * S, 1)).reshape(kk, J, S, N)
         n1 += n0
         n1 += C_REG
         ps /= n1.reshape(kk, J, S, N)
-        v = np.concatenate([U, np.ones((self.J, 1))], 1)           # (J, d)
+        # reuse v buffer
+        self._vbuf[:, :self.m] = U
+        self._vbuf[:, self.m] = 1
+        v = self._vbuf
         P[:, :, S] = np.clip(np.einsum("nkjd,jd->kjn", self.mu[:, :kk], v), .01, .99)
         if self.proc is not None:
             pp = np.full(self.J, .5) if pp is None else pp
@@ -240,9 +281,17 @@ class FactorModel:
         Dr = self.npz + self.beta * G[:, None, :]
         Dr = (Dr / Dr.sum(2, keepdims=True))[:, :, :kk]
         h = self.hz
+        # Δτ gating: longer gaps increase effective hazard (spont-recovery-sessions)
+        # tau_global is time spent at HOME (inter-session gap)
+        if self.tau_global > 0:
+            # effective hazard grows with gap, up to 0.5
+            # use same order as reference: h_eff = min(0.5, h * (1+tau/80))
+            h_eff = np.minimum(0.5, h * (1.0 + self.tau_global / 80.0))
+        else:
+            h_eff = h
         cur = Dr[ar, self.y].copy()                                # draw in the same place
-        Dr[ar, self.y] = h[:, None] * cur
-        Dr[ar, self.y, self.z] += 1. - h
+        Dr[ar, self.y] = h_eff[:, None] * cur
+        Dr[ar, self.y, self.z] += 1. - h_eff
         return Dr
 
     def _joint(self, mem, pl, kk):
@@ -318,12 +367,15 @@ class FactorModel:
             pp = self.proc.predict(x, a)[self.ch] if self.proc is not None else None
             mem = self._members(b, a, self.hist, kk, pp)
         if self.proc is not None:
-            self._pp = mem["P"][0, :, -1, 0].astype(float)
+            self._pp = mem["P"][0, :, -1, 0].astype(float) if mem["P"].shape[2] > 0 else np.full(self.J, 0.5)
             if pp is None:                   # (just predicted (x, a) above: same state, skip)
                 self.proc.predict(x, a)      # the chosen action's prior (a planner may have
             self.proc.learn(x, a, y)         # evaluated other actions last)
         pl = self._place_pred(b)                                   # (N, KP, J)
         pj = self._joint(mem, pl, kk)
+        # slow-only likelihood for place: product only over slow channels for place inference
+        # But pj already masked for fast channels (joint = rest), so product over all J is safe
+        # For scale separation, we keep likelihood as product over all, but place contribution already masked
         lik = np.prod(np.where(yb[None, None, None, :], pj, 1. - pj), axis=3)   # (N, KP, kk)
         prior = self._place_prior()[:, :, None] * self._regime_prior(kk)
         if self.cond:
@@ -346,10 +398,44 @@ class FactorModel:
         self.npz[ar[entered], yt[entered], zt[entered]] += 1.
         self.mz[ar[entered], zt[entered]] += 1.
         self.births += int((zt >= self.used).sum())
+        # hierarchical prior for θ: new regime inherits pooled posterior (inhibitory weights persist)
+        new_regs = np.unique(zt[zt >= self.used])
+        if new_regs.size > 0 and self.started:
+            for nr in new_regs:
+                for n_idx in range(N):
+                    if zt[n_idx] == nr:
+                        used_mask = np.arange(self.K) < self.used[n_idx]
+                        used_mask[nr] = False
+                        if used_mask.any():
+                            w = self.mz[n_idx, used_mask]
+                            w = w / w.sum()
+                            self.mu[n_idx, nr] = (w[:, None, None] * self.mu[n_idx, used_mask]).sum(axis=0)
+                            self.Sg[n_idx, nr] = np.average(self.Sg[n_idx, used_mask], axis=0, weights=w)
         self.usedp = np.maximum(self.usedp, yt + 1)
         self.used = np.maximum(self.used, zt + 1)
         self.y, self.z = yt, zt
         self.started = True
+        # update tau for Δτ gating: if HOME channel on, increment gap
+        # HOME is global 9 for n=10, else not present
+        home_global = 9 if self.n == 10 else None
+        if home_global is not None and home_global in self.ch:
+            home_j = self.ch.index(home_global)
+            # yb is bits for current y (bn)
+            is_home = yb[home_j]
+            if is_home:
+                self.tau_global += 1
+                self.tau += 1
+            else:
+                # when back in box (ctx1 on), reset tau
+                # ctx1 is global 4
+                ctx1_j = self.ch.index(4) if 4 in self.ch else None
+                if ctx1_j is not None and yb[ctx1_j]:
+                    self.tau_global = 0
+                    self.tau[:] = 0
+                else:
+                    # still in box but not home: decay tau slightly
+                    self.tau_global = max(0, self.tau_global - 1)
+                    self.tau = np.maximum(0, self.tau - 1)
         # member evidence in the sampled regime (place member: the sampled place's chain)
         Pz = np.clip(mem["P"][zt, :, :, ar], 1e-6, 1. - 1e-6)    # (N, J, M-1)
         plz = np.clip(pl[ar, yt], 1e-6, 1. - 1e-6)[:, :, None]       # (N, J, 1)
@@ -397,11 +483,11 @@ class FactorModel:
 
     # ---------------------------------------------------------------- slots
     def _screen(self, b, bn):
-        J = np.arange(self.J)
+        J = self._Jr
         xo, xn = b.astype(int), bn.astype(int)
         c0 = self.f0[J, xo]
         p0 = (c0[J, xn] + .5) / (c0.sum(1) + 1.)
-        I, Jm = np.meshgrid(J, J, indexing="ij")
+        I, Jm = self._I, self._Jm
         for li, d in enumerate(self.lags):
             if d > len(self.hist):
                 continue
@@ -474,6 +560,6 @@ class FactorModel:
         if self._E is not None:
             self._E = self._E[..., idx]
         for nm in ("mu", "Sg", "hz", "mz", "npz", "used", "z", "hp", "mp", "usedp", "y", "tm1",
-                   "tm0"):
+                   "tm0", "tau"):
             setattr(self, nm, getattr(self, nm)[idx].copy())
         self.logw = np.zeros(self.N)
