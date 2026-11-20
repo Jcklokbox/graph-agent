@@ -91,7 +91,8 @@ class FactorAgent:
     def __init__(self, name, seed, n):
         from models.factor import FactorModel
         D = next((int(p[1:]) for p in name.split("-")[1:] if p.startswith("L")), 0)
-        self.m = FactorModel(n, N_ACT, VALUE, seed, lags=tuple(range(D + 1)),
+        Np = next((int(p[1:]) for p in name.split("-")[1:] if p.startswith("N")), 200)  # dev: -N<k>
+        self.m = FactorModel(n, N_ACT, VALUE, seed, N=Np, lags=tuple(range(D + 1)),
                              own_lags=tuple(range(min(D, 2) + 1)), k=5 if D else 4,
                              process="-P" in name, place="view" if "-V" in name else "member",
                              one_lag="-O" in name, cond="-C" in name, ctx_only="-X" in name)
@@ -186,11 +187,13 @@ def make(name, seed, n):
     return ModuleAgent(name, seed, n)
 
 
-def run_group(agent_name, phen, group, seed, wset="v0"):
+def run_group(agent_name, phen, group, seed, wset="v0", trace=False):
+    """trace=True: also return the model's trace() at every probe point (deterministic)."""
     table, n, _ = SETS[wset]
     s = table[phen].build(group, seed)
     ag = make(agent_name, seed, n)
-    probes = {}
+    probes, traces = {}, {}
+    tr = trace and hasattr(getattr(ag, "m", None), "trace")
     by_index = {}
     for idx, name, x in s.probes:
         by_index.setdefault(idx, []).append((name, x))
@@ -201,6 +204,10 @@ def run_group(agent_name, phen, group, seed, wset="v0"):
         ag.learn(s.obs[t + 1])
         for name, x in by_index.get(t + 1, []):
             probes[name] = ag.predict_us(x)
+            if tr:
+                traces[name] = ag.m.trace()
+    if trace:
+        return agent_name, phen, group, seed, probes, traces
     return agent_name, phen, group, seed, probes
 
 

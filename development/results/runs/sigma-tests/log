@@ -1,0 +1,15 @@
+ERROR: test_uniform_loss_stops_early (tests.test_screen.ScreenRules.test_uniform_loss_stops_early)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/gsnap/d6e5108716d4/tests/test_screen.py", line 30, in test_uniform_loss_stops_early
+    verdict, _, t = self._replay(-.2)
+                    ^^^^^^^^^^^^^^^^^
+  File "/tmp/gsnap/d6e5108716d4/tests/test_screen.py", line 14, in _replay
+    base = json.load(open(BASE))
+                     ^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/gsnap/d6e5108716d4/tests/../results/dev16_v11.json'
+
+----------------------------------------------------------------------
+Ran 68 tests in 76.853s
+
+FAILED (errors=4)

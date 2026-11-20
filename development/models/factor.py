@@ -342,6 +342,24 @@ class FactorModel:
         zt = np.minimum((cdf < self.rng.random(N)[:, None]).sum(1), kk - 1)
         return yt, zt
 
+    # --------------------------------------------------------------- introspection
+    def trace(self):
+        """Deterministic summary of the posterior state (function of code and seed only)."""
+        w = np.exp(self.logw - self.logw.max())
+        w /= w.sum()
+        S = self.S
+        E = np.exp(self.ev[0] - self.ev[0].max(1, keepdims=True))
+        E = (E / E.sum(1, keepdims=True) * w[None, None, :]).sum(2)          # (J, M)
+        r = lambda v: [round(float(u), 4) for u in v]
+        return dict(t=self.t, births=int(self.births),
+                    place=r(np.bincount(self.y, weights=w, minlength=self.KP)),
+                    regime=r(np.bincount(self.z, weights=w, minlength=self.K)),
+                    used=round(float((w * self.used).sum()), 3),
+                    usedp=round(float((w * self.usedp).sum()), 3),
+                    slots=[[list(s) if s is not None else None for s in sl] for sl in self.slots],
+                    w_sets=r(E[:, :S].sum(1)), w_add=r(E[:, S]),
+                    w_rest=r(E[:, S + 1:].sum(1)))
+
     # --------------------------------------------------------------- interface
     def predict(self, x, a, hypothetical=False):
         """Marginals of all n channels at t+1 given x_t = x; value channel .5.
