@@ -37,6 +37,12 @@ SWAP = np.log(3.)    # slot swap margin (v18)
 QBINS = np.array([.05, .2, .5, .8, .95])   # bins of the model prediction (conditional screening)
 F32 = np.float32
 CANONICAL = "factor-L4-P-C"    # M_factor: the one configuration used by every suite (SPEC-3b.2)
+# scale separation (SPEC-3b.2 [1].1): a channel is governed by the place with probability g_j,
+# the Bayes posterior of "tonic" against "phasic" under its own on->on counts (Beta-Binomial
+# marginal likelihood, no threshold and no channel is named): tonic ~ Beta(9, 1), phasic ~ Beta(1, 1).
+TONIC = (9., 1.)
+PHASIC = (1., 1.)
+S_INFL = 1.          # covariance inflation of a new regime's theta around the pooled theta
 
 
 class FactorModel:
@@ -112,6 +118,34 @@ class FactorModel:
         self.t = 0
         self._memo = None
         self.births = 0
+        # scale separation state: dtau = steps since the observation last changed (a
+        # deterministic f of the past), g = P(channel is tonic | its own on->on counts)
+        self.dtau = 1
+        self.g = np.ones(self.J)
+
+    # ------------------------------------------------- scale separation ([1].1)
+    def _gate(self):
+        """P(place governs channel j): Beta-Binomial Bayes posterior of tonic vs phasic on the
+        channel's own on->on counts. Lag copies and phasic channels (cues, US) get g ~ 0 and so
+        leave the place prior/likelihood; tonic channels (contexts) get g ~ 1."""
+        from math import lgamma
+        lb = lambda a, b: lgamma(a) + lgamma(b) - lgamma(a + b)
+        on = self.f0[:, 1].sum(1)                       # transitions out of "on"
+        k = self.f0[:, 1, 1]                            # on -> on
+        out = np.empty(self.J)
+        for j in range(self.J):
+            n, s = float(on[j]), float(k[j])
+            lt = lb(s + TONIC[0], n - s + TONIC[1]) - lb(*TONIC)
+            lp = lb(s + PHASIC[0], n - s + PHASIC[1]) - lb(*PHASIC)
+            out[j] = 1. / (1. + np.exp(lp - lt)) if n > 0 else .5
+        return out
+
+    def _emit(self, p):
+        """Place emission tempered by the gate: with prob 1 - g_j the place says nothing about
+        channel j (p = .5), so a phasic event (a free US) is no evidence about the place and a
+        phasic channel cannot be won by the place member. p: (N, KP, J)."""
+        g = self.g[None, None, :]
+        return g * p + (1. - g) * .5
 
     # ------------------------------------------------------------------ keys
     def _bits(self, x):
@@ -201,13 +235,14 @@ class FactorModel:
         return dict(U=U, cells=cells, pg=pg, P=P, rest=rest, wpl=wpl, v=v)
 
     def _place_pred(self, b):
-        """Place member: P(x_j,t+1 = 1 | x_j,t, y) for every place, (N, KP, J)."""
+        """Place member: P(x_j,t+1 = 1 | x_j,t, y) for every place, (N, KP, J), tempered by the
+        scale-separation gate (fast channels are not emitted by the place)."""
         Jr = np.arange(self.J)
         pv = (b > .5).astype(int)
         n1, n0 = self.tm1[:, :, Jr, pv], self.tm0[:, :, Jr, pv]
         k1, k0 = n1.sum(1, keepdims=True), n0.sum(1, keepdims=True)
         mu = (k1 + .5) / (k1 + k0 + 1.)
-        return (n1 + mu) / (n1 + n0 + 1.)
+        return self._emit((n1 + mu) / (n1 + n0 + 1.))
 
     # ----------------------------------------------------------------- priors
     def _place_prior(self):
@@ -225,7 +260,11 @@ class FactorModel:
         return pr / pr.sum(1, keepdims=True)
 
     def _regime_prior(self, kk):
-        """P(z | y, previous y, previous z) for every place y: (N, KP, kk)."""
+        """P(z | y, previous y, previous z, dtau) for every place y: (N, KP, kk). The regime is
+        sticky within a place, but the stickiness is a continuous-time hazard over the interval
+        dtau since the observation last changed: an unobserved box keeps evolving while the
+        animal is away, so a long inter-session gap relaxes the regime towards the hierarchical
+        CRP draw (which re-enters a known regime; it does not create one)."""
         N, K = self.N, self.K
         ar = np.arange(N)
         if not self.started:
@@ -239,7 +278,7 @@ class FactorModel:
         G /= G.sum(1, keepdims=True)
         Dr = self.npz + self.beta * G[:, None, :]
         Dr = (Dr / Dr.sum(2, keepdims=True))[:, :, :kk]
-        h = self.hz
+        h = 1. - (1. - self.hz) ** self.dtau                       # hazard over the interval
         cur = Dr[ar, self.y].copy()                                # draw in the same place
         Dr[ar, self.y] = h[:, None] * cur
         Dr[ar, self.y, self.z] += 1. - h
@@ -253,21 +292,29 @@ class FactorModel:
 
     # --------------------------------------------------------------- introspection
     def trace(self):
-        """Deterministic summary of the posterior state (function of code and seed only)."""
+        """Deterministic summary of the posterior state (function of code and seed only).
+        Member weights are averaged over the particles AND over the regime posterior (ev[0]
+        alone is not the operative regime: [0] localized the d3 divergence with it and got the
+        wrong member)."""
         w = np.exp(self.logw - self.logw.max())
         w /= w.sum()
         S = self.S
-        E = np.exp(self.ev[0] - self.ev[0].max(1, keepdims=True))
-        E = (E / E.sum(1, keepdims=True) * w[None, None, :]).sum(2)          # (J, M)
+        rz = np.bincount(self.z, weights=w, minlength=self.K).astype(F32)   # regime marginal
+        mx = self.ev.max(2, keepdims=True)
+        Ek = np.exp(self.ev - mx)                                           # (K, J, M, N)
+        Ek = Ek / Ek.sum(2, keepdims=True)
+        E = np.einsum("k,kjmn->jm", rz, Ek * w[None, None, None, :])         # (J, M)
         r = lambda v: [round(float(u), 4) for u in v]
-        return dict(t=self.t, births=int(self.births),
+        return dict(t=self.t, births=int(self.births), dtau=int(self.dtau),
                     place=r(np.bincount(self.y, weights=w, minlength=self.KP)),
                     regime=r(np.bincount(self.z, weights=w, minlength=self.K)),
                     used=round(float((w * self.used).sum()), 3),
                     usedp=round(float((w * self.usedp).sum()), 3),
+                    gate=r(self.g),
                     slots=[[list(s) if s is not None else None for s in sl] for sl in self.slots],
                     w_sets=r(E[:, :S].sum(1)), w_add=r(E[:, S]),
-                    w_rest=r(E[:, S + 1:].sum(1)))
+                    w_proc=r(E[:, S + 1]) if self.proc is not None else r(E[:, :S].sum(1) * 0),
+                    w_place=r(E[:, -1]), w_rest=r(E[:, S + 1:].sum(1)))
 
     # --------------------------------------------------------------- interface
     def predict(self, x, a, hypothetical=False):
@@ -346,6 +393,16 @@ class FactorModel:
         self.npz[ar[entered], yt[entered], zt[entered]] += 1.
         self.mz[ar[entered], zt[entered]] += 1.
         self.births += int((zt >= self.used).sum())
+        newb = zt >= self.used                    # regimes this particle has never visited:
+        if newb.any():                            # hierarchical prior on theta across regime
+            nb = np.nonzero(newb)[0]              # and context switches — a new regime starts
+            live = np.arange(self.K)[None, :] < self.used[nb][:, None]   # at the particle's
+            wg = live / np.maximum(live.sum(1, keepdims=True), 1)        # pooled theta, not at
+            self.mu[nb, zt[nb]] = np.einsum("nk,nkjd->njd", wg, self.mu[nb])   # uninformed prior
+            Sz = np.einsum("nk,nkjab->njab", wg, self.Sg[nb])
+            dg = np.arange(Sz.shape[-1])
+            Sz[:, :, dg, dg] += S_INFL
+            self.Sg[nb, zt[nb]] = Sz
         self.usedp = np.maximum(self.usedp, yt + 1)
         self.used = np.maximum(self.used, zt + 1)
         self.y, self.z = yt, zt
@@ -354,7 +411,8 @@ class FactorModel:
         Pz = np.clip(mem["P"][zt, :, :, ar], 1e-6, 1. - 1e-6)    # (N, J, M-1)
         plz = np.clip(pl[ar, yt], 1e-6, 1. - 1e-6)[:, :, None]       # (N, J, 1)
         Pm = np.concatenate([Pz, plz.astype(F32)], 2)
-        self.ev[zt, :, :, ar] += np.where(yb[None, :, None], np.log(Pm), np.log(1. - Pm))
+        # one log instead of two: select the outcome's probability first (same values, same order)
+        self.ev[zt, :, :, ar] += np.log(np.where(yb[None, :, None], Pm, 1. - Pm))
         if self._E is not None:                # only the sampled regime of each particle moved
             evz = self.ev[zt, :, :, ar]                            # (N, J, M)
             self._E[zt, :, :, ar] = np.exp(evz - evz.max(2, keepdims=True))
@@ -385,11 +443,15 @@ class FactorModel:
         pg = np.clip(self._pooled(cells), 1e-6, 1. - 1e-6)
         self.evg += np.where(yb[:, None], np.log(pg), np.log(1. - pg))
         tg = np.where(yb[:, None], 1., 0.)
-        np.add.at(self.g1, (Jr[:, None], cells), tg)
-        np.add.at(self.g0, (Jr[:, None], cells), 1. - tg)
+        # (j, cell) index pairs are distinct (the sets' cell ranges are disjoint), so a buffered
+        # fancy += is exact here and np.add.at (unbuffered) is not needed
+        self.g1[Jr[:, None], cells] += tg
+        self.g0[Jr[:, None], cells] += 1. - tg
         self._resample()
         # screening and slots (deterministic)
         self._screen(b, bn)
+        self.g = self._gate()                     # scale separation, from the counts just updated
+        self.dtau = self.dtau + 1 if np.array_equal(b, bn) else 1   # interval since a change
         self.hist = (self.hist + [b])[-max(1, self.D + 1):]
         self.t += 1
         self._reslot()

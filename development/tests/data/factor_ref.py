@@ -36,6 +36,10 @@ C_GLOB = 1.          # concentration: pooled cell -> sub-configurations
 SWAP = np.log(3.)    # slot swap margin (v18)
 QBINS = np.array([.05, .2, .5, .8, .95])   # bins of the model prediction (conditional screening)
 F32 = np.float32
+# scale separation (SPEC-3b.2 [1].1), same constants as models/factor.py
+TONIC = (9., 1.)
+PHASIC = (1., 1.)
+S_INFL = 1.
 
 
 class FactorModel:
@@ -113,6 +117,25 @@ class FactorModel:
         self.t = 0
         self._memo = None
         self.births = 0
+        self.dtau = 1
+        self.g = np.ones(self.J)
+
+    def _gate(self):
+        from math import lgamma
+        lb = lambda a, b: lgamma(a) + lgamma(b) - lgamma(a + b)
+        on = self.f0[:, 1].sum(1)
+        k = self.f0[:, 1, 1]
+        out = np.empty(self.J)
+        for j in range(self.J):
+            n, s = float(on[j]), float(k[j])
+            lt = lb(s + TONIC[0], n - s + TONIC[1]) - lb(*TONIC)
+            lp = lb(s + PHASIC[0], n - s + PHASIC[1]) - lb(*PHASIC)
+            out[j] = 1. / (1. + np.exp(lp - lt)) if n > 0 else .5
+        return out
+
+    def _emit(self, p):
+        g = self.g[None, None, :]
+        return g * p + (1. - g) * .5
 
     # ------------------------------------------------------------------ keys
     def _bits(self, x):
@@ -200,7 +223,7 @@ class FactorModel:
         n1, n0 = self.tm1[:, :, Jr, pv], self.tm0[:, :, Jr, pv]
         k1, k0 = n1.sum(1, keepdims=True), n0.sum(1, keepdims=True)
         mu = (k1 + .5) / (k1 + k0 + 1.)
-        return (n1 + mu) / (n1 + n0 + 1.)
+        return self._emit((n1 + mu) / (n1 + n0 + 1.))
 
     # ----------------------------------------------------------------- priors
     def _place_prior(self):
@@ -232,7 +255,7 @@ class FactorModel:
         G /= G.sum(1, keepdims=True)
         Dr = self.npz + self.beta * G[:, None, :]
         Dr = (Dr / Dr.sum(2, keepdims=True))[:, :, :kk]
-        h = self.hz
+        h = 1. - (1. - self.hz) ** self.dtau
         cur = Dr[ar, self.y].copy()                                # draw in the same place
         Dr[ar, self.y] = h[:, None] * cur
         Dr[ar, self.y, self.z] += 1. - h
@@ -348,17 +371,22 @@ class FactorModel:
         w = np.exp(self.logw - self.logw.max())
         w /= w.sum()
         S = self.S
-        E = np.exp(self.ev[0] - self.ev[0].max(1, keepdims=True))
-        E = (E / E.sum(1, keepdims=True) * w[None, None, :]).sum(2)          # (J, M)
+        rz = np.bincount(self.z, weights=w, minlength=self.K).astype(F32)
+        mx = self.ev.max(2, keepdims=True)
+        Ek = np.exp(self.ev - mx)
+        Ek = Ek / Ek.sum(2, keepdims=True)
+        E = np.einsum("k,kjmn->jm", rz, Ek * w[None, None, None, :])         # (J, M)
         r = lambda v: [round(float(u), 4) for u in v]
-        return dict(t=self.t, births=int(self.births),
+        return dict(t=self.t, births=int(self.births), dtau=int(self.dtau),
                     place=r(np.bincount(self.y, weights=w, minlength=self.KP)),
                     regime=r(np.bincount(self.z, weights=w, minlength=self.K)),
                     used=round(float((w * self.used).sum()), 3),
                     usedp=round(float((w * self.usedp).sum()), 3),
+                    gate=r(self.g),
                     slots=[[list(s) if s is not None else None for s in sl] for sl in self.slots],
                     w_sets=r(E[:, :S].sum(1)), w_add=r(E[:, S]),
-                    w_rest=r(E[:, S + 1:].sum(1)))
+                    w_proc=r(E[:, S + 1]) if self.proc is not None else r(E[:, :S].sum(1) * 0),
+                    w_place=r(E[:, -1]), w_rest=r(E[:, S + 1:].sum(1)))
 
     # --------------------------------------------------------------- interface
     def predict(self, x, a, hypothetical=False):
@@ -444,6 +472,16 @@ class FactorModel:
         self.npz[ar[entered], yt[entered], zt[entered]] += 1.
         self.mz[ar[entered], zt[entered]] += 1.
         self.births += int((zt >= self.used).sum())
+        newb = zt >= self.used
+        if newb.any():
+            nb = np.nonzero(newb)[0]
+            live = np.arange(self.K)[None, :] < self.used[nb][:, None]
+            wg = live / np.maximum(live.sum(1, keepdims=True), 1)
+            self.mu[nb, zt[nb]] = np.einsum("nk,nkjd->njd", wg, self.mu[nb])
+            Sz = np.einsum("nk,nkjab->njab", wg, self.Sg[nb])
+            dg = np.arange(Sz.shape[-1])
+            Sz[:, :, dg, dg] += S_INFL
+            self.Sg[nb, zt[nb]] = Sz
         self.usedp = np.maximum(self.usedp, yt + 1)
         self.used = np.maximum(self.used, zt + 1)
         self.y, self.z = yt, zt
@@ -481,6 +519,8 @@ class FactorModel:
         self._resample()
         # screening and slots (deterministic)
         self._screen(b, bn)
+        self.g = self._gate()
+        self.dtau = self.dtau + 1 if np.array_equal(b, bn) else 1
         self.hist = (self.hist + [b])[-max(1, self.D + 1):]
         self.t += 1
         self._reslot()

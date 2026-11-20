@@ -1,0 +1,3 @@
+tree 0952660254db
+cpu 0
+python3 -m eval.trace3b --t1 d3-and,d3-and-ctrl,d3-ctrl --agents factor-L4-P-C --witness decompw --steps 2000 --seed 0 --set d3

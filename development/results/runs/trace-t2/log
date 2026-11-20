@@ -1,0 +1,102 @@
+{
+ "t2:cond-inhibition": {
+  "effect": {
+   "decompw": 0.0,
+   "factor-L4-P-C": 0.3187,
+   "lc-sub-add": 0.97
+  },
+  "groups": {
+   "one": {
+    "n_obs": 607,
+    "probes": {
+     "decompw|BX": 0.1671,
+     "decompw|BY": 0.1671,
+     "factor-L4-P-C|BX": 0.0791,
+     "factor-L4-P-C|BY": 0.3978,
+     "lc-sub-add|BX": 0.0173,
+     "lc-sub-add|BY": 0.9873
+    },
+    "traces": {
+     "BX": 1.0,
+     "BY": 1.0
+    }
+   }
+  },
+  "row": "cond-inhibition",
+  "seed": 0
+ },
+ "t2:reinstatement": {
+  "effect": {
+   "decompw": 0.018,
+   "factor-L4-P-C": -0.0353,
+   "lc-sub-add": 0.1254
+  },
+  "groups": {
+   "control": {
+    "n_obs": 442,
+    "probes": {
+     "decompw|A": 0.0723,
+     "factor-L4-P-C|A": 0.5401,
+     "lc-sub-add|A": 0.0671
+    },
+    "traces": {
+     "A": 2.0
+    }
+   },
+   "reinst": {
+    "n_obs": 442,
+    "probes": {
+     "decompw|A": 0.0903,
+     "factor-L4-P-C|A": 0.5048,
+     "lc-sub-add|A": 0.1925
+    },
+    "traces": {
+     "A": 3.0
+    }
+   }
+  },
+  "row": "reinstatement",
+  "seed": 0
+ },
+ "t2:spont-recovery-sessions": {
+  "effect": {
+   "decompw": 0.1673,
+   "factor-L4-P-C": -0.0211,
+   "lc-sub-add": 0.142
+  },
+  "groups": {
+   "long": {
+    "n_obs": 853,
+    "probes": {
+     "decompw|end": 0.0633,
+     "decompw|test": 0.225,
+     "factor-L4-P-C|end": 0.0691,
+     "factor-L4-P-C|test": 0.0908,
+     "lc-sub-add|end": 0.0217,
+     "lc-sub-add|test": 0.1925
+    },
+    "traces": {
+     "end": 3.0,
+     "test": 7.0
+    }
+   },
+   "short": {
+    "n_obs": 573,
+    "probes": {
+     "decompw|end": 0.0633,
+     "decompw|test": 0.0577,
+     "factor-L4-P-C|end": 0.0691,
+     "factor-L4-P-C|test": 0.1119,
+     "lc-sub-add|end": 0.0217,
+     "lc-sub-add|test": 0.0505
+    },
+    "traces": {
+     "end": 3.0,
+     "test": 4.0
+    }
+   }
+  },
+  "row": "spont-recovery-sessions",
+  "seed": 0
+ }
+}

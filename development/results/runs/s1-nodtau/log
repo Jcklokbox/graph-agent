@@ -1,0 +1,12 @@
+stage S0 seeds=0..0 new=17 35s dup=0 bad=0
+FUTILE at S0 (c=-3.7328): factor-L4-P-C-N25:renewal-ABC
+  factor-L4-P-C-N25 blocking                 n=1 mean=+0.456 z=+6.11
+  factor-L4-P-C-N25 cond-inhibition          n=1 mean=+0.368 z=+1.21
+  factor-L4-P-C-N25 contingency              n=1 mean=+0.442 z=+3.76
+  factor-L4-P-C-N25 pree                     n=1 mean=+0.318 z=+3.24
+  factor-L4-P-C-N25 reinstatement            n=1 mean=-0.007 z=-0.20
+  factor-L4-P-C-N25 renewal-ABA              n=1 mean=+0.747 z=+12.61
+  factor-L4-P-C-N25 renewal-ABC              n=1 mean=-0.053 z=-5.71
+  factor-L4-P-C-N25 savings                  n=1 mean=+0.107 z=+1.16
+  factor-L4-P-C-N25 spont-recovery-sessions  n=1 mean=-0.097 z=-1.42
+  factor-L4-P-C-N25 spontaneous-recovery     n=1 mean=-0.121 z=-0.63

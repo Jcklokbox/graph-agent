@@ -1,0 +1,3 @@
+tree 003ea06d3c0a
+cpu 0
+python3 -m eval.trace3b --probe reinstatement --agents factor-L4-P-C-N25 --seed 0

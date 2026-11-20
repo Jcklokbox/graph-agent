@@ -157,7 +157,9 @@ class TestVectorizedEquivalence(unittest.TestCase):
 
         for args in (("factor-L4-P-C-N25", "savings", "one", 0, "v1"),
                      ("factor-L4-N25", "cond-inhibition", "one", 1, "v1"),
-                     ("factor-P-N25", "spont-recovery-sessions", "long", 2, "v1")):
+                     ("factor-P-N25", "spont-recovery-sessions", "long", 2, "v1"),
+                     # AC [0]: the same bound at the verdict particle count N_p = 200
+                     ("factor-L4-P-C", "reinstatement", "reinst", 0, "v1")):
             y_vec = flat(run_group(*args, trace=True), [])
             vec = F.FactorModel
             F.FactorModel = ref.FactorModel
