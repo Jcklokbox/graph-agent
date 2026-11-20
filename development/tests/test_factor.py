@@ -30,19 +30,11 @@ class TestFactor(unittest.TestCase):
     def test_lagged_process_runs(self):
         _run(lags=range(5), own_lags=(0, 1, 2), k=5, process=True)
 
-    def test_one_lag_per_source(self):
-        m = _run(steps=200, lags=range(5), own_lags=(0, 1, 2), k=5, one_lag=True)
-        for sl in m.slots:
-            src = [s[0] for s in sl if s is not None]
-            self.assertEqual(len(src), len(set(src)))
-        self.assertIn((0, 2), m.slots[1])            # x_1(t+1) depends on x_0(t-2)
-
     def test_conditional_screening_finds_delay(self):
         m = _run(steps=200, lags=range(5), own_lags=(0, 1, 2), k=5, cond=True)
         self.assertIn((0, 2), m.slots[1])
 
-    def test_view_mode_runs(self):
-        _run(place="view")
+
 
 
 if __name__ == "__main__":

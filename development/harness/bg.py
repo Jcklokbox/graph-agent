@@ -10,21 +10,26 @@ import subprocess
 import sys
 import time
 
-from harness.snap import snapshot
+from harness.snap import SNAP_ROOT, snapshot
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))     # development/
 RUNS = os.path.join(HERE, "results", "runs")
 TAU_MAX, B_MAX = 170, 2000
 
 
-def start(name, cmd, cpu="0,1"):
+def start(name, cmd, cpu="0,1", tree=None):
     d = os.path.join(RUNS, name)
     if os.path.exists(d):
         raise SystemExit(f"run {name} exists")
+    if tree:                                  # resume on an existing immutable snapshot
+        h, snap = tree, os.path.join(SNAP_ROOT, tree)
+        if not os.path.isdir(snap):
+            raise SystemExit(f"no snapshot {tree}")
     os.makedirs(d)
-    h, snap = snapshot(HERE)
+    if not tree:
+        h, snap = snapshot(HERE)
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", PG_TREE=h, PG_SNAP=snap,
-               PG_RUN=d, PYTHONPATH=os.pathsep.join(
+               PG_RUN=d, PG_RUNS=RUNS, PYTHONPATH=os.pathsep.join(
                    [snap, os.environ.get("PYTHONPATH", "/tmp/graph-agent-deps")]))
     inner = " ".join(shlex.quote(c) for c in cmd)
     sh = (f"nice -n 19 taskset -c {cpu} {inner} > {shlex.quote(d)}/log 2>&1; "
@@ -61,6 +66,8 @@ if __name__ == "__main__":
     a = sys.argv[1:]
     if a[0] == "start":
         cpu = a[a.index("--cpu") + 1] if "--cpu" in a else "0,1"
-        start(a[1], a[a.index("--") + 1:], cpu)
+        pre = a[:a.index("--")]
+        tree = pre[pre.index("--tree") + 1] if "--tree" in pre else None
+        start(a[1], a[a.index("--") + 1:], cpu, tree)
     elif a[0] == "wait":
         wait(a[1], *(a[2:4]))

@@ -8,6 +8,7 @@ lack spontaneous recovery and savings) and any agent module (e.g. `v11`).
 """
 from __future__ import annotations
 
+import re
 import json
 import sys
 import time
@@ -90,12 +91,14 @@ class FactorAgent:
 
     def __init__(self, name, seed, n):
         from models.factor import FactorModel
+        bad = [t for t in name.split("-")[1:] if not re.fullmatch(r"L\d+|N\d+|P|C", t)]
+        if bad:                                # removed/unknown flags must not run silently
+            raise ValueError(f"unknown factor flags {bad} in {name}")
         D = next((int(p[1:]) for p in name.split("-")[1:] if p.startswith("L")), 0)
         Np = next((int(p[1:]) for p in name.split("-")[1:] if p.startswith("N")), 200)  # dev: -N<k>
         self.m = FactorModel(n, N_ACT, VALUE, seed, N=Np, lags=tuple(range(D + 1)),
                              own_lags=tuple(range(min(D, 2) + 1)), k=5 if D else 4,
-                             process="-P" in name, place="view" if "-V" in name else "member",
-                             one_lag="-O" in name, cond="-C" in name, ctx_only="-X" in name)
+                             process="-P" in name, cond="-C" in name)
         self.x = None
 
     def step(self, x):
