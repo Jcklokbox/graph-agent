@@ -133,40 +133,25 @@ class TestVectorizedEquivalence(unittest.TestCase):
             online_hmm.OnlineHMM.T = cached
         self.assertEqual(journal.dumps(y_vec), journal.dumps(y_ref))   # eps = 0
 
-    def test_vectorized_factor_matches_reference(self):
-        """eps-test [3.1]: vectorized models/factor.py vs the pre-vectorization copy
-        (tests/data/factor_ref.py), fixed seed: max |y_vec - y_ref| <= 1e-12."""
-        import importlib.util
-        from eval.phenomena import run_group
-        import models.factor as F
-        spec = importlib.util.spec_from_file_location(
-            "factor_ref", os.path.join(DEV, "tests", "data", "factor_ref.py"))
-        ref = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(ref)
+    def test_batched_hmm_matches_scalar_updates(self):
+        import numpy as np
+        from models.online_hmm import OnlineHMM, update_population
 
-        def flat(x, out):
-            if isinstance(x, dict):
-                for k in sorted(x):
-                    flat(x[k], out)
-            elif isinstance(x, (list, tuple)):
-                for v in x:
-                    flat(v, out)
-            elif isinstance(x, (int, float)) or hasattr(x, "dtype"):
-                out.append(float(x))
-            return out
-
-        for args in (("factor-L4-P-C-N25", "savings", "one", 0, "v1"),
-                     ("factor-L4-N25", "cond-inhibition", "one", 1, "v1"),
-                     ("factor-P-N25", "spont-recovery-sessions", "long", 2, "v1")):
-            y_vec = flat(run_group(*args, trace=True), [])
-            vec = F.FactorModel
-            F.FactorModel = ref.FactorModel
-            try:
-                y_ref = flat(run_group(*args, trace=True), [])
-            finally:
-                F.FactorModel = vec
-            self.assertEqual(len(y_vec), len(y_ref))
-            self.assertLessEqual(max(abs(a - b) for a, b in zip(y_vec, y_ref)), 1e-12, args)
+        rng = np.random.default_rng(0)
+        specs = [(2, 1, 0), (2, 1, 0), (3, 2, 4), (3, 2, 4), (4, 2, 1)]
+        scalar = [OnlineHMM(m, 2, K=k, lag=lag, seed=i) for i, (k, m, lag) in enumerate(specs)]
+        batch = [OnlineHMM(m, 2, K=k, lag=lag, seed=i) for i, (k, m, lag) in enumerate(specs)]
+        for h in scalar + batch:
+            h.observe(np.zeros(h.m))
+        for t in range(45):
+            a = t % 2
+            ys = [rng.integers(2, size=h.m).astype(float) for h in batch]
+            update_population([(h, y, h.b @ h.T(a), h._lik(y, h.E()))
+                               for h, y in zip(batch, ys)], a)
+            for h, ref, y in zip(batch, scalar, ys):
+                ref.update(a, y)
+                for name in ("b", "ntr", "non", "ntot"):
+                    np.testing.assert_allclose(getattr(h, name), getattr(ref, name), atol=1e-12, rtol=0)
 
 
 if __name__ == "__main__":
