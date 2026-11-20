@@ -1,53 +1,40 @@
-# STATE (SSOT) — read first after any compaction
-Only .md in the active tree; history in archive/ (unchanged, excluded via .ignore, not importable).
-Env: `pip install --target /tmp/graph-agent-deps numpy`; run from development/ with `PYTHONPATH=/tmp/graph-agent-deps:.`.
+# STATE — SPEC-3b
+Active SSOT; historical Markdown under `archive/` is excluded from the active tree. No merge.
+Env: NumPy 2.4.6 at `/tmp/graph-agent-deps`; from `development/`, `PYTHONPATH=/tmp/graph-agent-deps:. OPENBLAS_NUM_THREADS=1`.
+Evidence/manifests: `development/results/spec3b/`; compute via `harness.bg start [--tree H]` + one `wait` per invocation. Locked harness unchanged.
 
-## goal
-One generative agent (M_factor = `factor-L4-P-C`, models/factor.py CANONICAL) reproducing T2 and transferring on T1 at cost ≤ 2.5.
-Gate 3b-1: A T2 v1 ≥ 9/10, 0 REV, cond-inhibition + reinstatement PASS; B T1 v1 ≥ .80, d2 ≥ .89, d3 ≥ .95; C cost ratio ≤ 2.5; D h1 ≥ 4/6, h2 ≥ 3/5 (one-shot).
+## [0] Hot path and localization
+- Kernel checkpoint `806c933`, s0, N200: ε=0 (260 transitions, stream seed 42); savings reference 9.115 s vs 4.56 s (N200) / 1.58 s (N25): 2.00× / 5.77×. Batch fixed-lag messages by (K,width,lag); reuse forward priors, emissions and windows; vectorize cells and member evidence.
+- Base `98008dfd0fd6`, s0: `q(place,z) ∝ p(place)p(z|place)∏_j Bern(y_j; Σ_M w_zjM p_z/place,jM(x,lag))`; fast evidence changes place. Reinstatement A .50483−.54008=−.03525 vs lc-sub-add +.09254; after free events and home, new regime 3 mass .987 (control .878).
+- Sessions: `p(z|place)` had no elapsed absence term; extinction mass .964 long vs .849 short, effect −.02116 vs lc-sub-add +.03817. Inhibition: `μ_new=0, Σ_new=s₀I`; BX/BY .0791/.3978 vs .0172/.9876; binned conditional admission and marginal eviction were incomparable.
+- d3-and s0: decompw has groups (0,1)(2,3)(4,5)(6) at t=1000 and updates a joint-emission likelihood per family; old Factor used `∏_j Bern(Σ_M w_zjM p_zjM)` and reweighted process marginals again per regime. `stage0-trace.jsonl`; `eval/scripts/localize_3b.py` with base snapshot.
 
-## decisions
-- Runs only via `harness.bg start [--tree H]` (immutable snapshot, nice 19, taskset, private cwd) + one `bg wait` per stage.
-- Runner chunks every stage: prefix of tasks with Σ t̂/procs ≤ 150 s, exit 3 = PARTIAL (rerun resumes); >180 s ⇒ fatal abort. t̂ = q90 of logged `dt` per task, else per agent, else 1.6·(2 + .04 N_p).
-- Journal ⟨(h_tree,seed,task), m, dt⟩, O_APPEND+fsync; resume only within the same h_tree (`--tree` reuses the snapshot) — a wrong-tree run cannot mix (6 records of a killed wrong-tree run are keyed apart).
-- Gate: per-row Bonferroni floor c_s = −3.733 (t₁₅, β/20), native σ_m (factor-L4-P-O, 16 seeds); S0/S1 futility only (`--screen`), verdict only at S2, N_p = 200.
-- Rejected branches deleted (view −V, one-lag −O, ctx-only −X: D-36/D-38/IA REV); unknown factor flags now raise (silent fallback was a real hazard).
-- Exactness rule: optimizations keep ev layout and op order ⇒ bitwise equal; exp(ev) cached per regime, proc.predict deduplicated, OnlineHMM T/E cached, Sg in place.
-- Dev fidelity: C = {factor, factor-L4-P-V, factor-L4-P-O} (16-seed logs) on discriminating rows only: τ_K^ceil(held-out seeds 4–9 vs 10–15) ≥ τ_disc = .5 ⇒ blocking, reinstatement, renewal-ABA (all 1.0); S1 seeds 0–3 untouched by selection.
+## [1] Canonical model / decision
+- `factor-L4-P-C`: lags 0…4, own lags 0…2, 5 slots, K=10, α=β=1, noise=.25, s₀=1, hazard-grid floor .003; only N differs in dev, 25→200. No rejected production variants or v12 tables in FactorModel.
+- Hard slow view (empirical active dwell ≥12); gaps relax saved posterior by `retain=(1−h)exp(−Δ/64)`. Boundary transitions do not train the old place. Shared signed regression center plus regime deviations; parent score is squared centered BMA residual covariance over input variance plus ridge, one slot per source.
+- Parent-missing mixture .12 (.40 in fresh regimes) and normalized quiet-event marks: silence supplies timing, not a false regime shift. Process evidence shared across regimes (switch .002), committed groups keep the process likelihood when no slow scope is found. d3 S1 GC .94930±.03857 SD, n=4 (CI [.88838,1.01022]); .00070 below .95; not closed in screening.
+- T2 S0/S1 n=1/4, native σ fixed, screen −3.7328. Same tree `cf38b91bb916`, 68/68 keys, dup/bad=0/0. S1 passed all requested z floors; 71 snapshot tests passed.
 
-## hypotheses open
-- [0] k_vec 1.38 < 1.8, k_total 3.40 < 3.5: the rest is the Decomposer/online-HMM population (~30 %, N_p-independent, Python loops over small HMMs) → batch HMMs of equal K into one tensor (bitwise needs same reduction order).
-- [0] τ(100) = .556 < τ(25) = τ(50) = .778: 3 configs × 3 rows ⇒ τ steps of 1/3 per row; one swap; needs |C| ≥ 5 with logs on discriminating rows.
-- [1] not done (W): place/regime scale separation (lags out of place likelihood), hierarchical θ prior keeping w_X<0 across contexts, residual-covariance parent recruitment, d3 localization via trace (d3 .932 vs decompw .975).
-- [2] not run (T̂ > W − t − reserve): A at S2 (T̂ ≈ 16 seeds × 17 tasks × 9.3 s / 2 ≈ 1270 s), B (T1 v1/d2/d3 at 6 seeds ≈ 2000 s+), D one-shot (kept unrun ⇒ still held-out).
-- A risk: S1 reinstatement −.028 (z −1.63), spont-recovery-sessions −.110 (z −3.20) at N_p 25 → A likely < 9/10.
+| row | Δ S0 | Δ S1 | σ native | z S1 |
+|---|---:|---:|---:|---:|
+| blocking | .4249 | .4074 | .0746 | 10.92 |
+| cond-inhibition | .8548 | .4326 | .3044 | 2.84 |
+| contingency | .4137 | .4052 | .1176 | 6.89 |
+| pree | .0136 | −.0045 | .0981 | −.09 |
+| reinstatement | .1352 | .0550 | .0339 | 3.25 |
+| renewal-ABA | .5072 | .5291 | .0592 | 17.88 |
+| renewal-ABC | .3009 | .3106 | .0093 | 66.80 |
+| savings | .3204 | .0774 | .0915 | 1.69 |
+| spont-recovery-sessions | .1706 | .1838 | .0684 | 5.37 |
+| spontaneous-recovery | .0447 | −.0062 | .1909 | −.06 |
 
-## metrics
-| item | value | basis (h_tree / n) | status |
-|---|---|---|---|
-| ε: vectorized + pruned factor vs pre-Σ reference | max diff 0 (≤1e-12) | savings s0 N200 + unit test 3 configs | ✓ |
-| k_vec = T_ref(200)/T_vec(200) | 12.89/9.32 = 1.38 | savings s0 CPU, 98008dfd0fd6 | ✗ |
-| k_total(N_p' = 25) | 12.89/3.79 = 3.40 | same | ✗ |
-| T_vec N_p 25/50/100/200 s | 3.79 / 4.07 / 5.79 / 9.32 | same | — |
-| max T_stage / waits per stage / polls | 127 s / 1 / 0 (11 stages) | results/runs/{b2-*,gateA-*,suiteC,tests3b2,timing3b2} | ✓ |
-| C_degenerate | 0 (3/3 rows τ^ceil_heldout = 1.0) | 3 configs × 16 seeds | ✓ |
-| τ_K^ceil(S1) / τ* = min(.85, ceil − .05) | .778 / .728 | seeds {0,1} vs {2,3} | — |
-| τ_K(dev, 200) N_p 25/50/100 | .778 / .778 / .556 | 3 configs × 3 rows × 4 seeds, d3b9dc578f7f | N_p' = 25 ✓, monotone ✗ |
-| max per-row |Δy| N_p 25/50/100 | .102 / .084 / .110 | same | — |
-| canonical config / rejected branches | factor-L4-P-C / ∅ (−V −O −X removed) | 98008dfd0fd6 (frozen) | ✓ |
-| d3 discrepancy localized | no | — | ✗ |
-| A screen S0→S1 (N_p 25, c_s −3.733) | pass; z: block 11.2, c-inh 2.5, cont 8.2, pree 3.3, rein −1.6, ABA 32.6, ABC 42.2, sav 4.5, srs −3.2, spont .8 | n = 4, 98008dfd0fd6 | screen ✓, verdict open |
-| A S2 / B / D | not run | T̂ > budget | open |
-| C T_step(s-4x3)/T_step(s-2x3) | 1.64 (45.9/27.9 s; ≤ 2.3 if the shared core is charged) | 1 seed × 600 steps, N200 | ✓ |
-| unit tests from frozen snapshot | 67 OK | 98008dfd0fd6 | ✓ |
+## [2] Frozen Gate 3b-1 — cf38b91bb916
+- A: **FAIL**, 8/10 PASS, 0 REV; reinstatement .0655 (SD .0404) and inhibition .4640 (SD .3944) PASS, sessions .1817 (SD .0190) PASS; pree .0219 [−.0066,.0504] and spontaneous recovery .0056 [−.0128,.0239] FAIL. n=16, 272/272 tuples, 0 dup/bad; nominal α=.05, no correction.
+- B, **INCOMPLETE**: T1 v1 GC .75294 (SD .05025, n=2/6 complete seeds; 20/48 tuples), d2 no complete seed (3/24 tuples: .96939/.78684/.94369), d3 .93316 (SD .04779, n=3/6; 10/18 tuples). Below-target provisional v1/d3 estimates are not final verdicts.
+- D, **NOT RUN**: h1/h2 retained their one-shot status (conservative estimate 1017.6 s vs 149.1 s left). No code edits after freeze.
+- C, seed 0 × 600 transitions, N200: 15.526/4.927 = 3.151 (limit 2.5) **FAIL**; no CI at n=1. Strict linear scaling not established (pair-screening cost is quadratic).
 
-## next
-1. A S2: `bg start gateA-s2 --tree 98008dfd0fd6 -- python3 -m harness.staged t2 --agents factor-L4-P-C --set v1 --journal j.jsonl` (~9 chunked stages).
-2. Batch the Decomposer HMMs (k_vec, k_total), with the ε-test against tests/data/factor_ref.py.
-3. [1] model items in a new tree; re-freeze before any S2 verdict; D only after that.
-
-## SPEC-3b stage 0 (s=0; base 98008dfd0fd6; kernel ebebb7d68efd)
-- Old filter: `q(place,z) ∝ p(place)p(z|place)∏_j Bern(y_j; Σ_M w_{zjM} p_{z/place,jM}(x,lag))`; slow and fast enter the same place evidence. Reinstatement A .50483−.54008 = −.03525 vs lc-sub-add +.09254; four free outcomes then home drive birth/selection of regime 3 (.987 vs .878), not return to an established reinforcing cause.
-- Sessions: `p(z|place)` depends only on current place and counts, not elapsed absence; after 300 vs 20 steps, extinction mass .964 vs .849, effect −.02116 vs lc-sub-add +.03817. Inhibition: `μ_new=0, Σ_new=s₀I`; BX/BY .0791/.3978 vs .0172/.9876; admission used binned BMA evidence but eviction used marginal evidence (incomparable).
-- d3-and: at t=1000 decompw groups (0,1)(2,3)(4,5)(6), scores each family’s joint emission then updates its own state. Factor learns from `∏_j Bern(Σ_M w_{zjM}p_{zjM})`, credits process marginals per regime and reweights with unrelated channels; not the same likelihood, despite the identical Decomposer state. Baseline trace: `eval/scripts/localize_3b.py` against base snapshot.
-- Exact kernels: savings CPU s0 old scalar ref 9.115 s vs batched 4.56 s (N200), 1.58 s (N25): 2.00× / 5.77×; max prediction error 0 on fixed 260-transition stream (N200, model seed 0 / stream seed 42); factor/decomp tests 4/4. Likelihood smoothing batches equal (K,width,lag); cached transition priors avoid redundant forward passes.
+## [3] Checkpoint
+- S0/S1 used only dev seeds; screen-selected and S2 seed IDs overlap by protocol, but N differs; no holdout selection, post-freeze edit, or cross-tree tuple reuse. Screen significance uses the prescribed σ, not a post-selection confirmation. Other rows were screened together; uncertainty carried to final verdicts.
+- Open: A lost PREE and same-place recovery; C exceeded cost cap; B/D incomplete. Next: review this frozen result without merge; fix scaling and same-place interval inference in a new checkpoint, not on D.
+- Runtime: S2 ≈ 789 s of 800 s; max staged invocation 161 s (d3 S1), one wait each, no runner polling. Stage journals: 0 duplicate/bad tuples.
