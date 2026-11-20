@@ -6,7 +6,7 @@ import unittest
 
 from eval.screen import Screen, replay
 
-BASE = os.path.join(os.path.dirname(__file__), "..", "results", "dev16_v11.json")
+BASE = os.path.join(os.path.dirname(__file__), "data", "dev16_v11.json")  # copy of results/dev16_v11.json (snapshot-safe)
 
 
 class ScreenRules(unittest.TestCase):

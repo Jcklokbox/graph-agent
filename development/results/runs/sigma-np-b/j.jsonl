@@ -1,0 +1,17 @@
+{"k":["d8f427e59104",0,"factor-L4-P-C-N100|blocking|blocking"],"m":{"B":0.0006978251018119635}}
+{"k":["d8f427e59104",0,"factor-L4-P-C-N100|blocking|control"],"m":{"B":0.42521134687127654}}
+{"k":["d8f427e59104",0,"factor-L4-P-C-N100|cond-inhibition|one"],"m":{"BX":0.08030971760826254,"BY":0.5736587235326914}}
+{"k":["d8f427e59104",0,"factor-L4-P-C-N100|contingency|contingent"],"m":{"A":0.4632424057585097,"ctx":0.001446249541428065}}
+{"k":["d8f427e59104",0,"factor-L4-P-C-N100|contingency|degraded"],"m":{"A":0.41031169509681753,"ctx":0.4144562142784482}}
+{"k":["d8f427e59104",0,"factor-L4-P-C-N100|renewal-ABA|ABA"],"m":{"A":0.9776599409965041}}
+{"k":["d8f427e59104",0,"factor-L4-P-C-N100|renewal-ABA|ABB"],"m":{"A":0.0010969177879556749}}
+{"k":["d8f427e59104",0,"factor-L4-P-C-N100|renewal-ABC|ABC"],"m":{"A":0.12002557324321074}}
+{"k":["d8f427e59104",0,"factor-L4-P-C-N100|renewal-ABC|ABB"],"m":{"A":0.0010969177879556749}}
+{"k":["d8f427e59104",0,"factor-L4-P-C-N100|spontaneous-recovery|one"],"m":{"delayed":0.7459273408395078,"immediate":0.034249188105243224}}
+{"k":["d8f427e59104",0,"factor-L4-P-C-N100|spont-recovery-sessions|short"],"m":{"end":0.13142997680408003,"test":0.5663859663416132}}
+{"k":["d8f427e59104",0,"factor-L4-P-C-N100|spont-recovery-sessions|long"],"m":{"end":0.13142997680408003,"test":0.4554925209121356}}
+{"k":["d8f427e59104",0,"factor-L4-P-C-N100|savings|one"],"m":{"acq2":0.7211257406662762,"reacq2":0.9026296237626495}}
+{"k":["d8f427e59104",0,"factor-L4-P-C-N100|reinstatement|reinst"],"m":{"A":0.5695270456565296}}
+{"k":["d8f427e59104",0,"factor-L4-P-C-N100|reinstatement|control"],"m":{"A":0.5528407852468932}}
+{"k":["d8f427e59104",0,"factor-L4-P-C-N100|pree|partial"],"m":{"A":0.35006221109018043}}
+{"k":["d8f427e59104",0,"factor-L4-P-C-N100|pree|continuous"],"m":{"A":0.13378886743745816}}

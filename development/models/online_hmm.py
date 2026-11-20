@@ -32,6 +32,8 @@ class OnlineHMM:
         self.K, self.m, self.A, self.L = K, n_channels, n_actions, lag
         self.decay, self.alpha, self.sticky, self.shrink = decay, alpha, sticky, shrink
         self.ntr = np.zeros((n_actions, K, K))
+        self._eye = sticky * np.eye(K)
+        self._Tc = {}          # T(a) cache; cleared whenever ntr changes (only in _learn_oldest)
         self.non = rng.random((K, n_channels)) * .5 + .25      # symmetry breaking
         self.ntot = np.ones(K)
         self.b = None
@@ -40,11 +42,14 @@ class OnlineHMM:
 
     # ------------------------------------------------------------ parameters
     def T(self, a):
-        K = self.K
-        pool = self.ntr.sum(0) + self.alpha + self.sticky * np.eye(K)
-        pool /= pool.sum(1, keepdims=True)
-        n = self.ntr[a]
-        return (n + self.shrink * pool) / (n.sum(1, keepdims=True) + self.shrink)
+        """Transition matrix for action a (read-only, cached until ntr changes)."""
+        t = self._Tc.get(a)
+        if t is None:
+            pool = self.ntr.sum(0) + self.alpha + self._eye
+            pool /= pool.sum(1, keepdims=True)
+            n = self.ntr[a]
+            t = self._Tc[a] = (n + self.shrink * pool) / (n.sum(1, keepdims=True) + self.shrink)
+        return t
 
     def E(self):
         return (self.non + .5) / (self.ntot[:, None] + 1.)
@@ -91,6 +96,7 @@ class OnlineHMM:
             self.non *= self.decay
             self.ntot *= self.decay
         self.ntr[a] += xi
+        self._Tc.clear()
         self.non += g[:, None] * y[None, :]
         self.ntot += g
 

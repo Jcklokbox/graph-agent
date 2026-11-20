@@ -1,0 +1,14 @@
+{
+"_default": 0.3044,
+"_source": "native: factor-L4-P-O, 16 seeds, T2 v1 (harness/fwer.py)",
+"blocking": 0.0746,
+"cond-inhibition": 0.3044,
+"contingency": 0.1176,
+"pree": 0.0981,
+"reinstatement": 0.0339,
+"renewal-ABA": 0.0592,
+"renewal-ABC": 0.0093,
+"savings": 0.0915,
+"spont-recovery-sessions": 0.0684,
+"spontaneous-recovery": 0.1909
+}

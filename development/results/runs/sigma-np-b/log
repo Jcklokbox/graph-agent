@@ -1,0 +1,12 @@
+stage S0 seeds=0..0 new=17 74s dup=0 bad=0
+  factor-L4-P-C-N100 blocking                 n=1 +0.425 [+nan,+nan] -
+  factor-L4-P-C-N100 cond-inhibition          n=1 +0.493 [+nan,+nan] -
+  factor-L4-P-C-N100 contingency              n=1 +0.466 [+nan,+nan] -
+  factor-L4-P-C-N100 pree                     n=1 +0.216 [+nan,+nan] -
+  factor-L4-P-C-N100 reinstatement            n=1 +0.017 [+nan,+nan] -
+  factor-L4-P-C-N100 renewal-ABA              n=1 +0.977 [+nan,+nan] -
+  factor-L4-P-C-N100 renewal-ABC              n=1 +0.119 [+nan,+nan] -
+  factor-L4-P-C-N100 savings                  n=1 +0.182 [+nan,+nan] -
+  factor-L4-P-C-N100 spont-recovery-sessions  n=1 -0.111 [+nan,+nan] -
+  factor-L4-P-C-N100 spontaneous-recovery     n=1 +0.712 [+nan,+nan] -
+FINAL factor-L4-P-C-N100=0/10
