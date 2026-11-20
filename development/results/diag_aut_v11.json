@@ -1,0 +1,2186 @@
+{
+ "aut": [
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.985,
+    "model": 1.0,
+    "control_err": 0.015,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 43,
+    "choice": 0.9534883720930233,
+    "model": 1.0,
+    "control_err": 0.046511627906976744,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 157,
+    "choice": 0.9936305732484076,
+    "model": 1.0,
+    "control_err": 0.006369426751592357,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.005,
+    "other_model": 0.0,
+    "other_control": 0.0025,
+    "control_by_bonus": 0.005,
+    "control_by_continuation": 0.0025
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.99,
+    "model": 1.0,
+    "control_err": 0.01,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 44,
+    "choice": 0.9772727272727273,
+    "model": 1.0,
+    "control_err": 0.022727272727272728,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 156,
+    "choice": 0.9935897435897436,
+    "model": 1.0,
+    "control_err": 0.00641025641025641,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0025,
+    "other_model": 0.0,
+    "other_control": 0.0025,
+    "control_by_bonus": 0.005,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.995,
+    "model": 1.0,
+    "control_err": 0.005,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 43,
+    "choice": 0.9767441860465116,
+    "model": 1.0,
+    "control_err": 0.023255813953488372,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 157,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0025,
+    "other_model": 0.0,
+    "other_control": 0.0,
+    "control_by_bonus": 0.0025,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.98,
+    "model": 1.0,
+    "control_err": 0.02,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 44,
+    "choice": 0.9772727272727273,
+    "model": 1.0,
+    "control_err": 0.022727272727272728,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 156,
+    "choice": 0.9807692307692307,
+    "model": 1.0,
+    "control_err": 0.019230769230769232,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0025,
+    "other_model": 0.0,
+    "other_control": 0.0075,
+    "control_by_bonus": 0.01,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.97,
+    "model": 0.99,
+    "control_err": 0.02,
+    "model_err": 0.01,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 43,
+    "choice": 0.9767441860465116,
+    "model": 1.0,
+    "control_err": 0.023255813953488372,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 157,
+    "choice": 0.9681528662420382,
+    "model": 0.9872611464968153,
+    "control_err": 0.01910828025477707,
+    "model_err": 0.012738853503184714,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.005,
+    "other_model": 0.005,
+    "other_control": 0.0075,
+    "control_by_bonus": 0.0125,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.985,
+    "model": 0.995,
+    "control_err": 0.01,
+    "model_err": 0.005,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 43,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 157,
+    "choice": 0.9808917197452229,
+    "model": 0.9936305732484076,
+    "control_err": 0.012738853503184714,
+    "model_err": 0.006369426751592357,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.0025,
+    "other_control": 0.005,
+    "control_by_bonus": 0.005,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 44,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 156,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.0,
+    "other_control": 0.0,
+    "control_by_bonus": 0.0,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.97,
+    "model": 1.0,
+    "control_err": 0.03,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 43,
+    "choice": 0.9767441860465116,
+    "model": 1.0,
+    "control_err": 0.023255813953488372,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 157,
+    "choice": 0.9681528662420382,
+    "model": 1.0,
+    "control_err": 0.03184713375796178,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.005,
+    "other_model": 0.0,
+    "other_control": 0.0125,
+    "control_by_bonus": 0.015000000000000001,
+    "control_by_continuation": 0.0025
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.99,
+    "model": 0.995,
+    "control_err": 0.005,
+    "model_err": 0.005,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 44,
+    "choice": 0.9772727272727273,
+    "model": 1.0,
+    "control_err": 0.022727272727272728,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 156,
+    "choice": 0.9935897435897436,
+    "model": 0.9935897435897436,
+    "control_err": 0.0,
+    "model_err": 0.00641025641025641,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.005,
+    "other_model": 0.0025,
+    "other_control": 0.0,
+    "control_by_bonus": 0.005,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 45,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 155,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.0,
+    "other_control": 0.0,
+    "control_by_bonus": 0.0,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.995,
+    "model": 1.0,
+    "control_err": 0.005,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 42,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 158,
+    "choice": 0.9936708860759493,
+    "model": 1.0,
+    "control_err": 0.006329113924050633,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.0,
+    "other_control": 0.0025,
+    "control_by_bonus": 0.0025,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 45,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 155,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.0,
+    "other_control": 0.0,
+    "control_by_bonus": 0.0,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.985,
+    "model": 0.995,
+    "control_err": 0.01,
+    "model_err": 0.005,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 44,
+    "choice": 0.9772727272727273,
+    "model": 1.0,
+    "control_err": 0.022727272727272728,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 156,
+    "choice": 0.9871794871794872,
+    "model": 0.9935897435897436,
+    "control_err": 0.00641025641025641,
+    "model_err": 0.00641025641025641,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.005,
+    "other_model": 0.0025,
+    "other_control": 0.0025,
+    "control_by_bonus": 0.0075,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 45,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 155,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.0,
+    "other_control": 0.0,
+    "control_by_bonus": 0.0,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.99,
+    "model": 0.995,
+    "control_err": 0.005,
+    "model_err": 0.005,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 45,
+    "choice": 0.9777777777777777,
+    "model": 1.0,
+    "control_err": 0.022222222222222223,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 155,
+    "choice": 0.9935483870967742,
+    "model": 0.9935483870967742,
+    "control_err": 0.0,
+    "model_err": 0.0064516129032258064,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0025,
+    "other_model": 0.0025,
+    "other_control": 0.0,
+    "control_by_bonus": 0.0025,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 45,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 155,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.0,
+    "other_control": 0.0,
+    "control_by_bonus": 0.0,
+    "control_by_continuation": 0.0
+   }
+  }
+ ],
+ "aut-fooddelay2": [
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.965,
+    "model": 0.98,
+    "control_err": 0.02,
+    "model_err": 0.02,
+    "lucky": 0.005
+   },
+   "food": {
+    "n": 34,
+    "choice": 0.9705882352941176,
+    "model": 1.0,
+    "control_err": 0.029411764705882353,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 166,
+    "choice": 0.963855421686747,
+    "model": 0.9759036144578314,
+    "control_err": 0.018072289156626505,
+    "model_err": 0.024096385542168676,
+    "lucky": 0.006024096385542169
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.005,
+    "other_model": 0.0075,
+    "other_control": 0.0075,
+    "control_by_bonus": 0.0125,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.975,
+    "model": 1.0,
+    "control_err": 0.025,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 37,
+    "choice": 0.972972972972973,
+    "model": 1.0,
+    "control_err": 0.02702702702702703,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 163,
+    "choice": 0.9754601226993865,
+    "model": 1.0,
+    "control_err": 0.024539877300613498,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.005,
+    "other_model": 0.0,
+    "other_control": 0.01,
+    "control_by_bonus": 0.0075,
+    "control_by_continuation": 0.0075
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.87,
+    "model": 0.935,
+    "control_err": 0.075,
+    "model_err": 0.065,
+    "lucky": 0.01
+   },
+   "food": {
+    "n": 32,
+    "choice": 0.78125,
+    "model": 0.75,
+    "control_err": 0.0,
+    "model_err": 0.25,
+    "lucky": 0.03125
+   },
+   "other": {
+    "n": 168,
+    "choice": 0.8869047619047619,
+    "model": 0.9702380952380952,
+    "control_err": 0.08928571428571429,
+    "model_err": 0.02976190476190476,
+    "lucky": 0.005952380952380952
+   },
+   "loss": {
+    "food_model": 0.025,
+    "food_control": 0.0,
+    "other_model": 0.01,
+    "other_control": 0.0375,
+    "control_by_bonus": 0.032499999999999994,
+    "control_by_continuation": 0.005
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.945,
+    "model": 0.995,
+    "control_err": 0.05,
+    "model_err": 0.005,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 36,
+    "choice": 0.9444444444444444,
+    "model": 1.0,
+    "control_err": 0.05555555555555555,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 164,
+    "choice": 0.9451219512195121,
+    "model": 0.9939024390243902,
+    "control_err": 0.04878048780487805,
+    "model_err": 0.006097560975609756,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.005,
+    "other_model": 0.0025,
+    "other_control": 0.02,
+    "control_by_bonus": 0.02,
+    "control_by_continuation": 0.005
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.95,
+    "model": 0.995,
+    "control_err": 0.05,
+    "model_err": 0.005,
+    "lucky": 0.005
+   },
+   "food": {
+    "n": 37,
+    "choice": 0.972972972972973,
+    "model": 0.972972972972973,
+    "control_err": 0.02702702702702703,
+    "model_err": 0.02702702702702703,
+    "lucky": 0.02702702702702703
+   },
+   "other": {
+    "n": 163,
+    "choice": 0.9447852760736196,
+    "model": 1.0,
+    "control_err": 0.05521472392638037,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.005,
+    "other_model": 0.0,
+    "other_control": 0.0225,
+    "control_by_bonus": 0.027499999999999997,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.975,
+    "model": 0.98,
+    "control_err": 0.015,
+    "model_err": 0.02,
+    "lucky": 0.01
+   },
+   "food": {
+    "n": 33,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 167,
+    "choice": 0.9700598802395209,
+    "model": 0.9760479041916168,
+    "control_err": 0.017964071856287425,
+    "model_err": 0.023952095808383235,
+    "lucky": 0.011976047904191617
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.005,
+    "other_control": 0.0075,
+    "control_by_bonus": 0.0075,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.965,
+    "model": 0.995,
+    "control_err": 0.03,
+    "model_err": 0.005,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 37,
+    "choice": 0.918918918918919,
+    "model": 1.0,
+    "control_err": 0.08108108108108109,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 163,
+    "choice": 0.9754601226993865,
+    "model": 0.9938650306748467,
+    "control_err": 0.018404907975460124,
+    "model_err": 0.006134969325153374,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.015,
+    "other_model": 0.0025,
+    "other_control": 0.0075,
+    "control_by_bonus": 0.017499999999999998,
+    "control_by_continuation": 0.005
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.965,
+    "model": 0.995,
+    "control_err": 0.03,
+    "model_err": 0.005,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 36,
+    "choice": 0.9722222222222222,
+    "model": 1.0,
+    "control_err": 0.027777777777777776,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 164,
+    "choice": 0.9634146341463414,
+    "model": 0.9939024390243902,
+    "control_err": 0.03048780487804878,
+    "model_err": 0.006097560975609756,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.005,
+    "other_model": 0.0025,
+    "other_control": 0.0125,
+    "control_by_bonus": 0.0125,
+    "control_by_continuation": 0.005
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.99,
+    "model": 1.0,
+    "control_err": 0.01,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 36,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 164,
+    "choice": 0.9878048780487805,
+    "model": 1.0,
+    "control_err": 0.012195121951219513,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.0,
+    "other_control": 0.005,
+    "control_by_bonus": 0.005,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.99,
+    "model": 1.0,
+    "control_err": 0.01,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 35,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 165,
+    "choice": 0.9878787878787879,
+    "model": 1.0,
+    "control_err": 0.012121212121212121,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.0,
+    "other_control": 0.005,
+    "control_by_bonus": 0.005,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.94,
+    "model": 0.995,
+    "control_err": 0.055,
+    "model_err": 0.005,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 35,
+    "choice": 0.9428571428571428,
+    "model": 1.0,
+    "control_err": 0.05714285714285714,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 165,
+    "choice": 0.9393939393939394,
+    "model": 0.9939393939393939,
+    "control_err": 0.05454545454545454,
+    "model_err": 0.006060606060606061,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.01,
+    "other_model": 0.0025,
+    "other_control": 0.0225,
+    "control_by_bonus": 0.0225,
+    "control_by_continuation": 0.01
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.99,
+    "model": 1.0,
+    "control_err": 0.01,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 36,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 164,
+    "choice": 0.9878048780487805,
+    "model": 1.0,
+    "control_err": 0.012195121951219513,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.0,
+    "other_control": 0.005,
+    "control_by_bonus": 0.005,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.84,
+    "model": 0.93,
+    "control_err": 0.095,
+    "model_err": 0.07,
+    "lucky": 0.005
+   },
+   "food": {
+    "n": 33,
+    "choice": 0.6666666666666666,
+    "model": 0.6363636363636364,
+    "control_err": 0.0,
+    "model_err": 0.36363636363636365,
+    "lucky": 0.030303030303030304
+   },
+   "other": {
+    "n": 167,
+    "choice": 0.874251497005988,
+    "model": 0.9880239520958084,
+    "control_err": 0.11377245508982035,
+    "model_err": 0.011976047904191617,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.037500000000000006,
+    "food_control": 0.0,
+    "other_model": 0.005,
+    "other_control": 0.04750000000000001,
+    "control_by_bonus": 0.045000000000000005,
+    "control_by_continuation": 0.0025
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.97,
+    "model": 1.0,
+    "control_err": 0.03,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 36,
+    "choice": 0.9722222222222222,
+    "model": 1.0,
+    "control_err": 0.027777777777777776,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 164,
+    "choice": 0.9695121951219512,
+    "model": 1.0,
+    "control_err": 0.03048780487804878,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.005,
+    "other_model": 0.0,
+    "other_control": 0.0125,
+    "control_by_bonus": 0.0125,
+    "control_by_continuation": 0.005
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.845,
+    "model": 0.92,
+    "control_err": 0.08,
+    "model_err": 0.08,
+    "lucky": 0.005
+   },
+   "food": {
+    "n": 33,
+    "choice": 0.6666666666666666,
+    "model": 0.6363636363636364,
+    "control_err": 0.0,
+    "model_err": 0.36363636363636365,
+    "lucky": 0.030303030303030304
+   },
+   "other": {
+    "n": 167,
+    "choice": 0.8802395209580839,
+    "model": 0.9760479041916168,
+    "control_err": 0.09580838323353294,
+    "model_err": 0.023952095808383235,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.032499999999999994,
+    "food_control": 0.0,
+    "other_model": 0.01,
+    "other_control": 0.04,
+    "control_by_bonus": 0.0375,
+    "control_by_continuation": 0.0025
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.85,
+    "model": 0.895,
+    "control_err": 0.045,
+    "model_err": 0.105,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 34,
+    "choice": 0.4411764705882353,
+    "model": 0.4411764705882353,
+    "control_err": 0.0,
+    "model_err": 0.5588235294117647,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 166,
+    "choice": 0.9337349397590361,
+    "model": 0.9879518072289156,
+    "control_err": 0.05421686746987952,
+    "model_err": 0.012048192771084338,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.05250000000000001,
+    "food_control": 0.0,
+    "other_model": 0.005,
+    "other_control": 0.0225,
+    "control_by_bonus": 0.0175,
+    "control_by_continuation": 0.005
+   }
+  }
+ ],
+ "aut-fooddelay3-noise1": [
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.815,
+    "model": 0.89,
+    "control_err": 0.075,
+    "model_err": 0.11,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 25,
+    "choice": 0.28,
+    "model": 0.28,
+    "control_err": 0.0,
+    "model_err": 0.72,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 175,
+    "choice": 0.8914285714285715,
+    "model": 0.9771428571428571,
+    "control_err": 0.08571428571428572,
+    "model_err": 0.022857142857142857,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.05,
+    "food_control": 0.0,
+    "other_model": 0.01,
+    "other_control": 0.0375,
+    "control_by_bonus": 0.0375,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.955,
+    "model": 0.985,
+    "control_err": 0.035,
+    "model_err": 0.015,
+    "lucky": 0.005
+   },
+   "food": {
+    "n": 29,
+    "choice": 1.0,
+    "model": 0.9655172413793104,
+    "control_err": 0.0,
+    "model_err": 0.034482758620689655,
+    "lucky": 0.034482758620689655
+   },
+   "other": {
+    "n": 171,
+    "choice": 0.9473684210526315,
+    "model": 0.9883040935672515,
+    "control_err": 0.04093567251461988,
+    "model_err": 0.011695906432748537,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.005,
+    "other_control": 0.0175,
+    "control_by_bonus": 0.0175,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.915,
+    "model": 0.995,
+    "control_err": 0.08,
+    "model_err": 0.005,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 30,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 170,
+    "choice": 0.9,
+    "model": 0.9941176470588236,
+    "control_err": 0.09411764705882353,
+    "model_err": 0.0058823529411764705,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.0025,
+    "other_control": 0.04,
+    "control_by_bonus": 0.04,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.98,
+    "model": 1.0,
+    "control_err": 0.02,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 31,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 169,
+    "choice": 0.9763313609467456,
+    "model": 1.0,
+    "control_err": 0.023668639053254437,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.0,
+    "other_control": 0.01,
+    "control_by_bonus": 0.01,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.91,
+    "model": 0.995,
+    "control_err": 0.085,
+    "model_err": 0.005,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 31,
+    "choice": 0.9354838709677419,
+    "model": 1.0,
+    "control_err": 0.06451612903225806,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 169,
+    "choice": 0.9053254437869822,
+    "model": 0.9940828402366864,
+    "control_err": 0.08875739644970414,
+    "model_err": 0.005917159763313609,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.01,
+    "other_model": 0.0025,
+    "other_control": 0.0375,
+    "control_by_bonus": 0.04,
+    "control_by_continuation": 0.0075
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.96,
+    "model": 1.0,
+    "control_err": 0.04,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 31,
+    "choice": 0.967741935483871,
+    "model": 1.0,
+    "control_err": 0.03225806451612903,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 169,
+    "choice": 0.9585798816568047,
+    "model": 1.0,
+    "control_err": 0.04142011834319527,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.005,
+    "other_model": 0.0,
+    "other_control": 0.0175,
+    "control_by_bonus": 0.0175,
+    "control_by_continuation": 0.005
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.915,
+    "model": 0.955,
+    "control_err": 0.04,
+    "model_err": 0.045,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 22,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 178,
+    "choice": 0.9044943820224719,
+    "model": 0.949438202247191,
+    "control_err": 0.0449438202247191,
+    "model_err": 0.05056179775280899,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.0225,
+    "other_control": 0.02,
+    "control_by_bonus": 0.02,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.85,
+    "model": 0.9,
+    "control_err": 0.05,
+    "model_err": 0.1,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 26,
+    "choice": 0.46153846153846156,
+    "model": 0.5,
+    "control_err": 0.038461538461538464,
+    "model_err": 0.5,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 174,
+    "choice": 0.9080459770114943,
+    "model": 0.9597701149425287,
+    "control_err": 0.05172413793103448,
+    "model_err": 0.040229885057471264,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.045000000000000005,
+    "food_control": 0.005,
+    "other_model": 0.0175,
+    "other_control": 0.0225,
+    "control_by_bonus": 0.02,
+    "control_by_continuation": 0.0075
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.87,
+    "model": 0.92,
+    "control_err": 0.055,
+    "model_err": 0.08,
+    "lucky": 0.005
+   },
+   "food": {
+    "n": 28,
+    "choice": 0.5,
+    "model": 0.5,
+    "control_err": 0.0,
+    "model_err": 0.5,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 172,
+    "choice": 0.9302325581395349,
+    "model": 0.9883720930232558,
+    "control_err": 0.06395348837209303,
+    "model_err": 0.011627906976744186,
+    "lucky": 0.005813953488372093
+   },
+   "loss": {
+    "food_model": 0.04,
+    "food_control": 0.0,
+    "other_model": 0.0025,
+    "other_control": 0.027499999999999997,
+    "control_by_bonus": 0.024999999999999998,
+    "control_by_continuation": 0.0025
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.885,
+    "model": 0.95,
+    "control_err": 0.07,
+    "model_err": 0.05,
+    "lucky": 0.005
+   },
+   "food": {
+    "n": 26,
+    "choice": 0.8461538461538461,
+    "model": 0.8076923076923077,
+    "control_err": 0.0,
+    "model_err": 0.19230769230769232,
+    "lucky": 0.038461538461538464
+   },
+   "other": {
+    "n": 174,
+    "choice": 0.8908045977011494,
+    "model": 0.9712643678160919,
+    "control_err": 0.08045977011494253,
+    "model_err": 0.028735632183908046,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.015,
+    "food_control": 0.0,
+    "other_model": 0.0125,
+    "other_control": 0.034999999999999996,
+    "control_by_bonus": 0.029999999999999995,
+    "control_by_continuation": 0.005
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.895,
+    "model": 0.97,
+    "control_err": 0.08,
+    "model_err": 0.03,
+    "lucky": 0.005
+   },
+   "food": {
+    "n": 29,
+    "choice": 1.0,
+    "model": 0.9655172413793104,
+    "control_err": 0.0,
+    "model_err": 0.034482758620689655,
+    "lucky": 0.034482758620689655
+   },
+   "other": {
+    "n": 171,
+    "choice": 0.8771929824561403,
+    "model": 0.9707602339181286,
+    "control_err": 0.0935672514619883,
+    "model_err": 0.029239766081871343,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.0125,
+    "other_control": 0.04,
+    "control_by_bonus": 0.0375,
+    "control_by_continuation": 0.0025
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.915,
+    "model": 0.965,
+    "control_err": 0.05,
+    "model_err": 0.035,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 24,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 176,
+    "choice": 0.9034090909090909,
+    "model": 0.9602272727272727,
+    "control_err": 0.056818181818181816,
+    "model_err": 0.03977272727272727,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.0175,
+    "other_control": 0.024999999999999998,
+    "control_by_bonus": 0.02,
+    "control_by_continuation": 0.005
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.92,
+    "model": 0.98,
+    "control_err": 0.065,
+    "model_err": 0.02,
+    "lucky": 0.005
+   },
+   "food": {
+    "n": 27,
+    "choice": 0.9259259259259259,
+    "model": 1.0,
+    "control_err": 0.07407407407407407,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 173,
+    "choice": 0.9190751445086706,
+    "model": 0.976878612716763,
+    "control_err": 0.06358381502890173,
+    "model_err": 0.023121387283236993,
+    "lucky": 0.005780346820809248
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.01,
+    "other_model": 0.0075,
+    "other_control": 0.027499999999999997,
+    "control_by_bonus": 0.0375,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.91,
+    "model": 0.99,
+    "control_err": 0.08,
+    "model_err": 0.01,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 29,
+    "choice": 0.9655172413793104,
+    "model": 1.0,
+    "control_err": 0.034482758620689655,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 171,
+    "choice": 0.9005847953216374,
+    "model": 0.9883040935672515,
+    "control_err": 0.08771929824561403,
+    "model_err": 0.011695906432748537,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.005,
+    "other_model": 0.005,
+    "other_control": 0.0375,
+    "control_by_bonus": 0.0375,
+    "control_by_continuation": 0.005
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.88,
+    "model": 0.955,
+    "control_err": 0.08,
+    "model_err": 0.045,
+    "lucky": 0.005
+   },
+   "food": {
+    "n": 24,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 176,
+    "choice": 0.8636363636363636,
+    "model": 0.9488636363636364,
+    "control_err": 0.09090909090909091,
+    "model_err": 0.05113636363636364,
+    "lucky": 0.005681818181818182
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.02,
+    "other_control": 0.04,
+    "control_by_bonus": 0.032499999999999994,
+    "control_by_continuation": 0.0075
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.96,
+    "model": 1.0,
+    "control_err": 0.04,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 31,
+    "choice": 0.9354838709677419,
+    "model": 1.0,
+    "control_err": 0.06451612903225806,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 169,
+    "choice": 0.9644970414201184,
+    "model": 1.0,
+    "control_err": 0.03550295857988166,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.01,
+    "other_model": 0.0,
+    "other_control": 0.015000000000000001,
+    "control_by_bonus": 0.02,
+    "control_by_continuation": 0.005
+   }
+  }
+ ],
+ "aut-noise4": [
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.995,
+    "model": 1.0,
+    "control_err": 0.005,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 43,
+    "choice": 0.9767441860465116,
+    "model": 1.0,
+    "control_err": 0.023255813953488372,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 157,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0025,
+    "other_model": 0.0,
+    "other_control": 0.0,
+    "control_by_bonus": 0.0025,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.975,
+    "model": 0.995,
+    "control_err": 0.02,
+    "model_err": 0.005,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 44,
+    "choice": 0.9772727272727273,
+    "model": 1.0,
+    "control_err": 0.022727272727272728,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 156,
+    "choice": 0.9743589743589743,
+    "model": 0.9935897435897436,
+    "control_err": 0.019230769230769232,
+    "model_err": 0.00641025641025641,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0025,
+    "other_model": 0.0025,
+    "other_control": 0.0075,
+    "control_by_bonus": 0.01,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.95,
+    "model": 0.985,
+    "control_err": 0.035,
+    "model_err": 0.015,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 42,
+    "choice": 0.8809523809523809,
+    "model": 1.0,
+    "control_err": 0.11904761904761904,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 158,
+    "choice": 0.9683544303797469,
+    "model": 0.9810126582278481,
+    "control_err": 0.012658227848101266,
+    "model_err": 0.0189873417721519,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0125,
+    "other_model": 0.0075,
+    "other_control": 0.005,
+    "control_by_bonus": 0.0125,
+    "control_by_continuation": 0.005
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.99,
+    "model": 1.0,
+    "control_err": 0.01,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 44,
+    "choice": 0.9545454545454546,
+    "model": 1.0,
+    "control_err": 0.045454545454545456,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 156,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.005,
+    "other_model": 0.0,
+    "other_control": 0.0,
+    "control_by_bonus": 0.0,
+    "control_by_continuation": 0.005
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.955,
+    "model": 0.995,
+    "control_err": 0.04,
+    "model_err": 0.005,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 44,
+    "choice": 0.8181818181818182,
+    "model": 1.0,
+    "control_err": 0.18181818181818182,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 156,
+    "choice": 0.9935897435897436,
+    "model": 0.9935897435897436,
+    "control_err": 0.0,
+    "model_err": 0.00641025641025641,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.02,
+    "other_model": 0.0025,
+    "other_control": 0.0,
+    "control_by_bonus": 0.005,
+    "control_by_continuation": 0.015000000000000001
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.97,
+    "model": 0.995,
+    "control_err": 0.025,
+    "model_err": 0.005,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 42,
+    "choice": 0.9761904761904762,
+    "model": 1.0,
+    "control_err": 0.023809523809523808,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 158,
+    "choice": 0.9683544303797469,
+    "model": 0.9936708860759493,
+    "control_err": 0.02531645569620253,
+    "model_err": 0.006329113924050633,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.005,
+    "other_model": 0.0025,
+    "other_control": 0.01,
+    "control_by_bonus": 0.015000000000000001,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.975,
+    "model": 1.0,
+    "control_err": 0.025,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 43,
+    "choice": 0.9302325581395349,
+    "model": 1.0,
+    "control_err": 0.06976744186046512,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 157,
+    "choice": 0.9872611464968153,
+    "model": 1.0,
+    "control_err": 0.012738853503184714,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0075,
+    "other_model": 0.0,
+    "other_control": 0.005,
+    "control_by_bonus": 0.0125,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.985,
+    "model": 1.0,
+    "control_err": 0.015,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 44,
+    "choice": 0.9545454545454546,
+    "model": 1.0,
+    "control_err": 0.045454545454545456,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 156,
+    "choice": 0.9935897435897436,
+    "model": 1.0,
+    "control_err": 0.00641025641025641,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.005,
+    "other_model": 0.0,
+    "other_control": 0.0025,
+    "control_by_bonus": 0.005,
+    "control_by_continuation": 0.0025
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.99,
+    "model": 1.0,
+    "control_err": 0.01,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 44,
+    "choice": 0.9545454545454546,
+    "model": 1.0,
+    "control_err": 0.045454545454545456,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 156,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.005,
+    "other_model": 0.0,
+    "other_control": 0.0,
+    "control_by_bonus": 0.005,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.99,
+    "model": 1.0,
+    "control_err": 0.01,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 45,
+    "choice": 0.9777777777777777,
+    "model": 1.0,
+    "control_err": 0.022222222222222223,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 155,
+    "choice": 0.9935483870967742,
+    "model": 1.0,
+    "control_err": 0.0064516129032258064,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0025,
+    "other_model": 0.0,
+    "other_control": 0.0025,
+    "control_by_bonus": 0.005,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.965,
+    "model": 0.995,
+    "control_err": 0.03,
+    "model_err": 0.005,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 42,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 158,
+    "choice": 0.9556962025316456,
+    "model": 0.9936708860759493,
+    "control_err": 0.0379746835443038,
+    "model_err": 0.006329113924050633,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0,
+    "other_model": 0.0025,
+    "other_control": 0.015000000000000001,
+    "control_by_bonus": 0.015000000000000001,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.985,
+    "model": 1.0,
+    "control_err": 0.015,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 45,
+    "choice": 0.9333333333333333,
+    "model": 1.0,
+    "control_err": 0.06666666666666667,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 155,
+    "choice": 1.0,
+    "model": 1.0,
+    "control_err": 0.0,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0075,
+    "other_model": 0.0,
+    "other_control": 0.0,
+    "control_by_bonus": 0.0025,
+    "control_by_continuation": 0.005
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.98,
+    "model": 1.0,
+    "control_err": 0.02,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 44,
+    "choice": 0.9772727272727273,
+    "model": 1.0,
+    "control_err": 0.022727272727272728,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 156,
+    "choice": 0.9807692307692307,
+    "model": 1.0,
+    "control_err": 0.019230769230769232,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0025,
+    "other_model": 0.0,
+    "other_control": 0.0075,
+    "control_by_bonus": 0.01,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.965,
+    "model": 0.99,
+    "control_err": 0.025,
+    "model_err": 0.01,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 43,
+    "choice": 0.9534883720930233,
+    "model": 1.0,
+    "control_err": 0.046511627906976744,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 157,
+    "choice": 0.9681528662420382,
+    "model": 0.9872611464968153,
+    "control_err": 0.01910828025477707,
+    "model_err": 0.012738853503184714,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0075,
+    "other_model": 0.005,
+    "other_control": 0.0075,
+    "control_by_bonus": 0.015000000000000001,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.99,
+    "model": 1.0,
+    "control_err": 0.01,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 45,
+    "choice": 0.9777777777777777,
+    "model": 1.0,
+    "control_err": 0.022222222222222223,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 155,
+    "choice": 0.9935483870967742,
+    "model": 1.0,
+    "control_err": 0.0064516129032258064,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0025,
+    "other_model": 0.0,
+    "other_control": 0.0025,
+    "control_by_bonus": 0.005,
+    "control_by_continuation": 0.0
+   }
+  },
+  {
+   "all": {
+    "n": 200,
+    "choice": 0.99,
+    "model": 1.0,
+    "control_err": 0.01,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "food": {
+    "n": 45,
+    "choice": 0.9777777777777777,
+    "model": 1.0,
+    "control_err": 0.022222222222222223,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "other": {
+    "n": 155,
+    "choice": 0.9935483870967742,
+    "model": 1.0,
+    "control_err": 0.0064516129032258064,
+    "model_err": 0.0,
+    "lucky": 0.0
+   },
+   "loss": {
+    "food_model": 0.0,
+    "food_control": 0.0025,
+    "other_model": 0.0,
+    "other_control": 0.0025,
+    "control_by_bonus": 0.0025,
+    "control_by_continuation": 0.0025
+   }
+  }
+ ]
+}

@@ -29,7 +29,7 @@ The development prototype partially pursues index-agnostic features, but still h
 
 Complex behavior should arise from a coherent learned relational structure rather than a growing collection of task-specific exceptions.
 
-- **One source of learned causal memory is the goal.** Ask whether state, action-value, context, novelty, or replay side tables can be represented as interpretable graph relations. Do not claim the prototype already meets this ideal: `BlindGateGraphBrain` currently also maintains traces, base-rate estimates, compatibility projections, and value statistics/tables.
+- **One source of learned causal memory is the goal.** Ask whether state, action-value, context, novelty, or replay side tables can be represented as interpretable graph relations. Do not claim the prototype already meets this ideal: `PosteriorGraph` keeps its statistics in several keyed tables of conjugate cells (factor, context, timing, reward, controllability), which share one cell type and one structure test (see `model.md`) but are not one graph.
 - **Decision by prediction is the goal.** Candidate motor events should be evaluated by propagating their consequences through learned relations toward wellbeing `W`, rather than by a task-specific action lookup.
 - **Make exceptions visible.** If a side structure is retained for efficiency, compatibility, or a research experiment, document its role, its independent information content, and how it could be tested or removed. Avoid hidden sensor-index rules and scenario-specific conditionals.
 
@@ -37,7 +37,7 @@ These are architectural criteria for evaluating future designs, not a ban on all
 
 ## 4. Mathematical closure and locality
 
-- **Bounded quantities:** activations, traces, association strengths, expectations, and wellbeing are intended to remain in `[0, 1]` and use closed operations. The current `development/ops.py` exposes complement `N`, saturating addition `A`, multiplication `M`, and bounded difference `D`, plus helpers. Tests and derivations should make domain assumptions explicit.
+- **Bounded quantities:** activations, traces, association strengths, expectations, and wellbeing are intended to remain in `[0, 1]` and use closed operations. In `PosteriorGraph` every learned quantity is a posterior over `[0, 1]` outcomes (Beta counts or bounded moments); the earlier bounded algebra (`ops.py`) is archived in `archive/development/`. Tests and derivations should make domain assumptions explicit.
 - **Local learning:** an association should update from activity at its antecedents, its target, and explicitly defined local reference statistics. Avoid global graph-wide gradient optimization or matrix inversion as the learning explanation. Local indexes or caches may be implementation accelerators, but should not secretly change the learning rule.
 - **Interpretable quantities:** name each variable by its intended meaning—e.g. event frequency, conditional expectation, evidence strength, trace intensity, or inhibition—and state what data update it. Distinguish probability-like estimates from confidence/strength; do not conflate them.
 - **No unexplained constants:** every threshold, decay, learning rate, and horizon is a hypothesis or engineering parameter. Record its units/interpretation, sensitivity, and whether it is shared across environments. A fitted parameter is not inherently invalid, but test-specific unexplained tuning is weak evidence.
