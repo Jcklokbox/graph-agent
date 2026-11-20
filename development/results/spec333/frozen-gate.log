@@ -1,0 +1,316 @@
+started 333-final-c tree=5316b34416d7 cpu=0
+[333-final-c] exit=0 waited=14s
+C {'s-2x3': 2.8192739486694336, 's-4x3': 9.60537600517273, 'ratio': 3.4070388972685755}
+STAGE c 13.518663537000009 0
+started 333-final-t2-v1-1 tree=5316b34416d7 cpu=0,1
+[333-final-t2-v1-1] exit=3 waited=23s
+PARTIAL stage S0: 18/272 done 23s; rerun the same command to resume
+PARTIAL at S0: 254 tasks left (exit 3; rerun to resume)
+STAGE t2-v1-1 23.050644288 3
+started 333-final-t2-v1-2 tree=5316b34416d7 cpu=0,1
+[333-final-t2-v1-2] exit=3 waited=18s
+PARTIAL stage S0: 18/254 done 17s; rerun the same command to resume
+PARTIAL at S0: 236 tasks left (exit 3; rerun to resume)
+STAGE t2-v1-2 17.52066175500005 3
+started 333-final-t2-v1-3 tree=5316b34416d7 cpu=0,1
+[333-final-t2-v1-3] exit=3 waited=18s
+PARTIAL stage S0: 18/236 done 17s; rerun the same command to resume
+PARTIAL at S0: 218 tasks left (exit 3; rerun to resume)
+STAGE t2-v1-3 17.51350578299997 3
+started 333-final-t2-v1-4 tree=5316b34416d7 cpu=0,1
+[333-final-t2-v1-4] exit=3 waited=17s
+PARTIAL stage S0: 18/218 done 17s; rerun the same command to resume
+PARTIAL at S0: 200 tasks left (exit 3; rerun to resume)
+STAGE t2-v1-4 17.014570677999984 3
+started 333-final-t2-v1-5 tree=5316b34416d7 cpu=0,1
+[333-final-t2-v1-5] exit=3 waited=18s
+PARTIAL stage S0: 18/200 done 18s; rerun the same command to resume
+PARTIAL at S0: 182 tasks left (exit 3; rerun to resume)
+STAGE t2-v1-5 18.02178412300003 3
+started 333-final-t2-v1-6 tree=5316b34416d7 cpu=0,1
+[333-final-t2-v1-6] exit=3 waited=18s
+PARTIAL stage S0: 18/182 done 17s; rerun the same command to resume
+PARTIAL at S0: 164 tasks left (exit 3; rerun to resume)
+STAGE t2-v1-6 17.513906501000008 3
+started 333-final-t2-v1-7 tree=5316b34416d7 cpu=0,1
+[333-final-t2-v1-7] exit=3 waited=18s
+PARTIAL stage S0: 18/164 done 18s; rerun the same command to resume
+PARTIAL at S0: 146 tasks left (exit 3; rerun to resume)
+STAGE t2-v1-7 18.015240720999998 3
+started 333-final-t2-v1-8 tree=5316b34416d7 cpu=0,1
+[333-final-t2-v1-8] exit=3 waited=18s
+PARTIAL stage S0: 18/146 done 17s; rerun the same command to resume
+PARTIAL at S0: 128 tasks left (exit 3; rerun to resume)
+STAGE t2-v1-8 17.51379621800004 3
+started 333-final-t2-v1-9 tree=5316b34416d7 cpu=0,1
+[333-final-t2-v1-9] exit=3 waited=18s
+PARTIAL stage S0: 18/128 done 18s; rerun the same command to resume
+PARTIAL at S0: 110 tasks left (exit 3; rerun to resume)
+STAGE t2-v1-9 18.04121267200003 3
+started 333-final-t2-v1-10 tree=5316b34416d7 cpu=0,1
+[333-final-t2-v1-10] exit=3 waited=19s
+PARTIAL stage S0: 18/110 done 18s; rerun the same command to resume
+PARTIAL at S0: 92 tasks left (exit 3; rerun to resume)
+STAGE t2-v1-10 18.51314323700001 3
+started 333-final-t2-v1-11 tree=5316b34416d7 cpu=0,1
+[333-final-t2-v1-11] exit=3 waited=18s
+PARTIAL stage S0: 18/92 done 18s; rerun the same command to resume
+PARTIAL at S0: 74 tasks left (exit 3; rerun to resume)
+STAGE t2-v1-11 18.019241331000103 3
+started 333-final-t2-v1-12 tree=5316b34416d7 cpu=0,1
+[333-final-t2-v1-12] exit=3 waited=19s
+PARTIAL stage S0: 18/74 done 19s; rerun the same command to resume
+PARTIAL at S0: 56 tasks left (exit 3; rerun to resume)
+STAGE t2-v1-12 19.04167019600004 3
+started 333-final-t2-v1-13 tree=5316b34416d7 cpu=0,1
+[333-final-t2-v1-13] exit=3 waited=18s
+PARTIAL stage S0: 18/56 done 17s; rerun the same command to resume
+PARTIAL at S0: 38 tasks left (exit 3; rerun to resume)
+STAGE t2-v1-13 17.51378794699997 3
+started 333-final-t2-v1-14 tree=5316b34416d7 cpu=0,1
+[333-final-t2-v1-14] exit=3 waited=17s
+PARTIAL stage S0: 18/38 done 17s; rerun the same command to resume
+PARTIAL at S0: 20 tasks left (exit 3; rerun to resume)
+STAGE t2-v1-14 17.01505065699996 3
+started 333-final-t2-v1-15 tree=5316b34416d7 cpu=0,1
+[333-final-t2-v1-15] exit=3 waited=18s
+PARTIAL stage S0: 18/20 done 18s; rerun the same command to resume
+PARTIAL at S0: 2 tasks left (exit 3; rerun to resume)
+STAGE t2-v1-15 18.01694101299995 3
+started 333-final-t2-v1-16 tree=5316b34416d7 cpu=0,1
+[333-final-t2-v1-16] exit=0 waited=2s
+stage S0 seeds=0..15 new=2 2s dup=0 bad=0
+  factor-L4-P-C    blocking                 n=16 +0.416 [+0.409,+0.422] yes
+  factor-L4-P-C    cond-inhibition          n=16 +0.928 [+0.881,+0.975] yes
+  factor-L4-P-C    contingency              n=16 +0.477 [+0.438,+0.517] yes
+  factor-L4-P-C    pree                     n=16 +0.030 [-0.005,+0.065] -
+  factor-L4-P-C    reinstatement            n=16 +0.061 [+0.037,+0.086] yes
+  factor-L4-P-C    renewal-ABA              n=16 +0.222 [+0.158,+0.286] yes
+  factor-L4-P-C    renewal-ABC              n=16 +0.197 [+0.135,+0.259] yes
+  factor-L4-P-C    savings                  n=16 +0.229 [+0.179,+0.280] yes
+  factor-L4-P-C    spont-recovery-sessions  n=16 +0.054 [+0.033,+0.074] yes
+  factor-L4-P-C    spontaneous-recovery     n=16 +0.262 [+0.220,+0.304] yes
+FINAL factor-L4-P-C=9/10
+STAGE t2-v1-16 2.0024432159999606 0
+T2 v1 {'PASS': 9, 'REV': 0, 'FAIL': 1, 'INCOMPLETE': 0} records 272 0 0
+started 333-final-t2-h1-1 tree=5316b34416d7 cpu=0,1
+[333-final-t2-h1-1] exit=3 waited=14s
+PARTIAL stage S0: 18/160 done 13s; rerun the same command to resume
+PARTIAL at S0: 142 tasks left (exit 3; rerun to resume)
+STAGE t2-h1-1 13.513109525000004 3
+started 333-final-t2-h1-2 tree=5316b34416d7 cpu=0,1
+[333-final-t2-h1-2] exit=3 waited=14s
+PARTIAL stage S0: 18/142 done 14s; rerun the same command to resume
+PARTIAL at S0: 124 tasks left (exit 3; rerun to resume)
+STAGE t2-h1-2 14.012232967000045 3
+started 333-final-t2-h1-3 tree=5316b34416d7 cpu=0,1
+[333-final-t2-h1-3] exit=3 waited=14s
+PARTIAL stage S0: 18/124 done 13s; rerun the same command to resume
+PARTIAL at S0: 106 tasks left (exit 3; rerun to resume)
+STAGE t2-h1-3 13.529258789000096 3
+started 333-final-t2-h1-4 tree=5316b34416d7 cpu=0,1
+[333-final-t2-h1-4] exit=3 waited=16s
+PARTIAL stage S0: 18/106 done 15s; rerun the same command to resume
+PARTIAL at S0: 88 tasks left (exit 3; rerun to resume)
+STAGE t2-h1-4 15.529964891999953 3
+started 333-final-t2-h1-5 tree=5316b34416d7 cpu=0,1
+[333-final-t2-h1-5] exit=3 waited=16s
+PARTIAL stage S0: 18/88 done 16s; rerun the same command to resume
+PARTIAL at S0: 70 tasks left (exit 3; rerun to resume)
+STAGE t2-h1-5 16.10101877999989 3
+started 333-final-t2-h1-6 tree=5316b34416d7 cpu=0,1
+[333-final-t2-h1-6] exit=3 waited=14s
+PARTIAL stage S0: 18/70 done 13s; rerun the same command to resume
+PARTIAL at S0: 52 tasks left (exit 3; rerun to resume)
+STAGE t2-h1-6 13.510952555000017 3
+started 333-final-t2-h1-7 tree=5316b34416d7 cpu=0,1
+[333-final-t2-h1-7] exit=3 waited=15s
+PARTIAL stage S0: 18/52 done 14s; rerun the same command to resume
+PARTIAL at S0: 34 tasks left (exit 3; rerun to resume)
+STAGE t2-h1-7 14.51056187000006 3
+started 333-final-t2-h1-8 tree=5316b34416d7 cpu=0,1
+[333-final-t2-h1-8] exit=3 waited=14s
+PARTIAL stage S0: 18/34 done 13s; rerun the same command to resume
+PARTIAL at S0: 16 tasks left (exit 3; rerun to resume)
+STAGE t2-h1-8 14.011111337999978 3
+started 333-final-t2-h1-9 tree=5316b34416d7 cpu=0,1
+[333-final-t2-h1-9] exit=0 waited=16s
+stage S0 seeds=0..15 new=16 15s dup=0 bad=0
+  factor-L4-P-C    inhibitor-alone          n=16 +0.035 [+0.026,+0.044] -
+  factor-L4-P-C    latent-inhibition        n=16 +0.834 [+0.825,+0.842] yes
+  factor-L4-P-C    negative-patterning      n=16 +0.992 [+0.991,+0.992] yes
+  factor-L4-P-C    overexpectation          n=16 +0.096 [+0.046,+0.146] yes
+  factor-L4-P-C    overshadowing            n=16 +0.538 [+0.533,+0.543] yes
+  factor-L4-P-C    renewal-AAB              n=16 +0.699 [+0.644,+0.754] yes
+FINAL factor-L4-P-C=5/6
+STAGE t2-h1-9 15.592193727999984 0
+T2 h1 {'PASS': 5, 'REV': 0, 'FAIL': 1, 'INCOMPLETE': 0} records 160 0 0
+started 333-final-t2-h2-1 tree=5316b34416d7 cpu=0,1
+[333-final-t2-h2-1] exit=3 waited=13s
+PARTIAL stage S0: 18/160 done 12s; rerun the same command to resume
+PARTIAL at S0: 142 tasks left (exit 3; rerun to resume)
+STAGE t2-h2-1 12.50990285499995 3
+started 333-final-t2-h2-2 tree=5316b34416d7 cpu=0,1
+[333-final-t2-h2-2] exit=3 waited=12s
+PARTIAL stage S0: 18/142 done 12s; rerun the same command to resume
+PARTIAL at S0: 124 tasks left (exit 3; rerun to resume)
+STAGE t2-h2-2 12.009168590000058 3
+started 333-final-t2-h2-3 tree=5316b34416d7 cpu=0,1
+[333-final-t2-h2-3] exit=3 waited=15s
+PARTIAL stage S0: 18/124 done 14s; rerun the same command to resume
+PARTIAL at S0: 106 tasks left (exit 3; rerun to resume)
+STAGE t2-h2-3 14.51102433699998 3
+started 333-final-t2-h2-4 tree=5316b34416d7 cpu=0,1
+[333-final-t2-h2-4] exit=3 waited=14s
+PARTIAL stage S0: 18/106 done 13s; rerun the same command to resume
+PARTIAL at S0: 88 tasks left (exit 3; rerun to resume)
+STAGE t2-h2-4 14.010957458000007 3
+started 333-final-t2-h2-5 tree=5316b34416d7 cpu=0,1
+[333-final-t2-h2-5] exit=3 waited=13s
+PARTIAL stage S0: 18/88 done 13s; rerun the same command to resume
+PARTIAL at S0: 70 tasks left (exit 3; rerun to resume)
+STAGE t2-h2-5 13.010002979999967 3
+started 333-final-t2-h2-6 tree=5316b34416d7 cpu=0,1
+[333-final-t2-h2-6] exit=3 waited=13s
+PARTIAL stage S0: 18/70 done 12s; rerun the same command to resume
+PARTIAL at S0: 52 tasks left (exit 3; rerun to resume)
+STAGE t2-h2-6 12.509146106999992 3
+started 333-final-t2-h2-7 tree=5316b34416d7 cpu=0,1
+[333-final-t2-h2-7] exit=3 waited=12s
+PARTIAL stage S0: 18/52 done 11s; rerun the same command to resume
+PARTIAL at S0: 34 tasks left (exit 3; rerun to resume)
+STAGE t2-h2-7 11.508983022000052 3
+started 333-final-t2-h2-8 tree=5316b34416d7 cpu=0,1
+[333-final-t2-h2-8] exit=3 waited=14s
+PARTIAL stage S0: 18/34 done 14s; rerun the same command to resume
+PARTIAL at S0: 16 tasks left (exit 3; rerun to resume)
+STAGE t2-h2-8 14.011726593000049 3
+started 333-final-t2-h2-9 tree=5316b34416d7 cpu=0,1
+[333-final-t2-h2-9] exit=0 waited=13s
+stage S0 seeds=0..15 new=16 13s dup=0 bad=0
+  factor-L4-P-C    LI-context               n=16 -0.000 [-0.003,+0.002] -
+  factor-L4-P-C    US-preexposure           n=16 -0.227 [-0.256,-0.198] REV
+  factor-L4-P-C    reinstatement-context    n=16 +0.189 [+0.147,+0.230] yes
+  factor-L4-P-C    sensory-precond          n=16 +0.022 [+0.018,+0.027] -
+  factor-L4-P-C    superconditioning        n=16 -0.222 [-0.267,-0.177] REV
+FINAL factor-L4-P-C=1/5
+STAGE t2-h2-9 13.010123176999969 0
+T2 h2 {'PASS': 1, 'REV': 2, 'FAIL': 2, 'INCOMPLETE': 0} records 160 0 0
+started 333-final-b-d2-1 tree=5316b34416d7 cpu=0,1
+[333-final-b-d2-1] exit=0 waited=70s
+[0, 'factor-L4-P-C|d2|d2-5x2-weak|4000'] 0.9693884969242941 12.22
+[0, 'factor-L4-P-C|d2|d2-3x4|4000'] 0.7868432945095941 18.44
+[0, 'factor-L4-P-C|d2|d2-unequal|4000'] 0.9924666433690487 9.49
+[0, 'factor-L4-P-C|d2|d2-two-cues|4000'] 0.9261327733426105 5.94
+[1, 'factor-L4-P-C|d2|d2-5x2-weak|4000'] 0.9774795809579807 13.49
+[1, 'factor-L4-P-C|d2|d2-3x4|4000'] 0.700839625349061 22.06
+[1, 'factor-L4-P-C|d2|d2-unequal|4000'] 0.991945602838006 8.62
+[1, 'factor-L4-P-C|d2|d2-two-cues|4000'] 0.846070536095383 6.12
+[2, 'factor-L4-P-C|d2|d2-5x2-weak|4000'] 0.973480443633094 11.0
+[2, 'factor-L4-P-C|d2|d2-3x4|4000'] 0.7833963424300288 19.16
+STAGE b-d2-1 69.72615585100004 0
+started 333-final-b-d2-2 tree=5316b34416d7 cpu=0,1
+[333-final-b-d2-2] exit=0 waited=78s
+[2, 'factor-L4-P-C|d2|d2-unequal|4000'] 0.9488462198356495 22.13
+[2, 'factor-L4-P-C|d2|d2-two-cues|4000'] 0.9253307722118824 6.67
+[3, 'factor-L4-P-C|d2|d2-5x2-weak|4000'] 0.9707687334497533 12.12
+[3, 'factor-L4-P-C|d2|d2-3x4|4000'] 0.8360423774143696 24.59
+[3, 'factor-L4-P-C|d2|d2-unequal|4000'] 0.9838955704873763 9.75
+[3, 'factor-L4-P-C|d2|d2-two-cues|4000'] 0.7518840081115842 6.24
+[4, 'factor-L4-P-C|d2|d2-5x2-weak|4000'] 0.9709800505114948 11.68
+[4, 'factor-L4-P-C|d2|d2-3x4|4000'] 0.8157608752326401 34.16
+[4, 'factor-L4-P-C|d2|d2-unequal|4000'] 0.9658073933608847 21.61
+[4, 'factor-L4-P-C|d2|d2-two-cues|4000'] 0.9164981024246289 5.94
+STAGE b-d2-2 78.0632045079999 0
+started 333-final-b-d2-3 tree=5316b34416d7 cpu=0,1
+[333-final-b-d2-3] exit=0 waited=38s
+[5, 'factor-L4-P-C|d2|d2-5x2-weak|4000'] 0.9756150212292655 12.19
+[5, 'factor-L4-P-C|d2|d2-3x4|4000'] 0.8075703963564659 31.44
+[5, 'factor-L4-P-C|d2|d2-unequal|4000'] 0.9514380509150213 24.96
+[5, 'factor-L4-P-C|d2|d2-two-cues|4000'] 0.9190735052305659 5.73
+STAGE b-d2-3 37.52642641000011 0
+B d2 {'delta': 0.9036481006758619, 'sd': 0.01704141802118607, 'z': 1.9617430059185315, 'n': 6, 'ci95': (0.8857838263252519, 0.9215123750264719), 'tuples': 24, 'dup': 0, 'bad': 0, 'status': 'PASS'}
+started 333-final-b-d3-1 tree=5316b34416d7 cpu=0,1
+[333-final-b-d3-1] exit=0 waited=48s
+[0, 'factor-L4-P-C|d3|d3-ctrl|4000'] 0.9947514124690352 5.19
+[0, 'factor-L4-P-C|d3|d3-and|4000'] 0.9611205470452909 6.27
+[0, 'factor-L4-P-C|d3|d3-and-ctrl|4000'] 0.9551259541139218 6.07
+[1, 'factor-L4-P-C|d3|d3-ctrl|4000'] 0.9953468090251599 5.17
+[1, 'factor-L4-P-C|d3|d3-and|4000'] 0.9740579865810811 5.93
+[1, 'factor-L4-P-C|d3|d3-and-ctrl|4000'] 0.9520346226479126 5.8
+[2, 'factor-L4-P-C|d3|d3-ctrl|4000'] 0.994518693572521 5.24
+[2, 'factor-L4-P-C|d3|d3-and|4000'] 0.9613192924853848 5.89
+[2, 'factor-L4-P-C|d3|d3-and-ctrl|4000'] 0.9808175291151516 6.03
+[3, 'factor-L4-P-C|d3|d3-ctrl|4000'] 0.9904722645203407 5.8
+[3, 'factor-L4-P-C|d3|d3-and|4000'] 0.9916734159476311 5.75
+[3, 'factor-L4-P-C|d3|d3-and-ctrl|4000'] 0.9501683719208572 6.06
+[4, 'factor-L4-P-C|d3|d3-ctrl|4000'] 0.9927052566257856 6.58
+[4, 'factor-L4-P-C|d3|d3-and|4000'] 0.9917440284798528 7.1
+[4, 'factor-L4-P-C|d3|d3-and-ctrl|4000'] 0.9896658133145683 6.54
+STAGE b-d3-1 47.585650950999934 0
+started 333-final-b-d3-2 tree=5316b34416d7 cpu=0,1
+[333-final-b-d3-2] exit=0 waited=13s
+[5, 'factor-L4-P-C|d3|d3-ctrl|4000'] 0.9927076779302724 5.76
+[5, 'factor-L4-P-C|d3|d3-and|4000'] 0.959610311961671 7.25
+[5, 'factor-L4-P-C|d3|d3-and-ctrl|4000'] 0.9497176414054058 6.32
+STAGE b-d3-2 12.58907315600004 0
+B d3 {'delta': 0.9765309793978801, 'sd': 0.008447441685913664, 'z': 7.693141227534899, 'n': 6, 'ci95': (0.9676756473092986, 0.9853863114864617), 'tuples': 18, 'dup': 0, 'bad': 0, 'status': 'PASS'}
+started 333-final-b-v1-1 tree=5316b34416d7 cpu=0,1
+[333-final-b-v1-1] exit=0 waited=37s
+[0, 'factor-L4-P-C|v1|hmm-noisy|2000'] 0.9817100276884153 4.13
+[0, 'factor-L4-P-C|v1|hmm-1ch|2000'] 0.9726510898072529 3.02
+[0, 'factor-L4-P-C|v1|hmm3|2000'] 0.9486355030650911 4.62
+[0, 'factor-L4-P-C|v1|noisy-cue-delay3|2000'] 0.8475483897834579 3.92
+[0, 'factor-L4-P-C|v1|count3|2000'] 0.4431367812772794 3.88
+[0, 'factor-L4-P-C|v1|noisy-identity|2000'] 0.5314197931996552 2.49
+[0, 'factor-L4-P-C|v1|context-hidden|2000'] 0.8876593374603815 4.12
+[0, 'factor-L4-P-C|v1|two-hmm|2000'] 0.9847539069012397 2.53
+[1, 'factor-L4-P-C|v1|hmm-noisy|2000'] 0.9836762278072124 3.91
+[1, 'factor-L4-P-C|v1|hmm-1ch|2000'] 0.9329977360675445 2.93
+[1, 'factor-L4-P-C|v1|hmm3|2000'] 0.975833532890353 4.69
+[1, 'factor-L4-P-C|v1|noisy-cue-delay3|2000'] 0.7894703107260447 3.8
+[1, 'factor-L4-P-C|v1|count3|2000'] 0.37792336270476296 3.77
+[1, 'factor-L4-P-C|v1|noisy-identity|2000'] 0.4906809337098089 2.39
+[1, 'factor-L4-P-C|v1|context-hidden|2000'] 0.9318075453821351 3.96
+[1, 'factor-L4-P-C|v1|two-hmm|2000'] 0.9760344879256817 2.52
+[2, 'factor-L4-P-C|v1|hmm-noisy|2000'] 0.9930487744052641 3.75
+[2, 'factor-L4-P-C|v1|hmm-1ch|2000'] 0.906204508259525 2.6
+[2, 'factor-L4-P-C|v1|hmm3|2000'] 0.9081339822688766 4.74
+[2, 'factor-L4-P-C|v1|noisy-cue-delay3|2000'] 0.8766012706301146 3.93
+STAGE b-v1-1 36.5475857429999 0
+started 333-final-b-v1-2 tree=5316b34416d7 cpu=0,1
+[333-final-b-v1-2] exit=0 waited=42s
+[2, 'factor-L4-P-C|v1|count3|2000'] 0.4119698853084872 4.03
+[2, 'factor-L4-P-C|v1|noisy-identity|2000'] 0.5424806670438233 6.21
+[2, 'factor-L4-P-C|v1|context-hidden|2000'] 0.92720737937748 4.0
+[2, 'factor-L4-P-C|v1|two-hmm|2000'] 0.9794885485981083 2.53
+[3, 'factor-L4-P-C|v1|hmm-noisy|2000'] 0.9877193162984629 3.88
+[3, 'factor-L4-P-C|v1|hmm-1ch|2000'] 0.9877104659685362 2.65
+[3, 'factor-L4-P-C|v1|hmm3|2000'] 0.9339653756711348 4.8
+[3, 'factor-L4-P-C|v1|noisy-cue-delay3|2000'] 0.8855404214343775 3.95
+[3, 'factor-L4-P-C|v1|count3|2000'] 0.3713413203151314 3.81
+[3, 'factor-L4-P-C|v1|noisy-identity|2000'] 0.7298318824725283 5.55
+[3, 'factor-L4-P-C|v1|context-hidden|2000'] 0.8733099125432365 3.94
+[3, 'factor-L4-P-C|v1|two-hmm|2000'] 0.9856780758942528 2.81
+[4, 'factor-L4-P-C|v1|hmm-noisy|2000'] 0.9809354417691624 4.03
+[4, 'factor-L4-P-C|v1|hmm-1ch|2000'] 0.9540689861129912 2.73
+[4, 'factor-L4-P-C|v1|hmm3|2000'] 0.8744411843027666 4.91
+[4, 'factor-L4-P-C|v1|noisy-cue-delay3|2000'] 0.8230152437186808 3.86
+[4, 'factor-L4-P-C|v1|count3|2000'] 0.41017752155268256 3.76
+[4, 'factor-L4-P-C|v1|noisy-identity|2000'] 0.571759920474415 6.08
+[4, 'factor-L4-P-C|v1|context-hidden|2000'] 0.8783892158755714 4.01
+[4, 'factor-L4-P-C|v1|two-hmm|2000'] 0.9793572620194249 2.73
+STAGE b-v1-2 41.55079004899994 0
+started 333-final-b-v1-3 tree=5316b34416d7 cpu=0,1
+[333-final-b-v1-3] exit=0 waited=17s
+[5, 'factor-L4-P-C|v1|hmm-noisy|2000'] 0.9663165124153084 4.18
+[5, 'factor-L4-P-C|v1|hmm-1ch|2000'] 0.965972129229344 3.18
+[5, 'factor-L4-P-C|v1|hmm3|2000'] 0.967428404529519 4.95
+[5, 'factor-L4-P-C|v1|noisy-cue-delay3|2000'] 0.814745730194273 3.96
+[5, 'factor-L4-P-C|v1|count3|2000'] 0.383532606618497 3.83
+[5, 'factor-L4-P-C|v1|noisy-identity|2000'] 0.7092728637733904 5.69
+[5, 'factor-L4-P-C|v1|context-hidden|2000'] 0.9166515056770782 3.92
+[5, 'factor-L4-P-C|v1|two-hmm|2000'] 0.9718848587893315 2.63
+STAGE b-v1-3 17.042239380999945 0
+B v1 {'delta': 0.8234191695820435, 'sd': 0.014966726855193397, 'z': 3.8328364131139256, 'n': 6, 'ci95': (0.807729764255596, 0.8391085749084911), 'tuples': 48, 'dup': 0, 'bad': 0, 'status': 'PASS'}
+GATE END 1259.861608027

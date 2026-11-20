@@ -1,0 +1,32 @@
+.............../tmp/gsnap/5316b34416d7/tests/test_harness.py:94: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpnuh9xs_q/dev/eval/phenomena.py' mode='r' encoding='UTF-8'>
+  src = open(f).read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/gsnap/5316b34416d7/tests/test_harness.py:95: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpnuh9xs_q/dev/eval/phenomena.py' mode='w' encoding='UTF-8'>
+  open(f, "w").write(src.replace("def run_group(", "def _x(): pass\n\n\ndef run_group(", 1)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/gsnap/5316b34416d7/tests/test_harness.py:101: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpnuh9xs_q/dev/models/factor.py' mode='a' encoding='UTF-8'>
+  open(os.path.join(work, "models", "factor.py"), "a").write("\nX = 1\n")  # mid-run
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/gsnap/5316b34416d7/tests/test_harness.py:105: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpnuh9xs_q/dev/eval/phenomena.py' mode='w' encoding='UTF-8'>
+  open(f, "w").write(src)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+../tmp/gsnap/5316b34416d7/tests/test_harness.py:54: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp6cqryfc5/k.jsonl' mode='r' encoding='UTF-8'>
+  if os.path.exists(killed) and sum(1 for _ in open(killed)) >= 5:
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+............../tmp/gsnap/5316b34416d7/tests/test_screen.py:14: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/gsnap/5316b34416d7/tests/data/dev16_v11.json' mode='r' encoding='UTF-8'>
+  base = json.load(open(BASE))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/gsnap/5316b34416d7/eval/screen.py:181: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpxppqh_zf.json' mode='r' encoding='UTF-8'>
+  cand = json.load(open(path))["variants"]
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/gsnap/5316b34416d7/eval/screen.py:181: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpg_8j7cx7.json' mode='r' encoding='UTF-8'>
+  cand = json.load(open(path))["variants"]
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/gsnap/5316b34416d7/eval/screen.py:181: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpna14tw2_.json' mode='r' encoding='UTF-8'>
+  cand = json.load(open(path))["variants"]
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+.......................................
+----------------------------------------------------------------------
+Ran 72 tests in 49.175s
+
+OK
