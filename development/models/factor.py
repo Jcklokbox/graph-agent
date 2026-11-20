@@ -61,6 +61,7 @@ class FactorModel:
         self.off = np.cumsum([0] + [2 ** len(s) for s in self.sets])
         single = {s[0]: i for i, s in enumerate(self.sets) if len(s) == 1}
         pairs = [s for s in self.sets if len(s) == 2]
+        self._pair_pos = np.asarray(pairs, dtype=int).reshape(-1, 2)
         self._sa = np.array([single[s[0]] for s in pairs], int)
         self._sb = np.array([single[s[1]] for s in pairs], int)
         self.M = self.S + 2 + bool(process)                      # + add [+ proc] + place
@@ -102,6 +103,7 @@ class FactorModel:
         L = len(self.lags)
         self.f1 = np.zeros((J, L, J, 2, 2, 2))   # i, lag, j, x_j(t), x_i(t-lag), x_j(t+1)
         self.f0 = np.zeros((J, 2, 2))
+        self._screen_grid = np.ogrid[:J, :J]
         self.sev = np.zeros((J, L, J))
         self._q = None                           # model prediction of the last transition (J,)
         if cond:
@@ -137,12 +139,10 @@ class FactorModel:
         return U
 
     def _cells(self, U):
-        cells = np.empty((self.J, self.S), int)
-        for i, s in enumerate(self.sets):
-            c = np.full(self.J, self.off[i])
-            for bit, p in enumerate(s):
-                c += (U[:, p] > .5).astype(int) << bit
-            cells[:, i] = c
+        bits = U > .5
+        cells = np.broadcast_to(self.off[:-1], (self.J, self.S)).copy()
+        cells[:, 1:1 + self.m] += bits
+        cells[:, 1 + self.m:] += bits[:, self._pair_pos[:, 0]] + 2 * bits[:, self._pair_pos[:, 1]]
         return cells
 
     # ---------------------------------------------------------------- members
@@ -178,8 +178,8 @@ class FactorModel:
         # batched gather of the regime counts: one flat take over (J*C) per table (exact copy)
         J, C, N, S = self.J, self.q1.shape[2], self.N, self.S
         fidx = (np.arange(J)[:, None] * C + cells).ravel()         # (J*S,)
-        n1 = np.take(self._flat3(self.q1)[:kk], fidx, axis=1)      # (kk, J*S, N)
-        n0 = np.take(self._flat3(self.q0)[:kk], fidx, axis=1)
+        n1 = self._flat3(self.q1)[:kk, fidx]      # (kk, J*S, N)
+        n0 = self._flat3(self.q0)[:kk, fidx]
         M1 = S + 1 + (self.proc is not None)                       # sets + add [+ proc]
         P = np.empty((kk, J, M1, N), F32)
         ps = P[:, :, :S]                                           # sets, written in place
@@ -354,7 +354,7 @@ class FactorModel:
         Pz = np.clip(mem["P"][zt, :, :, ar], 1e-6, 1. - 1e-6)    # (N, J, M-1)
         plz = np.clip(pl[ar, yt], 1e-6, 1. - 1e-6)[:, :, None]       # (N, J, 1)
         Pm = np.concatenate([Pz, plz.astype(F32)], 2)
-        self.ev[zt, :, :, ar] += np.where(yb[None, :, None], np.log(Pm), np.log(1. - Pm))
+        self.ev[zt, :, :, ar] += np.log(np.where(yb[None, :, None], Pm, 1. - Pm))
         if self._E is not None:                # only the sampled regime of each particle moved
             evz = self.ev[zt, :, :, ar]                            # (N, J, M)
             self._E[zt, :, :, ar] = np.exp(evz - evz.max(2, keepdims=True))
@@ -383,7 +383,7 @@ class FactorModel:
         self.Sg[ar, zt] = Sz
         # pooled level (same for every particle)
         pg = np.clip(self._pooled(cells), 1e-6, 1. - 1e-6)
-        self.evg += np.where(yb[:, None], np.log(pg), np.log(1. - pg))
+        self.evg += np.log(np.where(yb[:, None], pg, 1. - pg))
         tg = np.where(yb[:, None], 1., 0.)
         np.add.at(self.g1, (Jr[:, None], cells), tg)
         np.add.at(self.g0, (Jr[:, None], cells), 1. - tg)
@@ -401,7 +401,11 @@ class FactorModel:
         xo, xn = b.astype(int), bn.astype(int)
         c0 = self.f0[J, xo]
         p0 = (c0[J, xn] + .5) / (c0.sum(1) + 1.)
-        I, Jm = np.meshgrid(J, J, indexing="ij")
+        I, Jm = self._screen_grid
+        if self.cond and self._q is not None:
+            qb = np.searchsorted(QBINS, self._q)
+            d0 = self.fq0[J, qb]
+            q0 = (d0[J, xn] + .5) / (d0.sum(1) + 1.)
         for li, d in enumerate(self.lags):
             if d > len(self.hist):
                 continue
@@ -411,15 +415,12 @@ class FactorModel:
             self.sev[:, li, :] += np.log(p1) - np.log(p0)[None, :]
             self.f1[I, li, Jm, xo[Jm], xs[I], xn[Jm]] += 1.
             if self.cond and self._q is not None:
-                qb = np.searchsorted(QBINS, self._q)                # (J,)
                 d1 = self.fq1[I, li, Jm, qb[Jm], xs[I]]
                 q1 = (np.take_along_axis(d1, xn[Jm][..., None], -1)[..., 0] + .5) / (d1.sum(-1) + 1.)
-                d0 = self.fq0[J, qb]
-                q0 = (d0[J, xn] + .5) / (d0.sum(1) + 1.)
                 self.cev[:, li, :] += np.log(q1) - np.log(q0)[None, :]
                 self.fq1[I, li, Jm, qb[Jm], xs[I], xn[Jm]] += 1.
         if self.cond and self._q is not None:
-            self.fq0[J, np.searchsorted(QBINS, self._q), xn] += 1.
+            self.fq0[J, qb, xn] += 1.
         self.f0[J, xo, xn] += 1.
 
     def _reslot(self):

@@ -30,7 +30,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from models.online_hmm import OnlineHMM
+from models.online_hmm import OnlineHMM, update_population
 
 KS = (2, 3, 4, 6)
 W, MIN_AGE, LOG_BF, REJECT, M, COOL = 500, 200, 3., 10., 6, 1500
@@ -50,14 +50,19 @@ class Window:
     WIN, MIN = 4, 8
 
     def __init__(self, m, A):
-        self.m, self.t, self.hist, self.a = m, {}, [], 0
+        self.m, self.t, self.hist = m, {}, []
+        self._key_cache = {}
 
     def observe(self, x0):
         self.hist = [tuple(np.asarray(x0) > .5)]
+        self._key_cache.clear()
 
     def _keys(self, a):
-        h = self.hist[-self.WIN:]
-        return [(tuple(h[len(h) - j:]), a) for j in range(1, len(h) + 1)]
+        key = self._key_cache.get(a)
+        if key is None or key[0] is not self.hist:
+            h = self.hist[-self.WIN:]
+            key = self._key_cache[a] = (self.hist, [(tuple(h[-j:]), a) for j in range(1, len(h) + 1)])
+        return key[1]
 
     def marg(self, a):
         best = None
@@ -70,7 +75,9 @@ class Window:
     def update(self, a, y):
         z = np.asarray(y) > .5
         for key in self._keys(a):
-            c = self.t.setdefault(key, [np.zeros(self.m), 0.])
+            c = self.t.get(key)
+            if c is None:
+                c = self.t[key] = [np.zeros(self.m), 0.]
             c[0] += z
             c[1] += 1.
         self.hist = (self.hist + [tuple(z)])[-self.WIN:]
@@ -139,17 +146,24 @@ class GroupModel:
         w /= w.sum()
         return sum(wk * p for wk, p in zip(w, preds))
 
-    def learn(self, a, y):
+    def learn(self, a, y, population=None):
         """Returns log P(y_g | past) under the mixture (before updating)."""
         ys = np.asarray(y, float)[self.chans]
-        lp = np.array([self._lp(p, h, ys) for p, h in zip(self._prior, self.hs)])
+        liks = [None if isinstance(h, Window) else h._lik(ys, h.E()) for h in self.hs]
+        lp = np.array([self._lp(p, h, ys) if lik is None else np.log(max(1e-300, float(p @ lik)))
+                       for p, h, lik in zip(self._prior, self.hs, liks)])
         w = self.logw - self.logw.max()
         mix = np.log(np.exp(w).sum())
         out = float(np.log(np.exp(w + lp).sum()) - mix)
         self.logw = self.logw + lp
         self.logw -= self.logw.max()
-        for h in self.hs:
-            h.update(a, ys)
+        for h, p, lik in zip(self.hs, self._prior, liks):
+            if lik is None:
+                h.update(a, ys)
+            elif population is None:
+                h.update(a, ys, prior=p, lik=lik)
+            else:
+                population.append((h, ys, p, lik))
         return out
 
 
@@ -249,14 +263,17 @@ class Decomposer:
 
     def learn(self, x, a, y):
         self.t += 1
+        population = []
         for g in self.groups:
-            g.learn(a, y)
+            g.learn(a, y, population)
         done = []
         for c in self.cand:
-            c["d"] += c["merged"].learn(a, y) - c["sep1"].learn(a, y) - c["sep2"].learn(a, y)
+            c["d"] += (c["merged"].learn(a, y, population) - c["sep1"].learn(a, y, population)
+                       - c["sep2"].learn(a, y, population))
             age = self.t - c["t"]
             if age >= W or (age >= MIN_AGE and c["d"] < -REJECT):
                 done.append(c)
+        update_population(population, a)
         for c in done:
             self.cand.remove(c)
             self._decide(c)

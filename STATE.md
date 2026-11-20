@@ -45,3 +45,9 @@ Gate 3b-1: A T2 v1 ≥ 9/10, 0 REV, cond-inhibition + reinstatement PASS; B T1 v
 1. A S2: `bg start gateA-s2 --tree 98008dfd0fd6 -- python3 -m harness.staged t2 --agents factor-L4-P-C --set v1 --journal j.jsonl` (~9 chunked stages).
 2. Batch the Decomposer HMMs (k_vec, k_total), with the ε-test against tests/data/factor_ref.py.
 3. [1] model items in a new tree; re-freeze before any S2 verdict; D only after that.
+
+## SPEC-3b stage 0 (s=0; base 98008dfd0fd6; kernel ebebb7d68efd)
+- Old filter: `q(place,z) ∝ p(place)p(z|place)∏_j Bern(y_j; Σ_M w_{zjM} p_{z/place,jM}(x,lag))`; slow and fast enter the same place evidence. Reinstatement A .50483−.54008 = −.03525 vs lc-sub-add +.09254; four free outcomes then home drive birth/selection of regime 3 (.987 vs .878), not return to an established reinforcing cause.
+- Sessions: `p(z|place)` depends only on current place and counts, not elapsed absence; after 300 vs 20 steps, extinction mass .964 vs .849, effect −.02116 vs lc-sub-add +.03817. Inhibition: `μ_new=0, Σ_new=s₀I`; BX/BY .0791/.3978 vs .0172/.9876; admission used binned BMA evidence but eviction used marginal evidence (incomparable).
+- d3-and: at t=1000 decompw groups (0,1)(2,3)(4,5)(6), scores each family’s joint emission then updates its own state. Factor learns from `∏_j Bern(Σ_M w_{zjM}p_{zjM})`, credits process marginals per regime and reweights with unrelated channels; not the same likelihood, despite the identical Decomposer state. Baseline trace: `eval/scripts/localize_3b.py` against base snapshot.
+- Exact kernels: savings CPU s0 old scalar ref 9.115 s vs batched 4.56 s (N200), 1.58 s (N25): 2.00× / 5.77×; max prediction error 0 on fixed 260-transition stream (N200, model seed 0 / stream seed 42); factor/decomp tests 4/4. Likelihood smoothing batches equal (K,width,lag); cached transition priors avoid redundant forward passes.
