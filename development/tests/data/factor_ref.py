@@ -40,7 +40,7 @@ F32 = np.float32
 
 class FactorModel:
     def __init__(self, n, A, v, seed=0, N=200, K=10, k=4, lags=(0,), own_lags=(0,),
-                 beta=1., alpha=1., noise=.25, s0=1., process=False, place="member", one_lag=False, cond=False, ctx_only=False):
+                 beta=1., alpha=1., noise=.25, s0=1., process=False, place="view", one_lag=False, cond=False, ctx_only=True):
         self.n, self.A, self.v = n, A, v
         self.ctx_only = ctx_only     # §9.2: the place (view) emits only persistent channels
         self.cond = cond             # r5 deep form: screen against the model's own prediction

@@ -66,6 +66,15 @@ class OnlineHMM:
             L[:, self.exclude] = 1.
         return np.exp(np.log(np.maximum(L, 1e-300)).sum(1))
 
+    def _lik_batch(self, Y, E):
+        """(Lb, m) observations -> (Lb, K) likelihoods; same elementwise ops and the same
+        per-row reduction as _lik, so the result is bitwise equal row by row."""
+        Y = np.asarray(Y) > .5
+        L = np.where(Y[:, None, :], E[None, :, :], 1. - E[None, :, :])
+        if self.exclude:
+            L[:, :, self.exclude] = 1.
+        return np.exp(np.log(np.maximum(L, 1e-300)).sum(2))
+
     # ------------------------------------------------------------- interface
     def observe(self, x0):
         lik = self._lik(x0, self.E())
@@ -88,7 +97,7 @@ class OnlineHMM:
         # backward messages over the buffered transitions with current parameters
         beta = np.ones(self.K)
         Ts = [self.T(a) for _, a, _ in self.buf]
-        liks = [self._lik(y, E) for _, _, y in self.buf]
+        liks = list(self._lik_batch([y for _, _, y in self.buf], E))
         for k in range(len(self.buf) - 1, 0, -1):
             beta = Ts[k] @ (liks[k] * beta)
             beta /= beta.sum()

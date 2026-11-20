@@ -1,0 +1,14 @@
+PARTIAL stage S0: 18/204 done 73s; rerun the same command to resume
+PARTIAL at S0: 186 tasks left (exit 3; rerun to resume)
+stage S2 seeds=0..15 (resumed, 9 chunks) n=272 dup=0 bad=0
+  factor-L4-P-C    blocking                 n=16 +0.376 [+0.343,+0.408] yes
+  factor-L4-P-C    cond-inhibition          n=16 +0.397 [+0.280,+0.514] yes
+  factor-L4-P-C    contingency              n=16 +0.502 [+0.438,+0.567] yes
+  factor-L4-P-C    renewal-ABA              n=16 +0.846 [+0.767,+0.925] yes
+  factor-L4-P-C    renewal-ABC              n=16 +0.188 [+0.073,+0.303] yes
+  factor-L4-P-C    spontaneous-recovery     n=16 +0.237 [+0.160,+0.314] yes
+  factor-L4-P-C    spont-recovery-sessions  n=16 -0.022 [-0.181,+0.137] -
+  factor-L4-P-C    savings                  n=16 +0.246 [+0.143,+0.348] yes
+  factor-L4-P-C    reinstatement            n=16 -0.016 [-0.068,+0.037] -
+  factor-L4-P-C    pree                     n=16 +0.236 [+0.177,+0.295] yes
+FINAL factor-L4-P-C=8/10

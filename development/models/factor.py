@@ -1,27 +1,32 @@
 """3b-1 predictor (AR-4, research/factor-design.md): one generative model, one shared filter.
 
-Per particle (SMC, N particles shared by all channels), for the transition x_t -> x_{t+1}:
-  place  y   sticky CRP (hazard on a grid);
-  regime z   shared by all channels; hierarchical CRP indexed by the place (F-13):
-             same place -> previous regime with prob 1 - h_z, otherwise a draw;
-             place entered (or sticky switch) -> draw  P(z | y) ∝ n[y, z] + beta * G(z),
-             G ∝ global entry counts (+ alpha for a new regime); a never-visited place has n = 0;
-  channel j  P(x_j,t+1 = 1) = sum_M w_jM(z) p_jM, members M:
-             - parent sets S (|S| <= 2) over j's candidates (own lags, action one-hot, k slots =
-               (channel, lag) pairs chosen by pairwise sequential evidence), with a two-level
-               hierarchical Beta prior: the regime's cell backs off to the SAME cell pooled over
-               all data (a new regime is expected to resemble the known ones: AAB), and a pooled
-               cell never seen backs off to its sub-configurations (an unseen configuration is
-               predicted by its elements, D-32: no flat .5);
-             - additive member (Bayesian linear regression over the candidates, clipped);
-             - place member: the place's Markov chain P(x_j,t+1 | x_j,t, y), prior mean pooled over
-               the particle's places (F-12's context model, now a member: every observation is
-               generated once, design fix 13:45).
+Scale-separated hierarchy (SPEC-3b [1]): the joint state is a place y and a regime z, and the
+channel parameters theta are regime-indexed,
+
+    P(y, z, theta | x_1:t, Dtau_t) = P(y | x^slow_1:t) . P(z | y, Dtau_t, x^lag_1:t, y_1:t)
+                                    . P(theta | z, x^lag_1:t, y_1:t)
+
+* place y: a sticky CRP over contexts, inferred from the SLOW (persistent) channels only.  A
+  channel is slow when it has been on at least 5 times and P(on -> on) > .7 (data-driven, no
+  channel index is named).  Lagged copies and fast channels are not in the place prior or the
+  place likelihood, so a lag cascade cannot fragment the context.
+* regime z: a sticky CRP indexed by the place (F-13).  It owns the US contingencies and is the
+  only thing the channel members condition on; the place emits nothing into the channel
+  average (no double generation of an observation).
+* channel j: P(x_j,t+1 = 1) = sum_M w_jM(z) p_jM over
+             - parent sets S (|S| <= 2) over j's candidates (own lags, action one-hot, k slots
+               = (channel, lag) pairs chosen by conditional residual screening against the
+               model's own prediction q, -C), two-level hierarchical Beta prior (a regime's cell
+               backs off to the SAME cell pooled over all data; a pooled unseen cell backs off to
+               its sub-configurations);
+             - an additive member (Bayesian linear regression over the candidates, clipped);
+             - a process member (the Decomposer's group marginals, -P).
              Weights w = marginal likelihoods of the members on the regime's own data.
-Inference: per particle the joint (y, z) of each transition is proposed from its exact posterior
-given x_{t+1} (KP x K cells); the particle weight multiplies the predictive probabilities of
-all channels. Pooled tables are identical across particles (all see the same data) and stored
-once.
+
+Inference: one SMC filter (N particles) over (h_p, h_z, y, z).  The place is proposed from its
+exact posterior given x_t; the regime from the place-conditioned prior times the channel
+likelihood.  Probes are hypothetical: the transition from the last learned observation to the
+probe is used as evidence about (place, regime) before predicting.
 """
 from __future__ import annotations
 
@@ -63,7 +68,12 @@ class FactorModel:
         pairs = [s for s in self.sets if len(s) == 2]
         self._sa = np.array([single[s[0]] for s in pairs], int)
         self._sb = np.array([single[s[1]] for s in pairs], int)
-        self.M = self.S + 2 + bool(process)                      # + add [+ proc] + place
+        # bit-mask matrix for _cells: B[i, p] = 1 << (position of p in sets[i]) else 0
+        self._B = np.zeros((self.S, self.m), int)
+        for i, s in enumerate(self.sets):
+            for bit, p in enumerate(s):
+                self._B[i, p] = 1 << bit
+        self.M = self.S + 1 + bool(process)                      # sets + add [+ proc]
         C = int(self.off[-1])
         # regime tables, layout (regime, channel, cell / member, particle)
         self.q1 = np.zeros((K, J, C, N), F32)
@@ -137,13 +147,8 @@ class FactorModel:
         return U
 
     def _cells(self, U):
-        cells = np.empty((self.J, self.S), int)
-        for i, s in enumerate(self.sets):
-            c = np.full(self.J, self.off[i])
-            for bit, p in enumerate(s):
-                c += (U[:, p] > .5).astype(int) << bit
-            cells[:, i] = c
-        return cells
+        # off + U_bits @ B^T; |S| <= 2 so the integer sum is exact in any order
+        return self.off[:-1][None, :] + (U > .5).astype(int) @ self._B.T
 
     # ---------------------------------------------------------------- members
     def _pooled(self, cells):
@@ -170,20 +175,21 @@ class FactorModel:
         return q.reshape(q.shape[0], -1, q.shape[3])
 
     def _members(self, b, a, hist, kk, pp=None):
-        """Regime-indexed member predictions P (kk, J, S+1, N) [sets + additive], their
-        pooled-weight-free mixture parts and the place member's weight; plus keys."""
+        """Regime-indexed member predictions P (kk, J, M, N) [sets + additive (+ process)] and
+        their marginal-likelihood mixture `rest` (kk, J, N); plus keys and pooled cells."""
         U = self._keys(b, a, hist)
         cells = self._cells(U)
-        pg = self._pooled(cells).astype(F32)                       # (J, S)
+        pg = self._pooled(cells)                                   # (J, S) float64, untruncated
+        pgf = pg.astype(F32)
         # batched gather of the regime counts: one flat take over (J*C) per table (exact copy)
         J, C, N, S = self.J, self.q1.shape[2], self.N, self.S
         fidx = (np.arange(J)[:, None] * C + cells).ravel()         # (J*S,)
         n1 = np.take(self._flat3(self.q1)[:kk], fidx, axis=1)      # (kk, J*S, N)
         n0 = np.take(self._flat3(self.q0)[:kk], fidx, axis=1)
-        M1 = S + 1 + (self.proc is not None)                       # sets + add [+ proc]
-        P = np.empty((kk, J, M1, N), F32)
+        M = self.M
+        P = np.empty((kk, J, M, N), F32)
         ps = P[:, :, :S]                                           # sets, written in place
-        ps[...] = (n1 + C_REG * pg.reshape(1, J * S, 1)).reshape(kk, J, S, N)
+        ps[...] = (n1 + C_REG * pgf.reshape(1, J * S, 1)).reshape(kk, J, S, N)
         n1 += n0
         n1 += C_REG
         ps /= n1.reshape(kk, J, S, N)
@@ -196,12 +202,11 @@ class FactorModel:
             self._E = np.exp(self.ev - self.ev.max(2, keepdims=True))
         E = self._E[:kk]                                           # (kk, J, M, N)
         Z = E.sum(2)
-        rest = (E[:, :, :-1] * P).sum(2) / Z                       # (kk, J, N)
-        wpl = E[:, :, -1] / Z                                      # (kk, J, N)
-        return dict(U=U, cells=cells, pg=pg, P=P, rest=rest, wpl=wpl, v=v)
+        rest = (E * P).sum(2) / Z                                  # (kk, J, N)
+        return dict(U=U, cells=cells, pg=pg, P=P, rest=rest, v=v)
 
     def _place_pred(self, b):
-        """Place member: P(x_j,t+1 = 1 | x_j,t, y) for every place, (N, KP, J)."""
+        """Place emission: P(x_j,t+1 = 1 | x_j,t, y) for every place, (N, KP, J)."""
         Jr = np.arange(self.J)
         pv = (b > .5).astype(int)
         n1, n0 = self.tm1[:, :, Jr, pv], self.tm0[:, :, Jr, pv]
@@ -224,14 +229,37 @@ class FactorModel:
         pr[np.arange(N), self.y] += 1. - self.hp
         return pr / pr.sum(1, keepdims=True)
 
-    def _regime_prior(self, kk):
-        """P(z | y, previous y, previous z) for every place y: (N, KP, kk)."""
+    def _slow(self):
+        """Slow (persistent) channels: >= 5 on-steps and P(on -> on) > .7.  Data-driven."""
+        on = self.f0[:, 1].sum(1)
+        return (on >= 5) & ((self.f0[:, 1, 1] + .5) / (on + 1.) > .7)
+
+    def _place_view(self, b):
+        """Place posterior given x_t (emission of x_t by the place's chains, slow channels
+        only): (N, KP) and the marginal likelihood L (N,)."""
+        pr = self._place_prior()
+        if not self.hist:
+            return pr, np.ones(self.N)
+        pl = self._place_pred(self.hist[-1])                       # P(x_t | x_{t-1}, y)
+        e = np.where((b > .5)[None, None, :], pl, 1. - pl)
+        pers = self._slow()
+        e = np.where(pers[None, None, :], e, 1.)
+        lik = np.prod(e, axis=2)
+        j = pr * lik
+        L = j.sum(1)
+        return j / L[:, None], L
+
+    def _regime_prior_q(self, kk, q, zd=None):
+        """P(z_t) given a place distribution q (N, KP) and a previous-regime distribution zd."""
         N, K = self.N, self.K
         ar = np.arange(N)
         if not self.started:
-            pr = np.zeros((N, self.KP, kk))
-            pr[:, :, 0] = 1.
+            pr = np.zeros((N, kk))
+            pr[:, 0] = 1.
             return pr
+        if zd is None:
+            zd = np.zeros((N, kk))
+            zd[ar, self.z] = 1.
         live = np.arange(K)[None, :] < self.used[:, None]
         G = self.mz * live
         rows = np.nonzero(self.used < K)[0]
@@ -239,17 +267,11 @@ class FactorModel:
         G /= G.sum(1, keepdims=True)
         Dr = self.npz + self.beta * G[:, None, :]
         Dr = (Dr / Dr.sum(2, keepdims=True))[:, :, :kk]
-        h = self.hz
-        cur = Dr[ar, self.y].copy()                                # draw in the same place
-        Dr[ar, self.y] = h[:, None] * cur
-        Dr[ar, self.y, self.z] += 1. - h
-        return Dr
-
-    def _joint(self, mem, pl, kk):
-        """Per-channel mixture for every (particle, place, regime): (N, KP, kk, J)."""
-        rest = mem["rest"].transpose(2, 0, 1)                      # (N, kk, J)
-        wpl = mem["wpl"].transpose(2, 0, 1)
-        return rest[:, None] + wpl[:, None] * pl[:, :, None, :]
+        pr = np.einsum("np,npk->nk", q, Dr)
+        stay = q[ar, self.y][:, None]
+        h = self.hz[:, None]
+        pr += stay * ((1. - h) * zd - (1. - h) * Dr[ar, self.y])
+        return pr
 
     # --------------------------------------------------------------- introspection
     def trace(self):
@@ -283,22 +305,25 @@ class FactorModel:
         pp = None
         if self.proc is not None:
             pp = (self.proc.peek_all(x, a) if hypothetical else self.proc.predict(x, a))[self.ch]
-        if hypothetical and self.hist:
+        zd = None
+        if hypothetical and self.hist:                 # the transition prev -> x as evidence
             prev = self.hist[-1]
             mem0 = self._members(prev, 0, self.hist[:-1], kk, self._pp)
-            pj = self._joint(mem0, self._place_pred(prev), kk)
-            lik = np.prod(np.where((b > .5)[None, None, None, :], pj, 1. - pj), axis=3)
-            post = self._place_prior()[:, :, None] * self._regime_prior(kk) * lik
-            wy = post                                              # (N, KP, kk) as next-step prior
-            hist = self.hist
-        else:
-            wy = self._place_prior()[:, :, None] * self._regime_prior(kk)
-            hist = self.hist
-        mem = self._members(b, a, hist, kk, pp)
-        pj = self._joint(mem, self._place_pred(b), kk)             # (N, KP, kk, J)
-        jw = w[:, None, None] * wy
+            p0 = mem0["rest"].transpose(2, 0, 1)                   # (N, kk, J)
+            lik0 = np.prod(np.where((b > .5)[None, None, :], p0, 1. - p0), axis=2)
+            qs = np.zeros((self.N, self.KP))
+            qs[np.arange(self.N), self.y] = 1.
+            zd = self._regime_prior_q(kk, qs) * lik0
+            Lz = zd.sum(1)
+            w = w * Lz
+            zd = zd / Lz[:, None]
+        q, Lp = self._place_view(b)
+        pz = self._regime_prior_q(kk, q, zd)                        # (N, kk)
+        mem = self._members(b, a, self.hist, kk, pp)
+        pu = mem["rest"].transpose(2, 0, 1)                         # (N, kk, J)
+        jw = (w * Lp)[:, None] * pz
         out = np.full(self.n, .5)
-        out[self.ch] = np.einsum("npk,npkj->j", jw, pj) / jw.sum()
+        out[self.ch] = np.einsum("nk,nkj->j", jw, pu) / jw.sum()
         if not hypothetical:
             self._memo = self._memo or {}
             self._memo[key] = (out, mem)
@@ -310,7 +335,6 @@ class FactorModel:
         yb = bn > .5
         kk = min(self.K, int(self.used.max()) + 1)
         key = (b.tobytes(), a, self.t, False)
-        pp = None
         if self._memo is not None and key in self._memo \
                 and self._memo[key][1]["rest"].shape[0] == kk:
             mem = self._memo[key][1]
@@ -319,23 +343,9 @@ class FactorModel:
             mem = self._members(b, a, self.hist, kk, pp)
         if self.proc is not None:
             self._pp = mem["P"][0, :, -1, 0].astype(float)
-            if pp is None:                   # (just predicted (x, a) above: same state, skip)
-                self.proc.predict(x, a)      # the chosen action's prior (a planner may have
+            self.proc.predict(x, a)          # the chosen action's prior (a planner may have
             self.proc.learn(x, a, y)         # evaluated other actions last)
-        pl = self._place_pred(b)                                   # (N, KP, J)
-        pj = self._joint(mem, pl, kk)
-        lik = np.prod(np.where(yb[None, None, None, :], pj, 1. - pj), axis=3)   # (N, KP, kk)
-        prior = self._place_prior()[:, :, None] * self._regime_prior(kk)
-        if self.cond:
-            ww = np.exp(self.logw - self.logw.max())[:, None, None] * prior
-            self._q = np.einsum("npk,npkj->j", ww, pj) / ww.sum()
-        joint = prior * lik
-        tot = joint.sum((1, 2))
-        self.logw += np.log(tot)
-        flat = (joint / tot[:, None, None]).reshape(N, -1)
-        cdf = np.cumsum(flat, 1)
-        idx = np.minimum((cdf < self.rng.random(N)[:, None]).sum(1), flat.shape[1] - 1)
-        yt, zt = np.divmod(idx, kk)
+        yt, zt = self._learn_view(x, a, y, mem)
         # factor bookkeeping
         if self.started:
             moved = yt != self.y
@@ -350,11 +360,9 @@ class FactorModel:
         self.used = np.maximum(self.used, zt + 1)
         self.y, self.z = yt, zt
         self.started = True
-        # member evidence in the sampled regime (place member: the sampled place's chain)
-        Pz = np.clip(mem["P"][zt, :, :, ar], 1e-6, 1. - 1e-6)    # (N, J, M-1)
-        plz = np.clip(pl[ar, yt], 1e-6, 1. - 1e-6)[:, :, None]       # (N, J, 1)
-        Pm = np.concatenate([Pz, plz.astype(F32)], 2)
-        self.ev[zt, :, :, ar] += np.where(yb[None, :, None], np.log(Pm), np.log(1. - Pm))
+        # member evidence in the sampled regime
+        Pz = np.clip(mem["P"][zt, :, :, ar], 1e-6, 1. - 1e-6)        # (N, J, M)
+        self.ev[zt, :, :, ar] += np.log(np.where(yb[None, :, None], Pz, 1. - Pz))
         if self._E is not None:                # only the sampled regime of each particle moved
             evz = self.ev[zt, :, :, ar]                            # (N, J, M)
             self._E[zt, :, :, ar] = np.exp(evz - evz.max(2, keepdims=True))
@@ -369,10 +377,6 @@ class FactorModel:
                       + cells[js][:, :, None]) * self.N + ar[None, None, :]
                 assert tq.flags.c_contiguous
                 tq.reshape(-1)[fl.ravel()] += 1.
-        Jr = np.arange(self.J)
-        pv = (b > .5).astype(int)
-        self.tm1[ar[:, None], yt[:, None], Jr[None, :], pv[None, :]] += yb
-        self.tm0[ar[:, None], yt[:, None], Jr[None, :], pv[None, :]] += ~yb
         v = mem["v"]
         Sz = self.Sg[ar, zt]
         var = np.einsum("njab,ja,jb->nj", Sz, v, v) + self.noise
@@ -382,9 +386,10 @@ class FactorModel:
         Sz -= g[..., :, None] * g[..., None, :] * var[..., None, None]   # Sz is a copy (fancy)
         self.Sg[ar, zt] = Sz
         # pooled level (same for every particle)
-        pg = np.clip(self._pooled(cells), 1e-6, 1. - 1e-6)
-        self.evg += np.where(yb[:, None], np.log(pg), np.log(1. - pg))
+        pg = np.clip(mem["pg"], 1e-6, 1. - 1e-6)
+        self.evg += np.log(np.where(yb[:, None], pg, 1. - pg))
         tg = np.where(yb[:, None], 1., 0.)
+        Jr = np.arange(self.J)
         np.add.at(self.g1, (Jr[:, None], cells), tg)
         np.add.at(self.g0, (Jr[:, None], cells), 1. - tg)
         self._resample()
@@ -395,6 +400,37 @@ class FactorModel:
         self._reslot()
         self._memo = None
 
+    def _learn_view(self, x, a, y, mem):
+        """Place proposal from its exact posterior, then the regime from the place-conditioned
+        prior times the channel likelihood.  Returns the sampled (yt, zt)."""
+        N, ar = self.N, np.arange(self.N)
+        b, bn = self._bits(x), self._bits(y)
+        yb = bn > .5
+        kk = mem["rest"].shape[0]
+        q, Lp = self._place_view(b)
+        cdf = np.cumsum(q, 1)
+        yt = np.minimum((cdf < self.rng.random(N)[:, None] * cdf[:, -1:]).sum(1), self.KP - 1)
+        if self.hist:                                  # place chains learn x_{t-1} -> x_t
+            Jr = np.arange(self.J)
+            pv = (self.hist[-1] > .5).astype(int)
+            xe = b > .5
+            self.tm1[ar[:, None], yt[:, None], Jr[None, :], pv[None, :]] += xe
+            self.tm0[ar[:, None], yt[:, None], Jr[None, :], pv[None, :]] += ~xe
+        qs = np.zeros_like(q)
+        qs[ar, yt] = 1.
+        pz = self._regime_prior_q(kk, qs)
+        pu = mem["rest"].transpose(2, 0, 1)            # (N, kk, J)
+        if self.cond:                  # the model's prediction of this transition (screening)
+            ww = np.exp(self.logw - self.logw.max())[:, None] * pz
+            self._q = np.einsum("nk,nkj->j", ww, pu) / ww.sum()
+        lik = np.prod(np.where(yb[None, None, :], pu, 1. - pu), axis=2)   # (N, kk)
+        joint = pz * lik
+        tot = joint.sum(1)
+        self.logw += np.log(Lp) + np.log(tot)
+        cdf = np.cumsum(joint / tot[:, None], 1)
+        zt = np.minimum((cdf < self.rng.random(N)[:, None]).sum(1), kk - 1)
+        return yt, zt
+
     # ---------------------------------------------------------------- slots
     def _screen(self, b, bn):
         J = np.arange(self.J)
@@ -402,24 +438,24 @@ class FactorModel:
         c0 = self.f0[J, xo]
         p0 = (c0[J, xn] + .5) / (c0.sum(1) + 1.)
         I, Jm = np.meshgrid(J, J, indexing="ij")
-        for li, d in enumerate(self.lags):
-            if d > len(self.hist):
-                continue
-            xs = self._lag(b, d, self.hist).astype(int)
-            c1 = self.f1[I, li, Jm, xo[Jm], xs[I]]
-            p1 = (np.take_along_axis(c1, xn[Jm][..., None], -1)[..., 0] + .5) / (c1.sum(-1) + 1.)
-            self.sev[:, li, :] += np.log(p1) - np.log(p0)[None, :]
-            self.f1[I, li, Jm, xo[Jm], xs[I], xn[Jm]] += 1.
-            if self.cond and self._q is not None:
-                qb = np.searchsorted(QBINS, self._q)                # (J,)
-                d1 = self.fq1[I, li, Jm, qb[Jm], xs[I]]
-                q1 = (np.take_along_axis(d1, xn[Jm][..., None], -1)[..., 0] + .5) / (d1.sum(-1) + 1.)
-                d0 = self.fq0[J, qb]
-                q0 = (d0[J, xn] + .5) / (d0.sum(1) + 1.)
-                self.cev[:, li, :] += np.log(q1) - np.log(q0)[None, :]
-                self.fq1[I, li, Jm, qb[Jm], xs[I], xn[Jm]] += 1.
+        # all lags at once: (L, J, J) slices of f1 / fq1; masked lags contribute 0
+        XS = np.array([self._lag(b, d, self.hist).astype(int) for d in self.lags])   # (L, J)
+        ok = np.array([d <= len(self.hist) for d in self.lags], float)               # (L,)
+        Lg = np.arange(len(self.lags))[:, None, None]
+        sI = XS[:, I]                                                              # (L, J, J)
+        c1 = self.f1[I[None], Lg, Jm[None], xo[Jm][None], sI]                      # (L, J, J, 2)
+        p1 = (np.take_along_axis(c1, xn[Jm][None, :, :, None], -1)[..., 0] + .5) / (c1.sum(-1) + 1.)
+        self.sev += ((np.log(p1) - np.log(p0)[None, None, :]) * ok[:, None, None]).transpose(1, 0, 2)
+        self.f1[I[None], Lg, Jm[None], xo[Jm][None], sI, xn[Jm][None]] += ok[:, None, None]
         if self.cond and self._q is not None:
-            self.fq0[J, np.searchsorted(QBINS, self._q), xn] += 1.
+            qb = np.searchsorted(QBINS, self._q)                                    # (J,)
+            d1 = self.fq1[I[None], Lg, Jm[None], qb[Jm][None], sI]                 # (L, J, J, 2)
+            q1 = (np.take_along_axis(d1, xn[Jm][None, :, :, None], -1)[..., 0] + .5) / (d1.sum(-1) + 1.)
+            d0 = self.fq0[J, qb]                                                   # (J, B+1)
+            q0 = (d0[J, xn] + .5) / (d0.sum(1) + 1.)                               # (J,)
+            self.cev += ((np.log(q1) - np.log(q0)[None, None, :]) * ok[:, None, None]).transpose(1, 0, 2)
+            self.fq1[I[None], Lg, Jm[None], qb[Jm][None], sI, xn[Jm][None]] += ok[:, None, None]
+            self.fq0[J, qb, xn] += 1.
         self.f0[J, xo, xn] += 1.
 
     def _reslot(self):
