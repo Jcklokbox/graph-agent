@@ -30,7 +30,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from models.online_hmm import OnlineHMM, update_population
+from models.online_hmm import PackedHMM
 
 KS = (2, 3, 4, 6)
 W, MIN_AGE, LOG_BF, REJECT, M, COOL = 500, 200, 3., 10., 6, 1500
@@ -89,7 +89,7 @@ class GroupModel:
 
     def __init__(self, chans, A, seed, ks=KS, windows=False):
         self.chans = list(chans)
-        self.hs = [OnlineHMM(len(self.chans), A, K=k, seed=seed + 7 * k) for k in ks]
+        self.hs = [PackedHMM(len(self.chans), A, K=k, seed=seed + 7 * k) for k in ks]
         if windows:
             self.hs.append(Window(len(self.chans), A))
         self.logw = np.zeros(len(self.hs))
@@ -102,17 +102,16 @@ class GroupModel:
             h.observe(xs)
         self.started = True
 
-    def predict(self, x, a):
+    def predict(self, x, a, read=True):
         if not self.started:
             self.start(x)
-        w = np.exp(self.logw - self.logw.max())
-        w /= w.sum()
-        self._prior = [h.marg(a) if isinstance(h, Window) else h.b @ h.T(a) for h in self.hs]
-        return sum(wk * self._marg(p, h) for wk, p, h in zip(w, self._prior, self.hs))
-
-    @staticmethod
-    def _marg(p, h):
-        return p if isinstance(h, Window) else p @ h.E()
+        heads = [((p := h.marg(a)), p) if isinstance(h, Window) else h.forward(a, read)
+                 for h in self.hs]
+        self._prior = [p for p, _ in heads]
+        if read:
+            w = np.exp(self.logw - self.logw.max())
+            w /= w.sum()
+            return sum(wk * q for wk, (_, q) in zip(w, heads))
 
     @staticmethod
     def _lp(p, h, ys):
@@ -146,24 +145,21 @@ class GroupModel:
         w /= w.sum()
         return sum(wk * p for wk, p in zip(w, preds))
 
-    def learn(self, a, y, population=None):
-        """Returns log P(y_g | past) under the mixture (before updating)."""
+    def learn(self, a, y):
+        """Return prequential joint evidence; the candidate updates share the same rules."""
         ys = np.asarray(y, float)[self.chans]
-        liks = [None if isinstance(h, Window) else h._lik(ys, h.E()) for h in self.hs]
-        lp = np.array([self._lp(p, h, ys) if lik is None else np.log(max(1e-300, float(p @ lik)))
-                       for p, h, lik in zip(self._prior, self.hs, liks)])
+        lp = np.empty(len(self.hs))
+        for i, (p, h) in enumerate(zip(self._prior, self.hs)):
+            if isinstance(h, Window):
+                lp[i] = self._lp(p, h, ys)
+                h.update(a, ys)
+            else:
+                lp[i] = h.score_learn(a, ys, p)
         w = self.logw - self.logw.max()
         mix = np.log(np.exp(w).sum())
         out = float(np.log(np.exp(w + lp).sum()) - mix)
         self.logw = self.logw + lp
         self.logw -= self.logw.max()
-        for h, p, lik in zip(self.hs, self._prior, liks):
-            if lik is None:
-                h.update(a, ys)
-            elif population is None:
-                h.update(a, ys, prior=p, lik=lik)
-            else:
-                population.append((h, ys, p, lik))
         return out
 
 
@@ -249,7 +245,7 @@ class Decomposer:
             out[g.chans] = g.predict(x, a)
         for c in self.cand:
             for k in ("merged", "sep1", "sep2"):
-                c[k].predict(x, a)
+                c[k].predict(x, a, read=False)
         self.base = out.copy()
         if self.conj:
             for j, lst in self.cj.items():
@@ -263,17 +259,15 @@ class Decomposer:
 
     def learn(self, x, a, y):
         self.t += 1
-        population = []
         for g in self.groups:
-            g.learn(a, y, population)
+            g.learn(a, y)
         done = []
         for c in self.cand:
-            c["d"] += (c["merged"].learn(a, y, population) - c["sep1"].learn(a, y, population)
-                       - c["sep2"].learn(a, y, population))
+            c["d"] += (c["merged"].learn(a, y) - c["sep1"].learn(a, y)
+                       - c["sep2"].learn(a, y))
             age = self.t - c["t"]
             if age >= W or (age >= MIN_AGE and c["d"] < -REJECT):
                 done.append(c)
-        update_population(population, a)
         for c in done:
             self.cand.remove(c)
             self._decide(c)

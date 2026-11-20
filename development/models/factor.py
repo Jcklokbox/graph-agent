@@ -16,11 +16,11 @@ import re
 import numpy as np
 
 from models.latent_cause import H_GRID
+from models.kernels import factor_gaussian, factor_read, factor_update
 
 C_REG = 1.           # concentration: regime cell -> pooled cell
 C_GLOB = 1.          # concentration: pooled cell -> sub-configurations
 SWAP = np.log(3.)    # slot swap margin (v18)
-SLOW_RUN = 12.      # minimum empirical active dwell for the place view
 GAP_SCALE = 64.     # steps for relaxation of an unobserved regime
 NEW_ASSOC = .40    # association shrinkage in an as-yet unused regime
 FREE_RATE = .12     # mixture mass for an event without an observed parent
@@ -64,11 +64,11 @@ class FactorModel:
         self._sb = np.array([single[s[1]] for s in pairs], int)
         self.M = self.S + 1                                       # + additive
         C = int(self.off[-1])
-        # regime tables, layout (regime, channel, cell / member, particle)
-        self.q1 = np.zeros((K, J, C, N), F32)
-        self.q0 = np.zeros((K, J, C, N), F32)
-        self.ev = np.zeros((K, J, self.M, N), F32)
-        self._E = None                           # exp(ev - max) cache, same layout as ev
+        # Each particle's regime/member bank is contiguous for filtering and resampling.
+        self.q1 = np.zeros((N, K, J, C), F32)
+        self.q0 = np.zeros_like(self.q1)
+        self.ev = np.zeros((N, K, J, self.M), F32)
+        self._E = np.ones_like(self.ev)
         # pooled tables (particle-independent)
         self.g1 = np.zeros((J, C))
         self.g0 = np.zeros((J, C))
@@ -93,8 +93,9 @@ class FactorModel:
         self.places = {}       # signature -> (last time, regime posterior, historical occupancy)
         self.place = ()
         self.slow = np.zeros(J, bool)
-        self.on = np.zeros(J)
-        self.starts = np.zeros(J)
+        self._role_log = np.zeros((J, len(H_GRID)))
+        self._phasic_log = np.zeros(J)
+        self._on_counts = np.zeros((J, 2))
         self.last_bits = np.zeros(J, bool)
         self.slow_counts = np.zeros((J, 2, 2))
         self.logw = np.zeros(N)
@@ -166,46 +167,41 @@ class FactorModel:
         p[:, i2] = (n1[:, i2] + C_GLOB * prior) / tot[:, i2]
         return p
 
-    @staticmethod
-    def _flat3(q):
-        """(K, J, C, N) -> (K, J*C, N) view (never a copy: writes/reads must hit the table)."""
-        assert q.flags.c_contiguous
-        return q.reshape(q.shape[0], -1, q.shape[3])
-
     def _members(self, b, a, hist, kk):
-        """Regime-local predictive members and their mixture."""
         U = self._keys(b, a, hist)
         cells = self._cells(U)
-        pg = self._pooled(cells).astype(F32)                       # (J, S)
-        # batched gather of the regime counts: one flat take over (J*C) per table (exact copy)
-        J, C, N, S = self.J, self.q1.shape[2], self.N, self.S
-        fidx = (np.arange(J)[:, None] * C + cells).ravel()         # (J*S,)
-        n1 = self._flat3(self.q1)[:kk, fidx]      # (kk, J*S, N)
-        n0 = self._flat3(self.q0)[:kk, fidx]
-        P = np.empty((kk, J, self.M, N), F32)
-        ps = P[:, :, :S]                                           # sets, written in place
-        ps[...] = (n1 + C_REG * pg.reshape(1, J * S, 1)).reshape(kk, J, S, N)
-        n1 += n0
-        n1 += C_REG
-        ps /= n1.reshape(kk, J, S, N)
-        v = np.concatenate([U, np.ones((self.J, 1))], 1)           # (J, d)
+        pg = self._pooled(cells).astype(F32)
+        v = np.concatenate([U, np.ones((self.J, 1))], 1)
         center = np.einsum("jd,jd->j", self.shared_mu, v)
-        P[:, :, S] = np.clip(np.einsum("nkjd,jd->kjn", self.mu[:, :kk], v)
-                              + center[None, :, None], .01, .99)
-        if self._E is None:
-            self._E = np.exp(self.ev - self.ev.max(2, keepdims=True))
-        E = self._E[:kk]
-        q = (E * P).sum(2) / E.sum(2)
-        return dict(cells=cells, P=P, v=v, q=q.transpose(2, 0, 1))
+        q = factor_read(self.q1, self.q0, self._E, self.mu, v, center, cells, pg,
+                        kk, ~self.slow, self.used)
+        return dict(cells=cells, pg=pg, v=v, center=center, q=q)
 
     def _signature(self, b):
         return tuple(np.flatnonzero(self.slow & (b > .5)).tolist())
 
     def _observe_place(self, b):
+        """Compare a long-dwell copy process to a fitted Bernoulli continuation.
+
+        Conditional on an on observation, a tonic channel inherits the regime
+        lifetime grid; a phasic channel has a Jeffreys-Beta continuation rate.
+        Marginal likelihood and sparse prior odds 1:J determine the MAP view;
+        a transient run is not an irreversible commitment.
+        """
         now = b > .5
-        self.on += now
-        self.starts += now & ~self.last_bits
-        self.slow |= self.on >= SLOW_RUN * np.maximum(self.starts, 1.)
+        idx = np.flatnonzero(self.last_bits)
+        if idx.size:
+            on = now[idx]
+            grid = np.asarray(H_GRID)[None, :]
+            self._role_log[idx] += np.log(np.where(on[:, None], 1. - grid, grid))
+            ct = self._on_counts[idx]
+            self._phasic_log[idx] += np.log((ct[np.arange(len(idx)), on.astype(int)] + .5)
+                                           / (ct.sum(1) + 1.))
+            self._on_counts[idx, on.astype(int)] += 1.
+            z = self._role_log[idx] - self._phasic_log[idx, None]
+            mx = z.max(1)
+            odds = mx + np.log(np.exp(z - mx[:, None]).mean(1)) - np.log(self.J)
+            self.slow[idx] = odds > 0.
         self.last_bits = now
         return self._signature(b)
 
@@ -242,17 +238,17 @@ class FactorModel:
         return self.proc is not None and not self.slow.any() and sum(
             len(g.chans) > 1 for g in self.proc.groups) >= 2
 
-    def _conditional(self, mem, kk, pp):
+    def _conditional(self, mem, kk, pp, quiet=False):
         # A small parent-missing component makes a free event evidence about the
         # baseline rate of an existing regime, without discarding the cue model.
         n1, n0 = self.rate1[:, :kk], self.rate0[:, :kk]
         pooled = (n1.sum(1, keepdims=True) + .5) / ((n1 + n0).sum(1, keepdims=True) + 1.)
         rate = (n1 + pooled) / (n1 + n0 + 1.)
         fresh = np.arange(kk)[None, :] >= self.used[:, None]
-        free = np.where(fresh, NEW_ASSOC, FREE_RATE)[..., None]
-        local = mem["q"] * (1. - free) + free * rate
+        free = np.where(fresh, NEW_ASSOC, FREE_RATE if quiet else 0.)[..., None]
         if pp is None:
-            return local
+            return mem["q"] * (1. - free) + free * rate
+        local = mem["q"] if not self.slow.any() else mem["q"] * (1. - free) + free * rate
         return self.expert * local + (1. - self.expert) * pp
 
     @staticmethod
@@ -273,7 +269,7 @@ class FactorModel:
         """Deterministic summary of the posterior state (function of code and seed only)."""
         w = np.exp(self.logw - self.logw.max())
         w /= w.sum()
-        E = self.ev[self.z, :, :, np.arange(self.N)]
+        E = self.ev[np.arange(self.N), self.z]
         E = np.exp(E - E.max(2, keepdims=True))
         E = (E / E.sum(2, keepdims=True) * w[:, None, None]).sum(0)
         return dict(t=self.t, births=self.births, place=list(self.place),
@@ -290,7 +286,10 @@ class FactorModel:
         if not hypothetical and self._memo is not None and key == self._memo[0]:
             return self._memo[1]
         if self._process_scope():
-            return self.proc.peek_all(x, a) if hypothetical else self.proc.predict(x, a)
+            out = self.proc.peek_all(x, a) if hypothetical else self.proc.predict(x, a)
+            if not hypothetical:
+                self._memo = key, out, None, None
+            return out
         kk = min(self.K, int(self.used.max()) + 1)
         hist = self.hist
         pp = None
@@ -300,7 +299,7 @@ class FactorModel:
         prior = self._regime_prior(self._signature(b), kk)
         out = np.full(self.n, .5)
         w = np.exp(self.logw - self.logw.max())[:, None] * prior
-        pj = self._conditional(mem, kk, pp)
+        pj = self._conditional(mem, kk, pp, not b[~self.slow].any())
         activity = self._activity(pj, w, b, ~self.slow)
         w_eval = w if activity is None else w * activity[1]
         out[self.ch] = np.einsum("nk,nkj->j", w_eval, pj) / w.sum()
@@ -320,7 +319,8 @@ class FactorModel:
         key = (b.tobytes(), a)
         place = self._observe_place(b)
         if self._process_scope():
-            self.proc.predict(x, a)
+            if self._memo is None or key != self._memo[0]:
+                self.proc.predict(x, a)
             self.proc.learn(x, a, y)
             self._memo = None
             self.hist = (self.hist + [b])[-max(1, self.D + 1):]
@@ -329,7 +329,7 @@ class FactorModel:
             self.slow_counts[jr, b.astype(int), yb.astype(int)] += 1.
             self.t += 1
             return
-        if self._memo is not None and key == self._memo[0]:
+        if self._memo is not None and key == self._memo[0] and self._memo[2] is not None:
             _, _, mem, pp = self._memo
         else:
             pp = self.proc.predict(x, a)[self.ch] if self.proc is not None else None
@@ -350,7 +350,8 @@ class FactorModel:
         fast = ~self.slow
         prior = self._regime_prior(place, kk)
         w = np.exp(self.logw - self.logw.max())[:, None] * prior
-        pj = self._conditional(mem, kk, pp)
+        quiet = not b[fast].any()
+        pj = self._conditional(mem, kk, pp, quiet)
         activity = self._activity(pj, w, b, fast)
         w_eval = w if activity is None else w * activity[1]
         raw = np.einsum("nk,nkj->j", w, pj) / w.sum()
@@ -365,7 +366,7 @@ class FactorModel:
         # Only the contextual expert provides evidence about the contextual regime.
         # The process expert is updated on the same stream, but does not explain away
         # a change point in the local model.
-        pz = self._conditional(mem, kk, None)
+        pz = self._conditional(mem, kk, None, quiet)
         ll = self._activity(pz, w, b, fast)
         lik = np.prod(np.where(yb[fast], pz[..., fast], 1. - pz[..., fast]), axis=2)
         if ll is not None:
@@ -388,43 +389,22 @@ class FactorModel:
         filtered /= filtered.sum(1, keepdims=True)
         post = np.zeros_like(self.mz)
         post[:, :kk] = filtered
-        counts += post
-        self.places[place] = (self.t, post, counts)
+        # Silence is a clock observation, not an independent assignment. Store
+        # the posterior at marks so gap relaxation is applied once to the anchor.
+        if b[fast].any() or yb[fast].any() or self.places[place][1] is None:
+            counts += post
+            self.places[place] = (self.t, post, counts)
         self.rate1[ar, zt] += yb & fast
         self.rate0[ar, zt] += ~yb & fast
-        Pz = np.clip(mem["P"][zt, :, :, ar], 1e-6, 1. - 1e-6)
-        logp = np.log(np.where(yb[None, :, None], Pz, 1. - Pz))
-        self.ev[zt, :, :, ar] += logp * fast[None, :, None]
-        if self._E is not None:
-            evz = self.ev[zt, :, :, ar]
-            self._E[zt, :, :, ar] = np.exp(evz - evz.max(2, keepdims=True))
         cells = mem["cells"]
-        J, C = self.J, self.q1.shape[2]
-        for tq, sel in ((self.q1, yb & fast), (self.q0, ~yb & fast)):
-            js = np.flatnonzero(sel)
-            if js.size:
-                fl = ((zt[None, None, :] * J + js[:, None, None]) * C
-                      + cells[js][:, :, None]) * N + ar[None, None, :]
-                tq.reshape(-1)[fl.ravel()] += 1.
-        v = mem["v"]
-        Sz = self.Sg[ar, zt]
-        sv = np.einsum("njab,jb->nja", Sz, v)
-        var = np.einsum("nja,ja->nj", sv, v) + self.noise
-        gain = sv / var[..., None] * fast[None, :, None]
-        target = yb - np.einsum("jd,jd->j", self.shared_mu, v)
-        err = target - np.einsum("nja,ja->nj", self.mu[ar, zt], v)
-        self.mu[ar, zt] += gain * err[..., None]
-        self.Sg[ar, zt] = Sz - gain[..., :, None] * gain[..., None, :] * var[..., None, None]
-        # Empirical Bayes center shared across every regime, including unused ones.
-        sv0 = np.einsum("jab,jb->ja", self.shared_cov, v)
-        var0 = np.einsum("ja,ja->j", sv0, v) + self.noise
-        g0 = sv0 / var0[:, None] * fast[:, None]
-        self.shared_mu += g0 * target[:, None]
-        self.shared_cov -= g0[:, :, None] * g0[:, None, :] * var0[:, None, None]
+        factor_update(self.q1, self.q0, self.ev, self._E, self.mu, mem["v"],
+                      mem["center"], cells, mem["pg"], zt, yb, fast)
+        factor_gaussian(self.mu, self.Sg, self.shared_mu, self.shared_cov,
+                        mem["v"], mem["center"], zt, yb, fast, self.noise)
         pg = np.clip(self._pooled(cells), 1e-6, 1. - 1e-6)
         self.evg += np.log(np.where(yb[:, None], pg, 1. - pg)) * fast[:, None]
-        np.add.at(self.g1, (jr[:, None], cells), (yb & fast)[:, None])
-        np.add.at(self.g0, (jr[:, None], cells), (~yb & fast)[:, None])
+        self.g1[jr[:, None], cells] += (yb & fast)[:, None]
+        self.g0[jr[:, None], cells] += (~yb & fast)[:, None]
         self._resample()
         self._screen(b, bn, hist_before)
         self.t += 1
@@ -434,18 +414,15 @@ class FactorModel:
     def _screen(self, b, bn, hist):
         J = np.arange(self.J)
         xo, xn = b.astype(int), bn.astype(int)
-        c0 = self.f0[J, xo]
-        p0 = (c0[J, xn] + .5) / (c0.sum(1) + 1.)
-        I, Jm = self._screen_grid
+        if not self.cond:
+            c0 = self.f0[J, xo]
+            p0 = (c0[J, xn] + .5) / (c0.sum(1) + 1.)
+            I, Jm = self._screen_grid
         residual = xn - self._q
         for li, d in enumerate(self.lags):
             if d > len(hist):
                 continue
             xs = self._lag(b, d, hist).astype(int)
-            c1 = self.f1[I, li, Jm, xo[Jm], xs[I]]
-            p1 = (np.take_along_axis(c1, xn[Jm][..., None], -1)[..., 0] + .5) / (c1.sum(-1) + 1.)
-            self.sev[:, li, :] += np.log(p1) - np.log(p0)[None, :]
-            self.f1[I, li, Jm, xo[Jm], xs[I], xn[Jm]] += 1.
             if self.cond:
                 self.ct[li] += 1.
                 self.cx[li, :, 0] += xs
@@ -453,9 +430,14 @@ class FactorModel:
                 self.cxr[li] += xs[:, None] * residual
                 ct, cx = self.ct[li], self.cx[li]
                 cov = self.cxr[li] - cx * self.cr[li] / ct
-                # Square normalized conditional-residual covariance (ridge for rare inputs).
                 self.cev[:, li] = cov ** 2 / (1. + cx * (1. - cx / ct))
-        self.f0[J, xo, xn] += 1.
+            else:
+                c1 = self.f1[I, li, Jm, xo[Jm], xs[I]]
+                p1 = (np.take_along_axis(c1, xn[Jm][..., None], -1)[..., 0] + .5) / (c1.sum(-1) + 1.)
+                self.sev[:, li, :] += np.log(p1) - np.log(p0)[None, :]
+                self.f1[I, li, Jm, xo[Jm], xs[I], xn[Jm]] += 1.
+        if not self.cond:
+            self.f0[J, xo, xn] += 1.
 
     def _reslot(self):
         base = len(self.own_lags) + self.A
@@ -492,12 +474,13 @@ class FactorModel:
             if pos in s:
                 sub = self.sets.index(tuple(c for c in s if c != pos))
                 for t in (self.q1, self.q0):
-                    t[:, j, self.off[i]:self.off[i + 1]] = 0.
+                    t[:, :, j, self.off[i]:self.off[i + 1]] = 0.
                 self.g1[j, self.off[i]:self.off[i + 1]] = 0.
                 self.g0[j, self.off[i]:self.off[i + 1]] = 0.
-                self.ev[:, j, i] = self.ev[:, j, sub]
-                self._E = None
+                self.ev[:, :, j, i] = self.ev[:, :, j, sub]
                 self.evg[j, i] = self.evg[j, sub]
+        ev = self.ev[:, :, j]
+        self._E[:, :, j] = np.exp(ev - ev.max(-1, keepdims=True))
         self.shared_mu[j, pos] = 0.
         self.shared_cov[j, pos, :] = 0.
         self.shared_cov[j, :, pos] = 0.
@@ -514,12 +497,7 @@ class FactorModel:
             return
         u = (self.rng.random() + np.arange(self.N)) / self.N
         idx = np.minimum(np.searchsorted(np.cumsum(w), u), self.N - 1)
-        for nm in ("q1", "q0"):              # count tables: C order for flat take/scatter
-            setattr(self, nm, np.ascontiguousarray(getattr(self, nm)[..., idx]))
-        self.ev = self.ev[..., idx]          # layout kept: reductions over ev depend on it
-        if self._E is not None:
-            self._E = self._E[..., idx]
-        for nm in ("mu", "Sg", "hz", "mz", "used", "z", "rate1", "rate0"):
+        for nm in ("q1", "q0", "ev", "_E", "mu", "Sg", "hz", "mz", "used", "z", "rate1", "rate0"):
             setattr(self, nm, getattr(self, nm)[idx].copy())
         self.places = {p: (t, z[idx], n[idx]) for p, (t, z, n) in self.places.items()}
         self.logw = np.zeros(self.N)

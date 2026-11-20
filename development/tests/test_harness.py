@@ -153,6 +153,27 @@ class TestVectorizedEquivalence(unittest.TestCase):
                 for name in ("b", "ntr", "non", "ntot"):
                     np.testing.assert_allclose(getattr(h, name), getattr(ref, name), atol=1e-12, rtol=0)
 
+    def test_packed_fixed_lag_matches_scalar(self):
+        import numpy as np
+        from models.online_hmm import OnlineHMM, PackedHMM
+
+        rng = np.random.default_rng(42)
+        for m, k in ((1, 2), (3, 4), (6, 6)):
+            ref = OnlineHMM(m, 2, K=k, seed=1)
+            packed = PackedHMM(m, 2, K=k, seed=1)
+            x = rng.integers(2, size=m).astype(float)
+            ref.observe(x)
+            packed.observe(x)
+            for t in range(45):
+                a = int(rng.integers(2))
+                prior, pred = packed.forward(a, True)
+                np.testing.assert_allclose(pred, ref.predict(a), atol=1e-12, rtol=0.)
+                y = rng.integers(2, size=m).astype(float)
+                packed.score_learn(a, y, prior)
+                ref.update(a, y)
+                for name in ("b", "ntr", "non", "ntot"):
+                    np.testing.assert_allclose(getattr(packed, name), getattr(ref, name), atol=1e-12, rtol=0.)
+
 
 if __name__ == "__main__":
     unittest.main()

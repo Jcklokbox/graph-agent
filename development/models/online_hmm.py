@@ -176,6 +176,60 @@ def update_population(entries, a):
             h._lc.clear()
 
 
+class PackedHMM(OnlineHMM):
+    """Unit-decay, fully observed HMM used by the Decomposer population.
+
+    The same fixed-lag filter as OnlineHMM, with contiguous ring buffers and one
+    fused smoothing/count update. Other witness settings use the scalar class.
+    """
+
+    def __init__(self, m, actions, K, seed):
+        super().__init__(m, actions, K=K, seed=seed)
+        self._trans = np.empty_like(self.ntr)
+        self._emit = np.empty_like(self.non)
+        self._dirty = True
+        self._ix = self._age = 0
+        cap = self.L + 1
+        self._hb = np.empty((cap, K))
+        self._ha = np.empty(cap, dtype=np.int64)
+        self._hy = np.empty((cap, m))
+
+    def _refresh(self):
+        if self._dirty:
+            from models.kernels import hmm_params
+            hmm_params(self.ntr, self.non, self.ntot, self.alpha, self.sticky, self.shrink,
+                       self._trans, self._emit)
+            self._dirty = False
+
+    def T(self, a):
+        self._refresh()
+        return self._trans[a]
+
+    def E(self):
+        self._refresh()
+        return self._emit
+
+    def forward(self, a, read):
+        from models.kernels import hmm_forward
+        self._refresh()
+        return hmm_forward(self.b, self._trans[a], self._emit, read)
+
+    def score_learn(self, a, y, prior):
+        from models.kernels import hmm_step
+        self._refresh()
+        score = hmm_step(y, a, prior, self.b, self._trans, self._emit, self._hb, self._ha,
+                         self._hy, self._ix, self._age, self.ntr, self.non, self.ntot)
+        self._age = min(self._age + 1, self.L + 1)
+        self._ix = (self._ix + 1) % (self.L + 1)
+        self._dirty = self._age > self.L
+        return score
+
+    def update(self, a, y, prior=None, lik=None):
+        if prior is None:
+            prior, _ = self.forward(a, False)
+        self.score_learn(a, np.asarray(y, float), prior)
+
+
 class OnlineHMMPredictor:
     """T1 adapter: predict(x, a) / learn(x, a, y) on the shared stream."""
     KW = {}
