@@ -18,6 +18,22 @@ Per particle (SMC, N particles shared by all channels), for the transition x_t -
                the particle's places (F-12's context model, now a member: every observation is
                generated once, design fix 13:45).
              Weights w = marginal likelihoods of the members on the regime's own data.
+Scale-separated hierarchy (SPEC-3b.2 [1]): the place (slow, persistent context) is inferred from
+the slow channels only -- its prior, its chain P(x_j,t+1 | x_j,t, y) and its evidence use no
+lagged copy x_{t-tau}, so a fast/lag channel never fragments the context. The regime (fast) and
+the linear weights theta condition on the lags. theta has a hierarchical prior: a regime a
+particle enters for the first time inherits the particle's own mass-weighted mean weights (its
+parent) with prior covariance s0*I, so learned inhibitory weights (w_X < 0) survive a
+context/regime switch instead of resetting to an uninformed zero.
+Gap hazard: an unchanged observation vector means no information about the world (Delta tau
+steps with no new data). The regime switch probability of a particle compounds over that gap,
+h_eff = 1 - (1 - h)^Delta tau (Delta tau = 1 on an informative step: the model is unchanged
+there), i.e. inter-session gaps update the regime weights -- the session-boundary prior of
+spont-recovery-sessions -- without touching theta.
+Parent recruitment (cond): candidate (i, lag) screens are scored by the covariance of x_i(t-lag)
+with the residual r_j = x_j(t+1) - q_j of the model's own BMA prediction,
+log BF = n/2 log 1/(1 - rho^2), so a modulator with corr(x_i, x_j) ~ 0 is still recruited when
+it predicts the residual, and lag copies do not crowd it out.
 Inference: per particle the joint (y, z) of each transition is proposed from its exact posterior
 given x_{t+1} (KP x K cells); the particle weight multiplies the predictive probabilities of
 all channels. Pooled tables are identical across particles (all see the same data) and stored
@@ -109,6 +125,13 @@ class FactorModel:
             self.fq0 = np.zeros((J, len(QBINS) + 1, 2))
             self.cev = np.zeros((J, L, J))
         self.hist = []                           # past observations (bits), newest last
+        self.stasis = 1                          # Delta tau: run length of identical observations
+        self._pb = None
+        self.r1 = np.zeros(J)                    # residual screen: sum r_j
+        self.rr = np.zeros(J)                    # sum r_j^2
+        self.rc = np.zeros((J, L, J))            # sum x_i(t-lag) * r_j
+        self.rx = np.zeros((J, L))               # sum x_i(t-lag)
+        self.rn = 0                              # steps screened
         self.t = 0
         self._memo = None
         self.births = 0
@@ -239,7 +262,9 @@ class FactorModel:
         G /= G.sum(1, keepdims=True)
         Dr = self.npz + self.beta * G[:, None, :]
         Dr = (Dr / Dr.sum(2, keepdims=True))[:, :, :kk]
-        h = self.hz
+        # gap hazard: P(no switch) = (1 - h)^Delta tau, so a long uninformative stay at one
+        # place raises the switch probability without erasing theta (Delta tau = 1 -> h)
+        h = -np.expm1(np.log1p(-self.hz) * self.stasis)
         cur = Dr[ar, self.y].copy()                                # draw in the same place
         Dr[ar, self.y] = h[:, None] * cur
         Dr[ar, self.y, self.z] += 1. - h
@@ -260,7 +285,16 @@ class FactorModel:
         E = np.exp(self.ev[0] - self.ev[0].max(1, keepdims=True))
         E = (E / E.sum(1, keepdims=True) * w[None, None, :]).sum(2)          # (J, M)
         r = lambda v: [round(float(u), 4) for u in v]
-        return dict(t=self.t, births=int(self.births),
+        gap = dict(stasis=int(self.stasis),
+                   h_eff=round(float((-np.expm1(np.log1p(-self.hz) * self.stasis)).mean()), 6),
+                   hz=round(float(self.hz.mean()), 6))
+        res = {}
+        if self.cond:
+            e = self._rscreen()                                     # (J, L, J)
+            for j in range(self.J):
+                bi, bl = divmod(int(np.argmax(e[:, :, j])), len(self.lags))
+                res[j] = [int(bi), int(self.lags[bl]), round(float(e[bi, bl, j]), 4)]
+        return dict(t=self.t, births=int(self.births), gap=gap, resid_top=res,
                     place=r(np.bincount(self.y, weights=w, minlength=self.KP)),
                     regime=r(np.bincount(self.z, weights=w, minlength=self.K)),
                     used=round(float((w * self.used).sum()), 3),
@@ -307,6 +341,12 @@ class FactorModel:
     def learn(self, x, a, y):
         N, ar = self.N, np.arange(self.N)
         b, bn = self._bits(x), self._bits(y)
+        # Delta tau: identical observation = no new information (gap); informative step -> 1
+        if self._pb is not None and np.array_equal(b, self._pb):
+            self.stasis += 1
+        else:
+            self.stasis = 1
+        self._pb = b
         yb = bn > .5
         kk = min(self.K, int(self.used.max()) + 1)
         key = (b.tobytes(), a, self.t, False)
@@ -345,7 +385,21 @@ class FactorModel:
             entered = np.zeros(N, bool)
         self.npz[ar[entered], yt[entered], zt[entered]] += 1.
         self.mz[ar[entered], zt[entered]] += 1.
-        self.births += int((zt >= self.used).sum())
+        fresh = zt >= self.used                                    # regime first entered
+        self.births += int(fresh.sum())
+        if fresh.any():
+            # hierarchical prior on theta: the child's prior mean = the particle's own
+            # mass-weighted mean weights over the regimes it has used (its parent), with
+            # prior covariance s0*I. A learned w_X < 0 therefore survives the switch; a
+            # never-informed particle keeps the zero mean (uninformed only when empty).
+            for n in np.nonzero(fresh)[0]:
+                ku = int(self.used[n])
+                if ku == 0:
+                    continue
+                w = self.mz[n, :ku]
+                sw = float(w.sum())
+                if sw > 0:
+                    self.mu[n, zt[n]] = (w[:, None, None] * self.mu[n, :ku]).sum(0) / sw
         self.usedp = np.maximum(self.usedp, yt + 1)
         self.used = np.maximum(self.used, zt + 1)
         self.y, self.z = yt, zt
@@ -410,23 +464,36 @@ class FactorModel:
             p1 = (np.take_along_axis(c1, xn[Jm][..., None], -1)[..., 0] + .5) / (c1.sum(-1) + 1.)
             self.sev[:, li, :] += np.log(p1) - np.log(p0)[None, :]
             self.f1[I, li, Jm, xo[Jm], xs[I], xn[Jm]] += 1.
-            if self.cond and self._q is not None:
-                qb = np.searchsorted(QBINS, self._q)                # (J,)
-                d1 = self.fq1[I, li, Jm, qb[Jm], xs[I]]
-                q1 = (np.take_along_axis(d1, xn[Jm][..., None], -1)[..., 0] + .5) / (d1.sum(-1) + 1.)
-                d0 = self.fq0[J, qb]
-                q0 = (d0[J, xn] + .5) / (d0.sum(1) + 1.)
-                self.cev[:, li, :] += np.log(q1) - np.log(q0)[None, :]
-                self.fq1[I, li, Jm, qb[Jm], xs[I], xn[Jm]] += 1.
         if self.cond and self._q is not None:
-            self.fq0[J, np.searchsorted(QBINS, self._q), xn] += 1.
+            r = xn - self._q                                       # residual of the BMA prediction
+            self.rn += 1
+            self.r1 += r
+            self.rr += r * r
+            for li, d in enumerate(self.lags):
+                if d > len(self.hist):
+                    continue
+                xs = self._lag(b, d, self.hist)
+                self.rc[:, li, :] += np.outer(xs, r)                # Cov(x_i(t-lag), r_j)
+                self.rx[:, li] += xs
         self.f0[J, xo, xn] += 1.
+
+    def _rscreen(self):
+        """Residual-covariance screen (cond): log BF = n/2 log 1/(1 - rho^2) per (i, lag, j),
+        rho = corr(x_i(t-lag), r_j), r_j = x_j(t+1) - q_j  (J, L, J)."""
+        n = max(1, self.rn)
+        mx = (self.rx / n)[:, :, None]                             # (J, L, 1) mean x_i
+        mr = (self.r1 / n)[None, None, :]                          # (1, 1, J) mean r_j
+        cov = self.rc / n - mx * mr
+        vx = np.maximum(self.rx / n - mx[..., 0] ** 2, 1e-12)[:, :, None]
+        vr = np.maximum((self.rr / n - mr[0, 0] ** 2)[None, None, :], 1e-12)
+        rho2 = np.clip(cov * cov / (vx * vr), 0., 1. - 1e-9)
+        return .5 * n * np.log(1. / (1. - rho2))
 
     def _reslot(self):
         base = len(self.own_lags) + self.A
         L = len(self.lags)
         for j in range(self.J):
-            e = (self.cev if self.cond else self.sev)[:, :, j].copy()   # (J, L) candidate scores
+            e = (self._rscreen() if self.cond else self.sev)[:, :, j].copy()  # (J, L) scores
             for li, d in enumerate(self.lags):
                 if d in self.own_lags:
                     e[j, li] = -np.inf

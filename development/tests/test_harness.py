@@ -169,5 +169,38 @@ class TestVectorizedEquivalence(unittest.TestCase):
             self.assertLessEqual(max(abs(a - b) for a, b in zip(y_vec, y_ref)), 1e-12, args)
 
 
+    def test_batched_hmm_matches_reference(self):
+        """SPEC-3b.2 [0]: the batched/vectorized inner ops of the Decomposer and the online HMM
+        (log-emission cache, one matmul for the buffered likelihoods) are the same numbers as
+        the frozen pre-[0] copies (tests/data/ref_models), fixed seeds: max |dy| <= 1e-12."""
+        import sys
+        from eval.phenomena import run_group
+        import models.decompose as live_d
+        from tests.data.ref_models import decompose as ref_decompose
+
+        def flat(x, out):
+            if isinstance(x, dict):
+                for k in sorted(x):
+                    flat(x[k], out)
+            elif isinstance(x, (list, tuple)):
+                for v in x:
+                    flat(v, out)
+            elif isinstance(x, (int, float)) or hasattr(x, "dtype"):
+                out.append(float(x))
+            return out
+
+        for args in (("decompw", "savings", "one", 0, "v1"),
+                     ("decomp", "cond-inhibition", "one", 1, "v1")):
+            a = flat(run_group(*args), [])
+            cur = sys.modules["models.decompose"]
+            sys.modules["models.decompose"] = ref_decompose
+            try:
+                b = flat(run_group(*args), [])
+            finally:
+                sys.modules["models.decompose"] = cur
+            self.assertEqual(len(a), len(b))
+            self.assertLessEqual(max(abs(u - v) for u, v in zip(a, b)), 1e-12, args)
+
+
 if __name__ == "__main__":
     unittest.main()

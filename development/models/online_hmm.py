@@ -57,9 +57,29 @@ class OnlineHMM:
         e = self._Ec
         if e is None:
             e = self._Ec = (self.non + .5) / (self.ntot[:, None] + 1.)
+            # log-emissions cached with the matrix (layout (K, m); excluded channels -> 0):
+            # one log per parameter update instead of one per likelihood call (exact: the
+            # likelihood is exp(sum_j log L), only the log is precomputed).
+            le = np.log(np.maximum(e, 1e-300))
+            lo = np.log(np.maximum(1. - e, 1e-300))
+            if self.exclude:
+                le[:, self.exclude] = 0.
+                lo[:, self.exclude] = 0.
+            self._lE, self._l1E = le, lo
         return e
 
-    def _lik(self, y, E):
+    def _loglik(self, y):
+        """log P(y | state) per state with the cached log-emissions (no exp, no log)."""
+        y = np.asarray(y) > .5
+        if self.exclude:
+            y = np.array(y)
+            y[self.exclude] = False
+        return np.where(y[None, :], self._lE, self._l1E).sum(1)
+
+    def _lik(self, y, E=None):
+        if E is None or E is self._Ec:
+            self.E()
+            return np.exp(self._loglik(y))
         y = np.asarray(y) > .5
         L = np.where(y[None, :], E, 1. - E)
         if self.exclude:
@@ -88,6 +108,8 @@ class OnlineHMM:
         # backward messages over the buffered transitions with current parameters
         beta = np.ones(self.K)
         Ts = [self.T(a) for _, a, _ in self.buf]
+        # one call per buffered transition, log-emissions from the cache: elementwise
+        # identical to the pre-[0] code (same reduction order over channels)
         liks = [self._lik(y, E) for _, _, y in self.buf]
         for k in range(len(self.buf) - 1, 0, -1):
             beta = Ts[k] @ (liks[k] * beta)

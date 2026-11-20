@@ -1,0 +1,17 @@
+{"dt":2.998,"k":["8e35839da78b",0,"factor-L4-P-C-N25|blocking|blocking"],"m":{"B":0.08588540820569054}}
+{"dt":3.055,"k":["8e35839da78b",0,"factor-L4-P-C-N25|blocking|control"],"m":{"B":0.8238908933629925}}
+{"dt":6.012,"k":["8e35839da78b",0,"factor-L4-P-C-N25|cond-inhibition|one"],"m":{"BX":0.9753369213470542,"BY":0.270711640631832}}
+{"dt":3.436,"k":["8e35839da78b",0,"factor-L4-P-C-N25|contingency|contingent"],"m":{"A":0.4518107492128294,"ctx":0.012036887919611028}}
+{"dt":3.493,"k":["8e35839da78b",0,"factor-L4-P-C-N25|contingency|degraded"],"m":{"A":0.43930558678644954,"ctx":0.5257815521580037}}
+{"dt":3.749,"k":["8e35839da78b",0,"factor-L4-P-C-N25|renewal-ABA|ABA"],"m":{"A":0.2546409511119895}}
+{"dt":3.74,"k":["8e35839da78b",0,"factor-L4-P-C-N25|renewal-ABA|ABB"],"m":{"A":0.01961047453726798}}
+{"dt":3.737,"k":["8e35839da78b",0,"factor-L4-P-C-N25|renewal-ABC|ABC"],"m":{"A":0.07527637054511485}}
+{"dt":3.859,"k":["8e35839da78b",0,"factor-L4-P-C-N25|renewal-ABC|ABB"],"m":{"A":0.01961047453726798}}
+{"dt":7.115,"k":["8e35839da78b",0,"factor-L4-P-C-N25|spontaneous-recovery|one"],"m":{"delayed":0.07974836412213204,"immediate":0.09957619029898007}}
+{"dt":6.198,"k":["8e35839da78b",0,"factor-L4-P-C-N25|spont-recovery-sessions|short"],"m":{"end":0.00536543412804669,"test":0.006696250864622406}}
+{"dt":9.577,"k":["8e35839da78b",0,"factor-L4-P-C-N25|spont-recovery-sessions|long"],"m":{"end":0.00536543412804669,"test":0.0037692456457547627}}
+{"dt":3.874,"k":["8e35839da78b",0,"factor-L4-P-C-N25|savings|one"],"m":{"acq2":0.7213345723491579,"reacq2":0.1509914350304484}}
+{"dt":3.934,"k":["8e35839da78b",0,"factor-L4-P-C-N25|reinstatement|reinst"],"m":{"A":0.12542669883838478}}
+{"dt":4.058,"k":["8e35839da78b",0,"factor-L4-P-C-N25|reinstatement|control"],"m":{"A":0.12286842650196793}}
+{"dt":2.664,"k":["8e35839da78b",0,"factor-L4-P-C-N25|pree|partial"],"m":{"A":0.3347420085505648}}
+{"dt":2.668,"k":["8e35839da78b",0,"factor-L4-P-C-N25|pree|continuous"],"m":{"A":0.11519393305715454}}
