@@ -133,6 +133,41 @@ class TestVectorizedEquivalence(unittest.TestCase):
             online_hmm.OnlineHMM.T = cached
         self.assertEqual(journal.dumps(y_vec), journal.dumps(y_ref))   # eps = 0
 
+    def test_vectorized_factor_matches_reference(self):
+        """eps-test [3.1]: vectorized models/factor.py vs the pre-vectorization copy
+        (tests/data/factor_ref.py), fixed seed: max |y_vec - y_ref| <= 1e-12."""
+        import importlib.util
+        from eval.phenomena import run_group
+        import models.factor as F
+        spec = importlib.util.spec_from_file_location(
+            "factor_ref", os.path.join(DEV, "tests", "data", "factor_ref.py"))
+        ref = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(ref)
+
+        def flat(x, out):
+            if isinstance(x, dict):
+                for k in sorted(x):
+                    flat(x[k], out)
+            elif isinstance(x, (list, tuple)):
+                for v in x:
+                    flat(v, out)
+            elif isinstance(x, (int, float)) or hasattr(x, "dtype"):
+                out.append(float(x))
+            return out
+
+        for args in (("factor-L4-P-C-N25", "savings", "one", 0, "v1"),
+                     ("factor-L4-P-O-N25", "cond-inhibition", "one", 1, "v1"),
+                     ("factor-V-N25", "spont-recovery-sessions", "long", 2, "v1")):
+            y_vec = flat(run_group(*args, trace=True), [])
+            vec = F.FactorModel
+            F.FactorModel = ref.FactorModel
+            try:
+                y_ref = flat(run_group(*args, trace=True), [])
+            finally:
+                F.FactorModel = vec
+            self.assertEqual(len(y_vec), len(y_ref))
+            self.assertLessEqual(max(abs(a - b) for a, b in zip(y_vec, y_ref)), 1e-12, args)
+
 
 if __name__ == "__main__":
     unittest.main()

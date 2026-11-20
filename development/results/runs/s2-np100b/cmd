@@ -1,0 +1,3 @@
+tree 39720d438606
+cpu 1
+python3 -m harness.staged t2 --agents factor-P-N100 factor-L4-P-V-N100 factor-L4-P-O-N100 --set v1 --rows cond-inhibition,savings,spont-recovery-sessions --stages 0-3 --procs 1 --journal j.jsonl

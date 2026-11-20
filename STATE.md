@@ -1,47 +1,45 @@
 # STATE (SSOT) — read first after any compaction
-Only .md in the active tree. History (decisions.md, AR reports, design notes): archive/research/ (unchanged, excluded from search via .ignore and from imports).
+Only .md in the active tree; history in archive/ (unchanged, excluded via .ignore, not importable).
 Env: `pip install --target /tmp/graph-agent-deps numpy`; run from development/ with `PYTHONPATH=/tmp/graph-agent-deps:.`.
 
 ## goal
-Agent = one generative model that reproduces the conditioning phenomena (T2) and transfers on T1 at cost ≤ 2.5.
-Open slice 3b-1 (`models/factor.py`) acceptance: GC d2/d3 within .02 of decompc; T2 v1 ≥ 9/10; cost ≤ 2.5. Not accepted (d3 −.043, T2 v1 7/10 best).
+One generative agent reproducing T2 conditioning phenomena and transferring on T1 at cost ≤ 2.5.
+Slice 3b-1 (`models/factor.py`) open: GC d2/d3 within .02 of decompc; T2 v1 ≥ 9/10; cost ≤ 2.5 (best: d3 −.043, T2 v1 7/10).
 
 ## decisions
-- Trials run only via `harness.bg start` (snapshot by h_tree, nice 19, taskset, private cwd) + one `harness.bg wait` per stage (≤170 s, ≤2000 B) — no polling, output bounded.
-- Journal = JSONL ⟨k=(h_tree,seed,task), m⟩, one O_APPEND write + fsync per record; resume skips k — kill -9 loses ≤ the in-flight task, never duplicates.
-- Stages S0={0} → S1={0..3} → S2={0..15}, seed-major; S0/S1 futility only, verdict only on S2 (95 % t-CI > 0, no correction) — gates never declare success, so α is not inflated.
-- c_s = (−2.0, −1.5) on z = mean/(σ_m/√n): β_loss(K=10 rows) = .042, null α̂ = .0252 vs .0252 ungated (harness/sim.py, 2·10⁵ sims).
-- σ_m = median inter-seed sd per row (factor*, lc-sub*, results/t2*.json), floor .02 — zero-σ rows otherwise give infinite z.
-- Snapshot covers .py/.json/.txt (sigma.json is read by the code); results/ never in the snapshot.
-- Probe = s=0 records of the main journal (same k), never recomputed; `--trace` writes `trace()` per probe into JOURNAL.trace.
-- Dev mode `factor…-N<k>` (particles); OnlineHMM.T cached until ntr changes — bitwise identical (ε = 0 test).
-- 18 dead-end modules and 22 .md → archive/ (git mv, contents untouched); active tree = code + harness + tests + STATE.md.
+- Runs only via `harness.bg start` (snapshot by h_tree, nice 19, taskset, private cwd) + one `bg wait` per stage (≤170 s, ≤2000 B).
+- Journal JSONL ⟨k=(h_tree,seed,task), m⟩, O_APPEND+fsync per record; resume skips k — kill -9: 0 dup, 0 loss.
+- Stages S0={0} → S1={0..3} → S2={0..15}; gates prune only; verdict on S2 (95 % t-CI > 0) — α not inflated.
+- Gate = per-row Bonferroni floor c = t₁₅⁻¹(.02/20) = −3.733 on z = mean/(σ_m/√n), any row ⇒ prune (old conjunctive c gave β_FWER .574).
+- σ_m native: factor-L4-P-O, 16 logged seeds (logs reproduced bitwise by this tree, harness/repro.py); harness/sigma.json.
+- factor.py vectorized: flat `take` gather of q1/q0, preallocated P, one scatter for all channels; ev layout kept (sum order) ⇒ bitwise = reference.
+- Dev fidelity for S0/S1 screening: agent suffix `-N25` (N_p' = 25); verdicts only at N_p = 200.
+- C = 6 configs with 16-seed logs (factor, -V, -L4, -P, -L4-P-V, -L4-P-O) × 3 rows logged for all (cond-inhibition, savings, spont-recovery-sessions).
 
 ## hypotheses open
-- τ_K noise floor unknown: seed-0 effects swing (spont-recovery N100 +.71 vs N200 +.12); measure τ_K(N200 seed a, N200 seed b) before trusting the dev ranking.
-- Non-particle cost dominates factor (T(N25)/T(N200) = .37): next speed lever is `_members` (33 % self-time: fancy-index q1/q0 (kk,J,S,N)), not N_p.
-- σ_m for factor-L4-P-C itself is borrowed from sibling agents (sigma.json); re-estimate from its own S1 runs.
-- 3b-1 candidates (AR-5): judge factor-L4-P-C on S2; IA REV; d3; 3b-2.
+- k_vec 1.56 < 1.8: remaining cost is the Decomposer/online-HMM process member (~30 %, N_p-independent) and ev/exp in `_members`; next: cache exp(ev) per regime, batch OnlineHMM updates.
+- τ_K^ceil = .20 on 3 rows × 2 seeds: C is near-tied on these rows; ranking C needs ≥ 8 seeds or all 10 rows.
+- 3b-1 next (AR-5): judge factor-L4-P-C on S2 with the new gate; IA REV; d3; 3b-2.
 
 ## metrics
-| item | value | n / basis | status |
+| item | value | basis | status |
 |---|---|---|---|
-| T(S0), factor-L4-P-C, T2 v1, 2 CPU | 125 s | 10 rows × seed 0 | O(1) min ✓ |
-| kill -9 + resume: dup / lost | 0 / 0, metrics bitwise = uninterrupted | tests/test_harness.py | ✓ |
-| working copy mutated during run | metrics bitwise equal | tests/test_harness.py | ✓ |
-| probe ≡ s=0 of main run | bitwise | tests/test_harness.py | ✓ |
-| null α̂ (gated) / α_nom / ε | .0252 / .025 / .001 (3 se) | 2·10⁵ sims | ✓ |
-| β_loss per row / per 10-row trial | .0043 / .042 at μ80 = .75σ | 2·10⁵ sims | ✓ |
-| profile top-3 self-time share | 55 % (_members 26, learn 17, ufunc.reduce 12) | savings, seed 0 | — |
-| N_p 25 / 50 / 100 / 200: T_task s | 4.7 / 5.0 / 7.8 / 12.9 | savings, seed 0 | — |
-| τ_K(dev, full) | .73 / .73 / .56 / 1 | C = 10 T2 v1 rows, seed 0 | — |
-| chosen front point (τ* = .7, k* = 2) | N_p' = 25, k = 2.73 | dev = futility/ranking only | ✓ |
-| ε-test cached T vs reference | max diff 0 (ε = 0) | factor-L4-P-C-N25, savings | ✓ |
-| active files / .md / .cache executables | 46 (was 165; N* = 50) / 1 / 0 | development/ excl. results, + STATE.md | ✓ |
-| per-stage context ΔL_ctx | ≤ 2000 B (bg wait cap) | harness/bg.py | ✓ |
-| polls | 0 | one wait per stage | ✓ |
+| ε-test vectorized vs reference factor.py | max diff 0 (≤1e-12) | S0: 17 tasks T2 v1 + 3 unit configs | ✓ |
+| k_vec = T_ref(200)/T_vec(200) | 1.56 (S0 T2 v1 wall 125→80 s); 1.40 (savings CPU 12.89→9.23 s) | factor-L4-P-C | ✗ (<1.8) |
+| `_members` share of T_step | 38 % → 25 % (1.5×) | cProfile savings | ✗ (<2.5×) |
+| unit tests from snapshot | 69 OK | unittest discover | ✓ |
+| native σ_m (factor-L4-P-O) | block .075, c-inh .304, cont .118, pree .098, rein .034, ren-ABA .059, ren-ABC .009, sav .092, srs .068, spont .191 | 16 seeds | ✓ 0 borrowed |
+| β_FWER (10 rows, all Δ=0) | .0189 Gauss+σ̂ error / .0020 σ known / .0010 bootstrap | 2·10⁵ sims, harness/fwer.json | ✓ ≤ .02 |
+| α_final per row | .0250 (gates prune only) | 2·10⁵ sims | ✓ ≤ α_nom |
+| τ_K^ceil (seeds {0,1} vs {2,3}, N_p 200) | .20 | C, 3 rows | — |
+| N_p 25 / 50 / 100 / 200: T_vec s | 4.08 / 4.47 / 6.27 / 9.23 | savings CPU, seed 0 | — |
+| k_total = T_ref(200)/T_vec(N_p) | 3.16 / 2.88 / 2.06 / 1.40 | T_ref 12.89 s | ✗ (<3.5 at N_p' = 25) |
+| τ_K(rank C at N_p, at 200), S1 | .60 / .60 / .73 / 1 (monotone) | 6 configs × 4 seeds × 3 rows | ✓ |
+| max per-row |Δy| vs 200 (S1 mean) | .39 / .45 / .30 / 0 | same | — |
+| N_p' = min{τ ≥ min(.85, τ^ceil−.05) = .15, monotone} | 25 | — | ✓ locked |
+| stage ≤180 s / waits per stage ≤1 | N100-b 368 s; 2 stages needed 2 waits | results/runs/s2-* | ✗ |
 
 ## next
-1. τ_K noise floor (2 seeds × N200 S0, one bg stage) → keep or raise N_p'.
-2. AR-5: `python3 -m harness.bg start ar5 -- python3 -m harness.staged t2 --agents factor-L4-P-C --set v1 --journal j.jsonl` (S0→S2 gated), then pair against decompc on T1 d2/d3.
-3. Vectorize `_members` gather with an ε-test like TestVectorizedEquivalence.
+1. Speed: cache exp(ev)/Z per regime; vectorize Decomposer/OnlineHMM across groups (ε-test against tests/data/factor_ref.py).
+2. Raise τ^ceil: C on all 10 rows (factor-L4-P-* only) × 8 seeds, then re-select N_p'.
+3. AR-5: `python3 -m harness.bg start ar5 -- python3 -m harness.staged t2 --agents factor-L4-P-C --set v1 --journal j.jsonl`.

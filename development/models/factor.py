@@ -164,24 +164,35 @@ class FactorModel:
         p[:, i2] = (n1[:, i2] + C_GLOB * prior) / tot[:, i2]
         return p
 
+    @staticmethod
+    def _flat3(q):
+        """(K, J, C, N) -> (K, J*C, N) view (never a copy: writes/reads must hit the table)."""
+        assert q.flags.c_contiguous
+        return q.reshape(q.shape[0], -1, q.shape[3])
+
     def _members(self, b, a, hist, kk, pp=None):
         """Regime-indexed member predictions P (kk, J, S+1, N) [sets + additive], their
         pooled-weight-free mixture parts and the place member's weight; plus keys."""
         U = self._keys(b, a, hist)
         cells = self._cells(U)
         pg = self._pooled(cells).astype(F32)                       # (J, S)
-        Jr = np.arange(self.J)[:, None]
-        n1 = self.q1[:kk, Jr, cells]                               # (kk, J, S, N)
-        n0 = self.q0[:kk, Jr, cells]
-        p = (n1 + C_REG * pg[None, :, :, None]) / (n1 + n0 + C_REG)
+        # batched gather of the regime counts: one flat take over (J*C) per table (exact copy)
+        J, C, N, S = self.J, self.q1.shape[2], self.N, self.S
+        fidx = (np.arange(J)[:, None] * C + cells).ravel()         # (J*S,)
+        n1 = np.take(self._flat3(self.q1)[:kk], fidx, axis=1)      # (kk, J*S, N)
+        n0 = np.take(self._flat3(self.q0)[:kk], fidx, axis=1)
+        M1 = S + 1 + (self.proc is not None)                       # sets + add [+ proc]
+        P = np.empty((kk, J, M1, N), F32)
+        ps = P[:, :, :S]                                           # sets, written in place
+        ps[...] = (n1 + C_REG * pg.reshape(1, J * S, 1)).reshape(kk, J, S, N)
+        n1 += n0
+        n1 += C_REG
+        ps /= n1.reshape(kk, J, S, N)
         v = np.concatenate([U, np.ones((self.J, 1))], 1)           # (J, d)
-        lin = np.clip(np.einsum("nkjd,jd->kjn", self.mu[:, :kk], v), .01, .99).astype(F32)
-        parts = [p, lin[:, :, None]]
+        P[:, :, S] = np.clip(np.einsum("nkjd,jd->kjn", self.mu[:, :kk], v), .01, .99)
         if self.proc is not None:
             pp = np.full(self.J, .5) if pp is None else pp
-            parts.append(np.broadcast_to(np.clip(pp, .001, .999).astype(F32)[None, :, None, None],
-                                         (kk, self.J, 1, self.N)))
-        P = np.concatenate(parts, 2)                               # (kk, J, M-1, N)
+            P[:, :, S + 1] = np.clip(pp, .001, .999).astype(F32)[None, :, None]
         ev = self.ev[:kk]
         E = np.exp(ev - ev.max(2, keepdims=True))                  # (kk, J, M, N)
         Z = E.sum(2)
@@ -457,9 +468,16 @@ class FactorModel:
             Pm = np.concatenate([Pz, plz.astype(F32)], 2)
         self.ev[zt, :, :, ar] += np.where(yb[None, :, None], np.log(Pm), np.log(1. - Pm))
         cells = mem["cells"]
-        for j in range(self.J):
-            tq = self.q1 if yb[j] else self.q0
-            tq[zt[None, :], j, cells[j][:, None], ar[None, :]] += 1.
+        # batched count update: indices (zt_n, j, cell_js, n) are distinct (cells of different
+        # sets are offset), so one fancy += over all (j, s, n) is exact
+        J, C = self.J, self.q1.shape[2]
+        for tq, sel in ((self.q1, yb), (self.q0, ~yb)):
+            js = np.nonzero(sel)[0]
+            if js.size:
+                fl = ((zt[None, None, :] * J + js[:, None, None]) * C
+                      + cells[js][:, :, None]) * self.N + ar[None, None, :]
+                assert tq.flags.c_contiguous
+                tq.reshape(-1)[fl.ravel()] += 1.
         Jr = np.arange(self.J)
         if not self.view:
             pv = (b > .5).astype(int)
@@ -568,8 +586,9 @@ class FactorModel:
             return
         u = (self.rng.random() + np.arange(self.N)) / self.N
         idx = np.minimum(np.searchsorted(np.cumsum(w), u), self.N - 1)
-        for nm in ("q1", "q0", "ev"):
-            setattr(self, nm, getattr(self, nm)[..., idx])
+        for nm in ("q1", "q0"):              # count tables: C order for flat take/scatter
+            setattr(self, nm, np.ascontiguousarray(getattr(self, nm)[..., idx]))
+        self.ev = self.ev[..., idx]          # layout kept: reductions over ev depend on it
         for nm in ("mu", "Sg", "hz", "mz", "npz", "used", "z", "hp", "mp", "usedp", "y", "tm1",
                    "tm0"):
             setattr(self, nm, getattr(self, nm)[idx].copy())

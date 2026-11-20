@@ -18,7 +18,7 @@ import time
 from harness import journal
 
 STAGES = ((0,), tuple(range(4)), tuple(range(16)))
-C_S = (-2.0, -1.5)          # futility thresholds; harness/sim.py: beta_loss(K=10) .042, null alpha .0252
+C_S = (-3.7328, -3.7328)    # per-row Bonferroni floor (t_15, beta/20): beta_FWER <= .02 over 10 rows (harness/fwer.py)
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -29,7 +29,7 @@ def _t975(df):
 
 def sigma_table():
     with open(os.path.join(HERE, "sigma.json")) as f:
-        return json.load(f)
+        return {k: v for k, v in json.load(f).items() if not k.startswith("_s")}
 
 
 # ----------------------------------------------------------------- T2 task family
