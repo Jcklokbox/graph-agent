@@ -36,16 +36,14 @@ C_GLOB = 1.          # concentration: pooled cell -> sub-configurations
 SWAP = np.log(3.)    # slot swap margin (v18)
 QBINS = np.array([.05, .2, .5, .8, .95])   # bins of the model prediction (conditional screening)
 F32 = np.float32
+CANONICAL = "factor-L4-P-C"    # M_factor: the one configuration used by every suite (SPEC-3b.2)
 
 
 class FactorModel:
     def __init__(self, n, A, v, seed=0, N=200, K=10, k=4, lags=(0,), own_lags=(0,),
-                 beta=1., alpha=1., noise=.25, s0=1., process=False, place="member", one_lag=False, cond=False, ctx_only=False):
+                 beta=1., alpha=1., noise=.25, s0=1., process=False, cond=False):
         self.n, self.A, self.v = n, A, v
-        self.ctx_only = ctx_only     # §9.2: the place (view) emits only persistent channels
         self.cond = cond             # r5 deep form: screen against the model's own prediction
-        self.one_lag = one_lag       # r5: one slot per source channel (a cue with one learned delay)
-        self.view = place == "view"  # r4: context inferred by a separate pathway (two views)
         self.proc = None
         if process:                  # F3: hidden processes (Decomposer groups, windows) as a member
             from models.decompose import Decomposer
@@ -65,12 +63,13 @@ class FactorModel:
         pairs = [s for s in self.sets if len(s) == 2]
         self._sa = np.array([single[s[0]] for s in pairs], int)
         self._sb = np.array([single[s[1]] for s in pairs], int)
-        self.M = self.S + 1 + (process is not False) + (not self.view)   # + add [+ proc] [+ place]
+        self.M = self.S + 2 + bool(process)                      # + add [+ proc] + place
         C = int(self.off[-1])
         # regime tables, layout (regime, channel, cell / member, particle)
         self.q1 = np.zeros((K, J, C, N), F32)
         self.q0 = np.zeros((K, J, C, N), F32)
         self.ev = np.zeros((K, J, self.M, N), F32)
+        self._E = None                           # exp(ev - max) cache, same layout as ev
         # pooled tables (particle-independent)
         self.g1 = np.zeros((J, C))
         self.g0 = np.zeros((J, C))
@@ -193,15 +192,12 @@ class FactorModel:
         if self.proc is not None:
             pp = np.full(self.J, .5) if pp is None else pp
             P[:, :, S + 1] = np.clip(pp, .001, .999).astype(F32)[None, :, None]
-        ev = self.ev[:kk]
-        E = np.exp(ev - ev.max(2, keepdims=True))                  # (kk, J, M, N)
+        if self._E is None:                    # cached exp(ev - max_m ev); updated in learn
+            self._E = np.exp(self.ev - self.ev.max(2, keepdims=True))
+        E = self._E[:kk]                                           # (kk, J, M, N)
         Z = E.sum(2)
-        if self.view:
-            rest = (E * P).sum(2) / Z
-            wpl = np.zeros_like(rest)
-        else:
-            rest = (E[:, :, :-1] * P).sum(2) / Z                   # (kk, J, N)
-            wpl = E[:, :, -1] / Z                                  # (kk, J, N)
+        rest = (E[:, :, :-1] * P).sum(2) / Z                       # (kk, J, N)
+        wpl = E[:, :, -1] / Z                                      # (kk, J, N)
         return dict(U=U, cells=cells, pg=pg, P=P, rest=rest, wpl=wpl, v=v)
 
     def _place_pred(self, b):
@@ -255,104 +251,6 @@ class FactorModel:
         wpl = mem["wpl"].transpose(2, 0, 1)
         return rest[:, None] + wpl[:, None] * pl[:, :, None, :]
 
-    # ------------------------------------------------------------ view mode
-    def _place_view(self, b):
-        """Place posterior given x_t (emission of x_t by the place's chains): (N, KP), L."""
-        pr = self._place_prior()
-        if not self.hist:
-            return pr, np.ones(self.N)
-        pl = self._place_pred(self.hist[-1])                       # P(x_t | x_{t-1}, y)
-        e = np.where((b > .5)[None, None, :], pl, 1. - pl)
-        if self.ctx_only:              # persistent channels: P(on -> on) > .7 with >= 5 onsets
-            on = self.f0[:, 1].sum(1)
-            pers = (on >= 5) & ((self.f0[:, 1, 1] + .5) / (on + 1.) > .7)
-            e = np.where(pers[None, None, :], e, 1.)
-        lik = np.prod(e, axis=2)
-        j = pr * lik
-        L = j.sum(1)
-        return j / L[:, None], L
-
-    def _regime_prior_q(self, kk, q, zd=None):
-        """P(z_t) given a place distribution q (N, KP) and a previous-regime distribution zd."""
-        N, K = self.N, self.K
-        ar = np.arange(N)
-        if not self.started:
-            pr = np.zeros((N, kk))
-            pr[:, 0] = 1.
-            return pr
-        if zd is None:
-            zd = np.zeros((N, kk))
-            zd[ar, self.z] = 1.
-        live = np.arange(K)[None, :] < self.used[:, None]
-        G = self.mz * live
-        rows = np.nonzero(self.used < K)[0]
-        G[rows, self.used[rows]] += self.alpha
-        G /= G.sum(1, keepdims=True)
-        Dr = self.npz + self.beta * G[:, None, :]
-        Dr = (Dr / Dr.sum(2, keepdims=True))[:, :, :kk]
-        pr = np.einsum("np,npk->nk", q, Dr)
-        stay = q[ar, self.y][:, None]
-        h = self.hz[:, None]
-        pr += stay * ((1. - h) * zd - (1. - h) * Dr[ar, self.y])
-        return pr
-
-    def _predict_view(self, x, a, hypothetical):
-        b = self._bits(x)
-        kk = min(self.K, int(self.used.max()) + 1)
-        w = np.exp(self.logw - self.logw.max())
-        pp = None
-        if self.proc is not None:
-            pp = (self.proc.peek_all(x, a) if hypothetical else self.proc.predict(x, a))[self.ch]
-        zd = None
-        if hypothetical and self.hist:                 # the transition prev -> x as evidence
-            prev = self.hist[-1]
-            mem0 = self._members(prev, 0, self.hist[:-1], kk, self._pp)
-            p0 = mem0["rest"].transpose(2, 0, 1)                   # (N, kk, J)
-            lik0 = np.prod(np.where((b > .5)[None, None, :], p0, 1. - p0), axis=2)
-            qs = np.zeros((self.N, self.KP))
-            qs[np.arange(self.N), self.y] = 1.
-            zd = self._regime_prior_q(kk, qs) * lik0
-            Lz = zd.sum(1)
-            w = w * Lz
-            zd = zd / Lz[:, None]
-        q, Lp = self._place_view(b)
-        pz = self._regime_prior_q(kk, q, zd)                        # (N, kk)
-        mem = self._members(b, a, self.hist, kk, pp)
-        pu = mem["rest"].transpose(2, 0, 1)                        # (N, kk, J)
-        jw = (w * Lp)[:, None] * pz
-        out = np.full(self.n, .5)
-        out[self.ch] = np.einsum("nk,nkj->j", jw, pu) / jw.sum()
-        return out, mem
-
-    def _learn_view(self, x, a, y, mem):
-        N, ar = self.N, np.arange(self.N)
-        b, bn = self._bits(x), self._bits(y)
-        yb = bn > .5
-        kk = mem["rest"].shape[0]
-        q, Lp = self._place_view(b)
-        cdf = np.cumsum(q, 1)
-        yt = np.minimum((cdf < self.rng.random(N)[:, None] * cdf[:, -1:]).sum(1), self.KP - 1)
-        if self.hist:                                  # place chains learn x_{t-1} -> x_t
-            Jr = np.arange(self.J)
-            pv = (self.hist[-1] > .5).astype(int)
-            xe = b > .5
-            self.tm1[ar[:, None], yt[:, None], Jr[None, :], pv[None, :]] += xe
-            self.tm0[ar[:, None], yt[:, None], Jr[None, :], pv[None, :]] += ~xe
-        qs = np.zeros_like(q)
-        qs[ar, yt] = 1.
-        pz = self._regime_prior_q(kk, qs)
-        pu = mem["rest"].transpose(2, 0, 1)
-        if self.cond:                  # the model's prediction of this transition (screening)
-            ww = np.exp(self.logw - self.logw.max())[:, None] * pz
-            self._q = np.einsum("nk,nkj->j", ww, pu) / ww.sum()
-        lik = np.prod(np.where(yb[None, None, :], pu, 1. - pu), axis=2)   # (N, kk)
-        joint = pz * lik
-        tot = joint.sum(1)
-        self.logw += np.log(Lp) + np.log(tot)
-        cdf = np.cumsum(joint / tot[:, None], 1)
-        zt = np.minimum((cdf < self.rng.random(N)[:, None]).sum(1), kk - 1)
-        return yt, zt
-
     # --------------------------------------------------------------- introspection
     def trace(self):
         """Deterministic summary of the posterior state (function of code and seed only)."""
@@ -380,12 +278,6 @@ class FactorModel:
         key = (b.tobytes(), a, self.t, hypothetical)
         if self._memo is not None and key in self._memo:
             return self._memo[key][0]
-        if self.view:
-            out, mem = self._predict_view(x, a, hypothetical)
-            if not hypothetical:
-                self._memo = self._memo or {}
-                self._memo[key] = (out, mem)
-            return out
         kk = min(self.K, int(self.used.max()) + 1)
         w = np.exp(self.logw - self.logw.max())
         pp = None
@@ -418,6 +310,7 @@ class FactorModel:
         yb = bn > .5
         kk = min(self.K, int(self.used.max()) + 1)
         key = (b.tobytes(), a, self.t, False)
+        pp = None
         if self._memo is not None and key in self._memo \
                 and self._memo[key][1]["rest"].shape[0] == kk:
             mem = self._memo[key][1]
@@ -426,25 +319,23 @@ class FactorModel:
             mem = self._members(b, a, self.hist, kk, pp)
         if self.proc is not None:
             self._pp = mem["P"][0, :, -1, 0].astype(float)
-            self.proc.predict(x, a)          # the chosen action's prior (a planner may have
+            if pp is None:                   # (just predicted (x, a) above: same state, skip)
+                self.proc.predict(x, a)      # the chosen action's prior (a planner may have
             self.proc.learn(x, a, y)         # evaluated other actions last)
         pl = self._place_pred(b)                                   # (N, KP, J)
-        if self.view:
-            yt, zt = self._learn_view(x, a, y, mem)
-        else:
-            pj = self._joint(mem, pl, kk)
-            lik = np.prod(np.where(yb[None, None, None, :], pj, 1. - pj), axis=3)   # (N, KP, kk)
-            prior = self._place_prior()[:, :, None] * self._regime_prior(kk)
-            if self.cond:
-                ww = np.exp(self.logw - self.logw.max())[:, None, None] * prior
-                self._q = np.einsum("npk,npkj->j", ww, pj) / ww.sum()
-            joint = prior * lik
-            tot = joint.sum((1, 2))
-            self.logw += np.log(tot)
-            flat = (joint / tot[:, None, None]).reshape(N, -1)
-            cdf = np.cumsum(flat, 1)
-            idx = np.minimum((cdf < self.rng.random(N)[:, None]).sum(1), flat.shape[1] - 1)
-            yt, zt = np.divmod(idx, kk)
+        pj = self._joint(mem, pl, kk)
+        lik = np.prod(np.where(yb[None, None, None, :], pj, 1. - pj), axis=3)   # (N, KP, kk)
+        prior = self._place_prior()[:, :, None] * self._regime_prior(kk)
+        if self.cond:
+            ww = np.exp(self.logw - self.logw.max())[:, None, None] * prior
+            self._q = np.einsum("npk,npkj->j", ww, pj) / ww.sum()
+        joint = prior * lik
+        tot = joint.sum((1, 2))
+        self.logw += np.log(tot)
+        flat = (joint / tot[:, None, None]).reshape(N, -1)
+        cdf = np.cumsum(flat, 1)
+        idx = np.minimum((cdf < self.rng.random(N)[:, None]).sum(1), flat.shape[1] - 1)
+        yt, zt = np.divmod(idx, kk)
         # factor bookkeeping
         if self.started:
             moved = yt != self.y
@@ -461,12 +352,12 @@ class FactorModel:
         self.started = True
         # member evidence in the sampled regime (place member: the sampled place's chain)
         Pz = np.clip(mem["P"][zt, :, :, ar], 1e-6, 1. - 1e-6)    # (N, J, M-1)
-        if self.view:
-            Pm = Pz
-        else:
-            plz = np.clip(pl[ar, yt], 1e-6, 1. - 1e-6)[:, :, None]   # (N, J, 1)
-            Pm = np.concatenate([Pz, plz.astype(F32)], 2)
+        plz = np.clip(pl[ar, yt], 1e-6, 1. - 1e-6)[:, :, None]       # (N, J, 1)
+        Pm = np.concatenate([Pz, plz.astype(F32)], 2)
         self.ev[zt, :, :, ar] += np.where(yb[None, :, None], np.log(Pm), np.log(1. - Pm))
+        if self._E is not None:                # only the sampled regime of each particle moved
+            evz = self.ev[zt, :, :, ar]                            # (N, J, M)
+            self._E[zt, :, :, ar] = np.exp(evz - evz.max(2, keepdims=True))
         cells = mem["cells"]
         # batched count update: indices (zt_n, j, cell_js, n) are distinct (cells of different
         # sets are offset), so one fancy += over all (j, s, n) is exact
@@ -479,17 +370,17 @@ class FactorModel:
                 assert tq.flags.c_contiguous
                 tq.reshape(-1)[fl.ravel()] += 1.
         Jr = np.arange(self.J)
-        if not self.view:
-            pv = (b > .5).astype(int)
-            self.tm1[ar[:, None], yt[:, None], Jr[None, :], pv[None, :]] += yb
-            self.tm0[ar[:, None], yt[:, None], Jr[None, :], pv[None, :]] += ~yb
+        pv = (b > .5).astype(int)
+        self.tm1[ar[:, None], yt[:, None], Jr[None, :], pv[None, :]] += yb
+        self.tm0[ar[:, None], yt[:, None], Jr[None, :], pv[None, :]] += ~yb
         v = mem["v"]
         Sz = self.Sg[ar, zt]
         var = np.einsum("njab,ja,jb->nj", Sz, v, v) + self.noise
         g = np.einsum("njab,jb->nja", Sz, v) / var[..., None]
         err = yb[None, :].astype(float) - np.einsum("nja,ja->nj", self.mu[ar, zt], v)
         self.mu[ar, zt] += g * err[..., None]
-        self.Sg[ar, zt] = Sz - g[..., :, None] * g[..., None, :] * var[..., None, None]
+        Sz -= g[..., :, None] * g[..., None, :] * var[..., None, None]   # Sz is a copy (fancy)
+        self.Sg[ar, zt] = Sz
         # pooled level (same for every particle)
         pg = np.clip(self._pooled(cells), 1e-6, 1. - 1e-6)
         self.evg += np.where(yb[:, None], np.log(pg), np.log(1. - pg))
@@ -543,12 +434,6 @@ class FactorModel:
             for s in sl:
                 if s is not None:
                     e[s[0], self.lags.index(s[1])] = -np.inf
-            if self.one_lag:          # another lag of a slotted source must beat that slot
-                for s in sl:
-                    if s is not None:
-                        cur = self.sev[s[0], self.lags.index(s[1]), j]
-                        row = e[s[0]]
-                        row[row <= cur + SWAP] = -np.inf
             bi, bl = divmod(int(np.argmax(e)), L)
             best = e[bi, bl]
             if not np.isfinite(best) or best <= (SWAP if self.cond else 0.):
@@ -556,10 +441,6 @@ class FactorModel:
             vals = [self.sev[s[0], self.lags.index(s[1]), j] if s is not None else -np.inf
                     for s in sl]
             p = int(np.argmin(vals))
-            if self.one_lag:          # the same source competes only with its own slot (lag change)
-                same = [q for q, s in enumerate(sl) if s is not None and s[0] == bi]
-                if same:
-                    p = same[0]
             if sl[p] is None or best > vals[p] + SWAP:
                 sl[p] = (bi, self.lags[bl])
                 self._reset_pos(j, base + p)
@@ -573,6 +454,7 @@ class FactorModel:
                 self.g1[j, self.off[i]:self.off[i + 1]] = 0.
                 self.g0[j, self.off[i]:self.off[i + 1]] = 0.
                 self.ev[:, j, i] = self.ev[:, j, sub]
+                self._E = None
                 self.evg[j, i] = self.evg[j, sub]
         self.mu[:, :, j, pos] = 0.
         self.Sg[:, :, j, pos, :] = 0.
@@ -589,6 +471,8 @@ class FactorModel:
         for nm in ("q1", "q0"):              # count tables: C order for flat take/scatter
             setattr(self, nm, np.ascontiguousarray(getattr(self, nm)[..., idx]))
         self.ev = self.ev[..., idx]          # layout kept: reductions over ev depend on it
+        if self._E is not None:
+            self._E = self._E[..., idx]
         for nm in ("mu", "Sg", "hz", "mz", "npz", "used", "z", "hp", "mp", "usedp", "y", "tm1",
                    "tm0"):
             setattr(self, nm, getattr(self, nm)[idx].copy())

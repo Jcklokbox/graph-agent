@@ -43,8 +43,54 @@ def t2_tasks(agents, wset, rows):
 def t2_job(task, seed, wset, trace):
     from eval.phenomena import run_group
     a, r, g = task.split("|")
+    t = time.monotonic()
     out = run_group(a, r, g, seed, wset, trace=trace)
-    return task, seed, out[4], (out[5] if trace else None)
+    return task, seed, out[4], (out[5] if trace else None), round(time.monotonic() - t, 3)
+
+
+# ----------------------------------------------------------------- chunking (stage <= 180 s)
+BUDGET, T_MAX = 150., 180.     # planned CPU-seconds / procs per invocation; hard wall limit
+
+
+def t_default(task):
+    """Conservative prior cost (s) of one task: factor cost ~ a + b N_p (Σ.2 logs), x1.6."""
+    a = task.split("|")[0]
+    if not a.startswith("factor"):
+        return 2.
+    n = next((int(p[1:]) for p in a.split("-")[1:] if p[:1] == "N" and p[1:].isdigit()), 200)
+    return 1.6 * (2.0 + .04 * n)
+
+
+def t_table(runs_dir):
+    """q90 of logged durations per task over all journals (needs >= 3 samples)."""
+    import glob
+    by = {}
+    for p in glob.glob(os.path.join(runs_dir, "*", "*.jsonl")):
+        for r in journal.load(p)[0].values():
+            if "dt" in r:
+                by.setdefault(r["k"][2], []).append(r["dt"])
+    q90 = lambda v: sorted(v)[min(len(v) - 1, int(.9 * len(v)))]
+    out = {t: q90(v) for t, v in by.items() if len(v) >= 3}
+    ag = {}
+    for t, v in by.items():                   # fallback: same agent over all rows/groups
+        ag.setdefault(t.split("|")[0], []).extend(v)
+    out.update({"agent:" + a: q90(v) for a, v in ag.items() if len(v) >= 3})
+    return out
+
+
+def t_est(task, table):
+    return table.get(task, table.get("agent:" + task.split("|")[0], t_default(task)))
+
+
+def plan(todo, procs, table, budget=BUDGET):
+    """Longest prefix of todo (seed-major order kept) with sum t_hat / procs <= budget."""
+    tot, k = 0., 0
+    for t, _ in todo:
+        tot += t_est(t, table) / procs
+        if tot > budget and k > 0:
+            break
+        k += 1
+    return todo[:k]
 
 
 def t2_metrics(recs, wset, h):
@@ -70,27 +116,46 @@ def _pool(procs):
     return mp.get_context("fork").Pool(procs) if procs > 1 else None
 
 
+T_START = time.monotonic()
+
+
 def run(kind, agents, wset, rows, jpath, stages=STAGES, procs=2, trace=False, h=None,
-        log=print):
+        log=print, screen=False):
     h = h or os.environ.get("PG_TREE") or __import__("harness.snap", fromlist=["x"]).tree_hash(
         os.path.dirname(HERE))
     assert kind == "t2"
     tasks = t2_tasks(agents, wset, rows)
     sig = sigma_table()
+    t_hat = t_table(os.environ.get("PG_RUNS", os.path.join(os.path.dirname(HERE), "results",
+                                                         "runs")))
     tpath = jpath + ".trace"
     pool = _pool(procs)
     verdict = None
     try:
         for si, seeds in enumerate(stages):
+            if screen and si == len(stages) - 1:    # dev screening: futility stages only
+                verdict = ("SCREEN-PASS", si - 1, [], rows_out)
+                break
             recs, dup, bad = journal.load(jpath)
             todo = [(t, s) for s in seeds for t in tasks if (h, s, t) not in recs]
             t0 = time.monotonic()
-            args = [(t, s, wset, trace and s == 0) for t, s in todo]
+            chunk = plan(todo, procs or 1, t_hat, BUDGET - (t0 - T_START))
+            args = [(t, s, wset, trace and s == 0) for t, s in chunk]
             it = pool.imap(_star, args, chunksize=1) if pool else map(_star, args)
-            for task, s, m, tr in it:           # imap keeps seed-major order of records
-                journal.append(jpath, {"k": [h, s, task], "m": m})
+            for task, s, m, tr, dt in it:       # imap keeps seed-major order of records
+                journal.append(jpath, {"k": [h, s, task], "m": m, "dt": dt})
                 if tr is not None:
                     journal.append(tpath, {"k": [h, s, task], "trace": tr})
+                if time.monotonic() - T_START > T_MAX:
+                    if pool:
+                        pool.terminate()
+                        pool = None
+                    raise SystemExit(f"FATAL: stage > {T_MAX:.0f} s (t_hat too optimistic)")
+            if len(chunk) < len(todo):
+                log(f"PARTIAL stage S{si}: {len(chunk)}/{len(todo)} done "
+                    f"{time.monotonic() - t0:.0f}s; rerun the same command to resume")
+                verdict = ("PARTIAL", si, len(todo) - len(chunk), [])
+                break
             recs, dup, bad = journal.load(jpath)
             met = t2_metrics(recs, wset, h)
             n = len(seeds)
@@ -132,6 +197,14 @@ def _star(a):
 
 def report(verdict, out=print):
     kind, si = verdict[0], verdict[1]
+    if kind == "SCREEN-PASS":
+        out(f"SCREEN-PASS through S{si} (no row z <= {C_S[0]}); verdict needs S2 at N_p = 200")
+        for key, n, mu, z, v in verdict[3]:
+            out(f"  {key[0]:18s} {key[1]:24s} n={n} mean={mu:+.3f} z={z:+.2f}")
+        return
+    if kind == "PARTIAL":
+        out(f"PARTIAL at S{si}: {verdict[2]} tasks left (exit 3; rerun to resume)")
+        return
     if kind == "FUTILE":
         out(f"FUTILE at S{si} (c={C_S[si]}): " + ", ".join(f"{a}:{r}" for a, r in verdict[2]))
         for key, n, mu, z, v in verdict[3]:
@@ -141,7 +214,8 @@ def report(verdict, out=print):
     for key, n, mu, lo, hi, vd in verdict[2]:
         yes[key[0]] = yes.get(key[0], 0) + (vd == "yes")
         out(f"  {key[0]:16s} {key[1]:24s} n={n} {mu:+.3f} [{lo:+.3f},{hi:+.3f}] {vd}")
-    out("FINAL " + " ".join(f"{a}={k}/{sum(1 for x in verdict[2] if x[0][0] == a)}"
+    out(("FINAL " if si == len(STAGES) - 1 or max(x[1] for x in verdict[2]) >= 16
+         else "PROVISIONAL (n<16, not a verdict) ") + " ".join(f"{a}={k}/{sum(1 for x in verdict[2] if x[0][0] == a)}"
                             for a, k in yes.items()))
 
 
@@ -165,9 +239,10 @@ def main(argv):
         stages = tuple(stages)
     rows = opt("--rows").split(",") if opt("--rows") else None
     v = run(argv[0], agents, opt("--set", "v1"), rows, opt("--journal"), stages,
-            int(opt("--procs", "2")), "--trace" in argv, log=lambda s: print(s, flush=True))
+            int(opt("--procs", "2")), "--trace" in argv, log=lambda s: print(s, flush=True),
+            screen="--screen" in argv)
     report(v, out=lambda s: print(s, flush=True))
-    return 0
+    return 3 if v[0] == "PARTIAL" else 0
 
 
 if __name__ == "__main__":

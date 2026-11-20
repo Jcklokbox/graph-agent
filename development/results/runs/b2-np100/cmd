@@ -1,0 +1,3 @@
+tree d3b9dc578f7f
+cpu 0,1
+python3 -m harness.staged t2 --agents factor-N25 factor-L4-P-V-N25 factor-L4-P-O-N25 factor-N50 factor-L4-P-V-N50 factor-L4-P-O-N50 factor-N100 factor-L4-P-V-N100 factor-L4-P-O-N100 --set v1 --rows blocking,reinstatement,renewal-ABA --stages 0-3 --procs 2 --journal /home/user/graph-agent/development/results/runs/b2-np25/j.jsonl

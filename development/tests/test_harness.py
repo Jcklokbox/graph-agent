@@ -156,8 +156,8 @@ class TestVectorizedEquivalence(unittest.TestCase):
             return out
 
         for args in (("factor-L4-P-C-N25", "savings", "one", 0, "v1"),
-                     ("factor-L4-P-O-N25", "cond-inhibition", "one", 1, "v1"),
-                     ("factor-V-N25", "spont-recovery-sessions", "long", 2, "v1")):
+                     ("factor-L4-N25", "cond-inhibition", "one", 1, "v1"),
+                     ("factor-P-N25", "spont-recovery-sessions", "long", 2, "v1")):
             y_vec = flat(run_group(*args, trace=True), [])
             vec = F.FactorModel
             F.FactorModel = ref.FactorModel

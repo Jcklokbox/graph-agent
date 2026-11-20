@@ -33,6 +33,7 @@ class OnlineHMM:
         self.decay, self.alpha, self.sticky, self.shrink = decay, alpha, sticky, shrink
         self.ntr = np.zeros((n_actions, K, K))
         self._eye = sticky * np.eye(K)
+        self._Ec = None        # E() cache
         self._Tc = {}          # T(a) cache; cleared whenever ntr changes (only in _learn_oldest)
         self.non = rng.random((K, n_channels)) * .5 + .25      # symmetry breaking
         self.ntot = np.ones(K)
@@ -52,7 +53,11 @@ class OnlineHMM:
         return t
 
     def E(self):
-        return (self.non + .5) / (self.ntot[:, None] + 1.)
+        """Emission matrix (read-only, cached until non/ntot change in _learn_oldest)."""
+        e = self._Ec
+        if e is None:
+            e = self._Ec = (self.non + .5) / (self.ntot[:, None] + 1.)
+        return e
 
     def _lik(self, y, E):
         y = np.asarray(y) > .5
@@ -99,6 +104,7 @@ class OnlineHMM:
         self._Tc.clear()
         self.non += g[:, None] * y[None, :]
         self.ntot += g
+        self._Ec = None
 
 
 class OnlineHMMPredictor:
