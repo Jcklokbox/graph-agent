@@ -216,6 +216,7 @@ def provisional_values(f,x,uniforms,optimistic=True,*, root_explore=True, contin
         atoms0=atoms
     r,p=r[0],p[0]
     root_updated=None
+    old_root=r
     if hasattr(head,'refine_root') and (head.slots>=0).any():
         r,p,atoms0,root_updated=head.refine_root(p,atoms0,rule,input0,seen_phase)
     incumbent=r.copy()
@@ -321,5 +322,8 @@ def provisional_values(f,x,uniforms,optimistic=True,*, root_explore=True, contin
                 peak=values[legal[states]].max() if legal[states].any() else values.max()
                 scores[a]+=(peak-scores[a])/(2.+head.trans_total[a,code])
     if information:
-        scores+=head.discovery_value(scores,trans[:,code,:],rule,input0,seen_phase)
+        if root_updated is None:
+            scores+=head.discovery_value(scores,trans[:,code,:],rule,input0,seen_phase)
+        else:
+            scores+=head.discovery_value(scores,trans[:,code,:],rule,input0,seen_phase,root_effect=r-old_root)
     return scores

@@ -55,6 +55,8 @@ def posterior_option(q, reach, whole, part, amounts, centers, log_odds, *, whole
 class RepeatableInformation:
     """Only the finite current cue bank supplies repeated-test proposals."""
     information_mode='overlay'
+    restrict_info_parent=False
+    consistent_info_base=False
 
     def __init__(self,J,A,lag):
         super().__init__(J,A,lag)
@@ -73,24 +75,26 @@ class RepeatableInformation:
             freq=(self.onset_total[j]+.5)/(1.+self.total)
             if bf[m]>np.log1p(self.J):
                 selected=int(x[m]); freq*=p[m] if selected else 1.-p[m]
-                yield self.ctx_atoms[:,d,0,m,selected], self.ctx_amount[:,d,0,m,selected], freq, True
+                yield self.ctx_atoms[:,d,0,m,selected], self.ctx_amount[:,d,0,m,selected], freq, True, int(j)
             else:
-                yield self.ctx_atoms[:,d,0,j,1], self.ctx_amount[:,d,0,j,1], freq, False
+                yield self.ctx_atoms[:,d,0,j,1], self.ctx_amount[:,d,0,j,1], freq, False, int(j)
 
-    def discovery_value(self,q,operator,rule,x,phase):
+    def discovery_value(self,q,operator,rule,x,phase,*,root_effect=None):
         # Beta(1, 1) one-step regime hazard: E[(1-h)^k | s unchanged steps]
         # = (s+1)/(s+1+k). Truncate to the bounded local replay horizon.
         scale=1.+self._mode_steps
         horizon=float(np.sum(scale/(scale+self.info_age)))
         out=np.zeros(self.A)
-        for counts,amounts,freq,paired in self._information_features(x,phase):
+        for counts,amounts,freq,paired,j in self._information_features(x,phase):
             for c in np.flatnonzero(self.control_mass>0.):
-                if rule[1][c].any() and not paired:
-                    continue
+                if rule[1][c].any():
+                    if not paired or (self.restrict_info_parent and not ((rule[0][c]==j)&rule[1][c]).any()):
+                        continue
                 reach=operator[:,c]
                 if np.ptp(reach)<1e-12:
                     continue
-                opt=posterior_option(q,reach,self.type_count[c],counts[c],amounts[c],
+                baseline=q if not self.consistent_info_base or root_effect is None else q-reach*root_effect[c]
+                opt=posterior_option(baseline,reach,self.type_count[c],counts[c],amounts[c],
                                      self.center,-np.log(len(self.anchors)),whole_amounts=self.type_sum[c])
                 # Reaching the same c is what gathers the evidence. Information
                 # available under all actions cannot by itself drive taking risk.
@@ -109,7 +113,7 @@ class SoftEventInformation(RepeatableInformation):
         paired_required=self.scoped_pair_only
         known=rule[1].any(1)
         prior=1./self.B; log_odds=-np.log(len(self.anchors))
-        for counts, amounts, _, paired in self._information_features(x,phase):
+        for counts, amounts, _, paired, _ in self._information_features(x,phase):
             if paired_required and not paired:
                 continue
             for c in np.flatnonzero((counts.sum(1)>0.)&~known):

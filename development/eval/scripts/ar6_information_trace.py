@@ -26,7 +26,7 @@ def run(variant, seed, enabled, steps):
                         value=posterior_option(q,op[:,c],head.type_count[c],n[c],a[c],head.center,
                           -np.log(len(head.anchors)),whole_amounts=head.type_sum[c]))
                     for c in np.flatnonzero(head.control_mass>0.)])
-            for n,a,fr,paired in head._information_features(inp,phase)] if x[3] and x[1] else None
+            for n,a,fr,paired,_ in head._information_features(inp,phase)] if x[3] and x[1] else None
         return bonus if enabled else np.zeros_like(q)
     head.discovery_value=discover
     def predict(x,u,theta=None):
