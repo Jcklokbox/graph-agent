@@ -41,7 +41,7 @@ def build(v,seed,n,calibration=0,period=5):
     raise ValueError('tape has insufficient reachable matched cue windows')
 
 
-def run(v,seed,arm,table,period=5):
+def run(v,seed,arm,table,period=5,diagnose=None):
     _,_,eb,bb=SPLITS['dev'];env=timed_env(v,eb+seed,period);x=env.reset()
     agent=agent_class(load('v58'))(v.n_inputs,v.n_actions,11,seed=bb+seed);f=agent.factor;h=f.reward
     pos,neg,probe,cal=table;wp=dict(probe);moves=dict(cal)
@@ -70,6 +70,7 @@ def run(v,seed,arm,table,period=5):
               left=int(c),right=right,slots=h.slots.tolist(),parent=rule[0][c][rule[1][c]].tolist(),
               splits=[dict(j=int(j),m=int(m),lag=int(l),n=h.ctx_n[c,d,l,m].tolist(),u=h.ctx_s[c,d,l,m].tolist())
                       for j,m,l,s,g,d in pairs if s[c]]))
+            if diagnose is not None:results[-1]['structure']=diagnose(h,c)
         a=moves.get(t,1);y,r,*_=env.step(a)
         if t in cal:prefix_r.append(float(r))
         if t in pos:events['positive' if r==1. else 'invalid']+=1
