@@ -1,9 +1,7 @@
 """Immutable code snapshot keyed by the content hash of development/ (h_tree)."""
 import hashlib
-from importlib.metadata import version
 import json
 import os
-import platform
 import shutil
 import stat
 
@@ -52,9 +50,3 @@ def snapshot(root):
 def program_digest(program):
     """Digest a registered stage program using the original JSON representation."""
     return hashlib.sha256(json.dumps(program, sort_keys=True).encode()).hexdigest()
-
-
-def dependencies():
-    """Record interpreter and numerical package versions used by a freeze."""
-    return dict(python=platform.python_version(),
-                **{name: version(name) for name in ('numpy', 'numba', 'llvmlite')})
