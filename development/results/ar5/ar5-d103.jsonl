@@ -1,0 +1,4 @@
+{"k":["a176f4eed6de",1,"v45|DEV|canc-noise3"],"m":{"brain":0.52,"late_shocks":0.04,"oracle":0.54,"sec":34.08558773994446,"shocks":0.09833333333333333,"stay":0.5}}
+{"k":["a176f4eed6de",1,"v45|DEV|dist"],"m":{"brain":0.5725,"late_shocks":0.0,"oracle":0.5717500000000001,"sec":10.972598314285278,"shocks":0.0075,"stay":0.5}}
+{"k":["a176f4eed6de",1,"v45|DEV|dist-delay3"],"m":{"brain":0.57225,"late_shocks":0.0,"oracle":0.57425,"sec":26.857055187225342,"shocks":0.01125,"stay":0.5}}
+{"k":["a176f4eed6de",1,"v45|DEV|aut-fooddelay3-noise1"],"m":{"brain":0.545,"late_shocks":0.0,"oracle":0.575,"sec":15.301440238952637,"shocks":0.021666666666666667,"stay":0.5}}

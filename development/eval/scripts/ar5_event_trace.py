@@ -29,11 +29,17 @@ def main():
         x=y
     data=dict(rewards=dict(reward),examples=examples,roles=changes,eg=head.evidence.tolist(),
               transitions=head.trans.tolist() if head.k<=3 else head.trans[:,:8,:8].tolist(),
-              visits=head.control_mass.tolist(),trials=[[list(k),n] for k,n in sorted(trials.items())])
+              visits=head.control_mass.tolist(),switches=int(getattr(head,'switches',0)),trials=[[list(k),n] for k,n in sorted(trials.items())])
     if hasattr(head,'evidence_type'):
         idx=np.argsort(-head.evidence_type)[:,:6]
         data.update(top_features=[list(zip(j.tolist(),s.tolist())) for j,s in
                     zip(idx,np.take_along_axis(head.evidence_type,idx,1))],type_count=head.type_count.tolist())
+    if hasattr(head,'anchors'):
+        ctx=np.argsort(-head.assoc,axis=1)[:,:4]
+        data.update(anchors=head.anchors.tolist(),moderators=[
+            [int(j),[int(k) for k in mods],[(int(k),float(head.assoc[d,k]),
+                 head.ctx_n[:,d,:,k].sum(0).tolist(),head.ctx_s[:,d,:,k].sum(0).tolist()) for k in mods]]
+            for d,(j,mods) in enumerate(zip(head.anchors,ctx))])
     append(a.out,dict(k=[os.environ['PG_TREE'],a.seed,f'{a.model}|{a.variant}|{a.steps}'],m=data))
 
 

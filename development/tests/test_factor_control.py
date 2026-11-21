@@ -159,3 +159,23 @@ for name in ('v21','v22','v23','v28','v37','v38'):
         self.assertGreater(h.trans[0,0,1],h.trans[0,0,0])
         self.assertEqual(h.type_count[1,15],0.)
         self.assertEqual(h.archive_mode['type_count'][1,15],240.)
+
+    def test_signed_context_uses_observed_real_reward_atoms(self):
+        from agents.v44 import SparseSignedReward
+        h=SparseSignedReward(4,2,1); h.slots[0]=0
+        h.anchors[0]=1;h.context_t=80;h.context_x[2]=11
+        h.anchor_n[0]=20;h.pair_on[0,2]=10.;h.assoc[0,2]=15.
+        h.evidence_type[1,1]=9.
+        h.ctx_n[1,0,0,2]=[10.,10.];h.ctx_s[1,0,0,2]=[8.,2.]
+        for cfg,y in enumerate((.8,.2)):
+            r=int(y*h.B);h.ctx_atoms[1,0,0,2,cfg,r]=10.;h.ctx_amount[1,0,0,2,cfg,r]=10*y
+        rule=h.rule();splits=h.signed_rules(rule)
+        self.assertEqual(len(splits),1)
+        x=np.zeros((2,h.F-1),int);x[:,1]=1;x[1,2]=1
+        phase=x.copy();ph=phase.astype(bool)
+        m,p,_,_=h.likelihood(rule,x)
+        m,p,a,n,g=h.context_moment(splits,x,ph,m,p,rule[3])
+        self.assertAlmostEqual(m[0,1],8.5/11.)
+        self.assertAlmostEqual(m[1,1],2.5/11.)
+        self.assertNotEqual(g[0,1],g[1,1]);self.assertEqual(n[0,1],11.)
+        np.testing.assert_allclose((p*a).sum(-1),m)

@@ -200,12 +200,29 @@ def provisional_values(f,x,uniforms,optimistic=True):
     """
     head=f.reward; b=f._bits(x); input0=head.input(b,f.hist)[1:]
     motion_optimism=optimistic and getattr(head,'motion_optimism',False)
+    one_window=optimistic and getattr(head,'one_window',False)
     rule=head.rule(); atoms=rule[3]; trans=head.all_transitions();code=int(head.code(b))
-    r,p,_,_=head.likelihood(rule,input0[None,:]); r,p=r[0],p[0]
+    r,p,_,_=head.likelihood(rule,input0[None,:])
+    splits=head.signed_rules(rule) if hasattr(head,'signed_rules') else []
+    seen_phase=head.phase(b,f.hist)
+    group0=None
+    if splits:
+        r,p,outcome,_,group0=head.context_moment(splits,input0[None,:],seen_phase[None,:],r,p,atoms)
+        atoms0=outcome[0];group0=group0[0]
+    else:
+        atoms0=atoms
+    r,p=r[0],p[0]
     incumbent=r.copy()
+    pair_probe=optimistic and hasattr(head,'pair_context')
+    bridge,base=head.bridge_table(rule) if optimistic and hasattr(head,'bridge_table') else (None,None)
+    if bridge is not None and not bridge.any():
+        bridge=None
     if optimistic:
         bound,_=head.provisional(rule)
-        incumbent=np.maximum(r,(bound*head.phase(b,f.hist)).max(1))
+        incumbent=np.maximum(r,(bound*seen_phase).max(1))
+        if pair_probe:
+            offer=head.pair_context(rule,input0,seen_phase)
+            incumbent=np.maximum(incumbent,offer if group0 is None else np.where(group0==0,offer,0.))
     active=head.slots>=0; cols=head.slots[active]
     states=np.flatnonzero(np.any(trans[:,code,:]>0.,axis=0)) if getattr(head,'sparse_outcomes',False) else head.ci
     marks=(states[:,None]&head.binary[active])!=0
@@ -213,20 +230,29 @@ def provisional_values(f,x,uniforms,optimistic=True):
     hist=(*f.hist,b)
     tail=head.input(b,hist)[1+f.J:]
     tailphase=head.phase(b,hist)[f.J:]
+    if pair_probe:
+        prospective_pair=head.pair_context(rule,np.r_[np.zeros(f.J),tail],np.r_[np.zeros(f.J,bool),tailphase],shift=True)
     quiet=not b[~f.slow].any()
     relevant=None
     if getattr(head,'factored_projection',False):
         known=rule[0][rule[1]]
-        relevant=np.unique(known[known<f.J])
-    if relevant is not None and len(relevant)==0:
+        relevant=np.unique(np.r_[known[known<f.J],np.array([m for _,m,l,_,_,_ in splits if l==0],dtype=int)])
+    if relevant is not None and len(relevant)==0 and bridge is None:
         laws=[None]*f.A
     else:
         laws=factor_current(f,x)
     for a,law in enumerate(laws):
+        immediate=incumbent
         if law is None:
             y=np.zeros((1,f.J)); branch_mass=np.ones(1)
         else:
             w,mix,slow_p,_=law
+            if bridge is not None:
+                activity=f._activity(mix,w,b,~f.slow)
+                ww=w if activity is None else w*activity[1]
+                forecast=np.einsum('nk,nkj->j',ww,mix)/w.sum();forecast[f.slow]=slow_p
+                evidence=np.clip((forecast-base)/(1.-base),0.,1.)
+                immediate=np.maximum(incumbent,r+np.max(bridge*evidence,axis=1))
             if relevant is not None and len(relevant)<=3:
                 parts,branch_mass=finite_marginal(w,mix,f.slow,slow_p,quiet,relevant)
                 y=np.zeros((len(parts),f.J));y[:,relevant]=parts
@@ -237,18 +263,28 @@ def provisional_values(f,x,uniforms,optimistic=True):
         by=np.repeat(y,len(states),axis=0)
         by[:,cols]=np.tile(marks,(len(y),1))
         feature=np.column_stack((by,np.broadcast_to(tail,(len(by),len(tail))))).astype(bool)
-        m2,_,l2,z2=head.likelihood(rule,feature)
+        m2,p2,l2,z2=head.likelihood(rule,feature)
+        onset=(by>.5)&~(b>.5)
+        phase=np.column_stack((onset,np.broadcast_to(tailphase,(len(by),len(tailphase)))))
+        if splits:
+            m2,_,_,count2,group2=head.context_moment(splits,feature,phase,m2,p2,atoms)
         cont=m2.copy()
         if optimistic:
-            onset=(by>.5)&~(b>.5)
             if getattr(head,'elapsed_only',False):
-                onset.fill(False)  # no prospective novelty credit for unseen triggers
-            phase=np.column_stack((onset,np.broadcast_to(tailphase,(len(by),len(tailphase)))))
+                phase[:,:f.J]=False  # no prospective novelty credit for unseen triggers
             cont=np.maximum(cont,np.max(phase[:,None,:]*bound,axis=-1))
+            if pair_probe:
+                cont=np.maximum(cont,prospective_pair if not splits else np.where(group2==0,prospective_pair,0.))
         c=np.tile(states,len(y));idx=np.arange(len(c)); motion=trans[:,c,:].transpose(1,0,2)
         # Only reward type of the arrived state is updated by the real atom.
         # Atoms retain continuous representative utility (no Bernoulli cast).
-        delta=l2[idx,c,:]/(z2[idx,c,None]+l2[idx,c,:])*(atoms[c]-m2[idx,c,None])
+        difference=atoms0[c]-m2[idx,c,None]
+        delta=l2[idx,c,:]/(z2[idx,c,None]+l2[idx,c,:])*difference
+        if splits:
+            same=group2[idx,c]==group0[c]
+            conditioned=group2[idx,c]>0
+            delta=np.where(conditioned[:,None],difference/(1.+count2[idx,c,None]),delta)
+            delta*=same[:,None]
         q=np.einsum('baj,bj->ba',motion,cont)
         if motion_optimism:
             legal=head.control_mass>0.
@@ -256,9 +292,23 @@ def provisional_values(f,x,uniforms,optimistic=True):
             q+=(peak[:,None]-q)/(2.+head.trans_total[:,c].T)
         correction=motion[idx,:,c,None]*delta[:,None,:]
         gain=branch_mass@(np.clip(q[:,:,None]+correction,0.,1.).max(1)*p[c]).sum(1).reshape(len(y),len(states))
-        values=incumbent[states]+gain
-        scores[a]=trans[a,code,states]@values
-        if motion_optimism:
-            peak=values[legal[states]].max() if legal[states].any() else values.max()
-            scores[a]+=(peak-scores[a])/(2.+head.trans_total[a,code])
+        discount=getattr(head,'discount',1.)
+        if one_window:
+            q0=np.einsum('baj,bj->ba',motion,m2)
+            if motion_optimism:
+                peak0=np.max(np.where(legal,m2,-np.inf),axis=1) if legal.any() else m2.max(1)
+                q0+=(peak0[:,None]-q0)/(2.+head.trans_total[:,c].T)
+            gain0=branch_mass@(np.clip(q0[:,:,None]+correction,0.,1.).max(1)*p[c]).sum(1).reshape(len(y),len(states))
+            vals=np.stack((immediate[states]+discount*gain0,r[states]+discount*gain))
+            means=vals@trans[a,code,states]
+            if motion_optimism:
+                peaks=vals[:,legal[states]].max(1) if legal[states].any() else vals.max(1)
+                means+=(peaks-means)/(2.+head.trans_total[a,code])
+            scores[a]=means.max()
+        else:
+            values=immediate[states]+discount*gain
+            scores[a]=trans[a,code,states]@values
+            if motion_optimism:
+                peak=values[legal[states]].max() if legal[states].any() else values.max()
+                scores[a]+=(peak-scores[a])/(2.+head.trans_total[a,code])
     return scores
