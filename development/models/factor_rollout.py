@@ -322,6 +322,12 @@ def provisional_values(f,x,uniforms,optimistic=True,*, root_explore=True, contin
                 peak=values[legal[states]].max() if legal[states].any() else values.max()
                 scores[a]+=(peak-scores[a])/(2.+head.trans_total[a,code])
     if information:
+        if getattr(head,'intrinsic_opportunity',False):
+            # Treat acquired decision information as an alternative to the
+            # inherited exploration forecast, not a second payment for it.
+            q=provisional_values(f,x,uniforms,False)
+            bonus=head.discovery_value(q,trans[:,code,:],rule,input0,seen_phase)
+            return np.maximum(scores,q+bonus)
         if root_updated is None:
             scores+=head.discovery_value(scores,trans[:,code,:],rule,input0,seen_phase)
         else:
