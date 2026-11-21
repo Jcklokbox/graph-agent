@@ -10,6 +10,15 @@ ROOT = Path(os.environ.get('GRAPH_AGENT_ROOT', Path(__file__).resolve().parents[
 LOCAL = ROOT / '.run/checkpoint.json'
 PUBLISHED = ROOT / 'ops/recovery.json'
 MACHINE = 'GRAPH_AGENT_MACHINE'
+REFLECTION_INTERVAL = 30 * 60
+REFLECTION_CUE_WINDOW = 120  # Longer than the 75-second heartbeat.
+
+
+def reflection_cue(elapsed):
+    period, since = divmod(elapsed, REFLECTION_INTERVAL)
+    if period and since < REFLECTION_CUE_WINDOW:
+        return f'~{period * 30} min: reflect in STATE.md when useful (no pause needed)'
+    return f'next cue in {REFLECTION_INTERVAL-since}s'
 
 
 def emit(path=None, published=None):
@@ -22,13 +31,14 @@ def emit(path=None, published=None):
         now = time.monotonic()
         if state['boot'] != Path('/proc/sys/kernel/random/boot_id').read_text().strip() or source != path:
             offset = now - time.time()
-            start, hard, reflection = (state[k] + offset for k in ('start_epoch', 'hard_epoch', 'reflection_epoch'))
+            start, hard = (state[k] + offset for k in ('start_epoch', 'hard_epoch'))
             phase = 'recovery-required'
         else:
-            start, hard, reflection = (state[k] for k in ('started', 'hard', 'reflection'))
+            start, hard = state['started'], state['hard']
             phase = state['phase']
-        timer = 'off' if phase == 'closed' else ('DUE' if now >= reflection else f'{int(reflection-now)}s')
-        report = (f"{state['run']} {phase} | wall {max(0,int(now-start))}/{round(hard-start)}s | "
+        elapsed = max(0, int(now-start))
+        timer = 'off' if state['phase'] == 'closed' else reflection_cue(elapsed)
+        report = (f"{state['run']} {phase} | wall {elapsed}/{round(hard-start)}s | "
                   f"calls {state['calls']}/{state['budget']} (working {state['budget']-state['reserve_calls']}) | "
                   f'reflection {timer}')
     except FileNotFoundError:

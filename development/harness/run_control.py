@@ -15,7 +15,7 @@ from harness import bg, beacon
 from harness.snap import snapshot
 
 ROOT = beacon.ROOT
-CALL_BUDGET, CALL_RESERVE, REFLECT_SECONDS = 240, 20, 1800
+CALL_BUDGET, CALL_RESERVE = 240, 20
 BOOT = Path('/proc/sys/kernel/random/boot_id')
 NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9_-]{0,63}\Z')
 MAX_WAIT = 900
@@ -54,9 +54,8 @@ def initialize(path, run, seconds, reserve_seconds, budget, reserve_calls, calls
         raise ValueError('invalid allowances or reserves')
     now, wall = time.monotonic(), time.time()
     state = dict(version=2, run=run, boot=boot_id(), started=now, dispatch=now + seconds - reserve_seconds,
-                 hard=now + seconds, reflection=now + REFLECT_SECONDS, reflections=[],
-                 start_epoch=wall, dispatch_epoch=wall + seconds - reserve_seconds,
-                 hard_epoch=wall + seconds, reflection_epoch=wall + REFLECT_SECONDS,
+                 hard=now + seconds, start_epoch=wall, dispatch_epoch=wall + seconds - reserve_seconds,
+                 hard_epoch=wall + seconds,
                  calls=calls, budget=budget, reserve_calls=reserve_calls, next=next_action, jobs=[], phase='active')
     save(path, state)
     return state
@@ -84,26 +83,11 @@ def recover(path, published):
         if wall < state['start_epoch']:
             raise ValueError('wall clock predates run; reconcile without dispatch')
         state.update(boot=boot_id(), started=state['start_epoch']-wall+now,
-                     dispatch=state['dispatch_epoch']-wall+now, hard=state['hard_epoch']-wall+now,
-                     reflection=state['reflection_epoch']-wall+now)
+                     dispatch=state['dispatch_epoch']-wall+now, hard=state['hard_epoch']-wall+now)
         if state['phase'] != 'closed':
             state['phase'] = 'reconcile'
         save(path, state)
     return state
-
-
-def reflect(path, state, local, global_view, resolution, next_action):
-    if state['phase'] != 'active':
-        raise ValueError('reflect only after reconciling an active run')
-    now = time.monotonic()
-    state['reflections'].append(dict(elapsed_s=round(now-state['started']), local=local,
-                                     global_view=global_view, resolution=resolution, next=next_action))
-    state['next'] = next_action
-    # Preserve the original cadence: a delayed reflection cannot defer the next one.
-    n = int(max(0., now-state['started']) // REFLECT_SECONDS) + 1
-    state['reflection'] = state['started'] + n * REFLECT_SECONDS
-    state['reflection_epoch'] = state['start_epoch'] + n * REFLECT_SECONDS
-    save(path, state)
 
 
 def charge(path, state, calls):
@@ -116,7 +100,7 @@ def charge(path, state, calls):
 def dispatch_left(state):
     if state['phase'] != 'active' or state['calls'] >= state['budget'] - state['reserve_calls']:
         return 0.
-    return max(0., min(state['dispatch'], state['reflection']) - time.monotonic())
+    return max(0., state['dispatch'] - time.monotonic())
 
 
 def name_ok(name):
@@ -135,7 +119,6 @@ def summary(state):
     return dict(run=state['run'], language='English', phase=state['phase'], next=state['next'],
                 calls_used=state['calls'], budget=state['budget'], reserve_calls=state['reserve_calls'],
                 dispatch_seconds=int(dispatch_left(state)), hard_seconds=max(0, int(state['hard']-time.monotonic())),
-                reflection_due=time.monotonic() >= state['reflection'] and state['phase'] != 'closed',
                 tree=state.get('tree'), jobs={j: job_status(j) for j in state['jobs']})
 
 
@@ -172,14 +155,14 @@ def launch(path, state, plan):
         names.add(name)
     if any(job_status(j) == 'running' for j in state['jobs']):
         raise ValueError('finish the current batch before replacing its checkpoint')
-    if not dispatch_left(state) or max(j[2] for j in jobs) + 5 > state['dispatch'] - time.monotonic():
+    if max(j[2] for j in jobs) + 5 > dispatch_left(state):
         raise ValueError('insufficient dispatch budget for batch and watchdog grace')
     tree, _ = snapshot(bg.HERE)
     state['jobs'] = [j[0] for j in jobs]
     state['tree'] = tree
     save(path, state)  # intent first: a killed dispatch is recoverable as missing/running/done
     for name, cpu, seconds, cmd in jobs:
-        if not dispatch_left(state) or seconds + 5 > state['dispatch'] - time.monotonic():
+        if seconds + 5 > dispatch_left(state):
             raise ValueError('dispatch deadline too close after snapshot/startup')
         bg.start(name, ['timeout', '-k', '2', str(seconds), *cmd], cpu, tree)
 
@@ -202,9 +185,6 @@ def main(argv=None):
     reconcile = sub.add_parser('reconcile')
     reconcile.add_argument('--evidence', required=True, help='what survived, which work is unknown')
     reconcile.add_argument('--next', required=True)
-    reflection = sub.add_parser('reflect')
-    for field in ('local', 'global', 'resolve', 'next'):
-        reflection.add_argument('--'+field, required=True)
     check = sub.add_parser('checkpoint')
     check.add_argument('--next', required=True)
     check.add_argument('--close', action='store_true')
@@ -262,10 +242,6 @@ def execute(a):
             save(a.state, state)
         elif a.command == 'publish':
             save(a.published, state)  # commit/push is a separate explicit operator decision
-        elif a.command == 'reflect':
-            reflect(a.state, state, bounded_text(a.local, 'local', 480),
-                    bounded_text(getattr(a, 'global'), 'global', 480), bounded_text(a.resolve, 'resolve', 480),
-                    bounded_text(a.next, 'next', 240))
         elif a.command == 'checkpoint':
             next_action = bounded_text(a.next, 'next', 240)
             if a.close and any(job_status(j) == 'running' for j in state['jobs']):
@@ -279,7 +255,7 @@ def execute(a):
         elif a.command == 'dispatch':
             launch(a.state, state, json.loads(a.plan.read_text()))
     if state is not None:
-        if a.state == beacon.LOCAL and a.command in ('init', 'reflect', 'reconcile', 'checkpoint'):
+        if a.state == beacon.LOCAL and a.command in ('init', 'reconcile', 'checkpoint'):
             update_state_md(state)
         print(json.dumps(summary(state), sort_keys=True))
     if a.command == 'resume':

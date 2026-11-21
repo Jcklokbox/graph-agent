@@ -1,5 +1,5 @@
 #!/bin/sh
-# Repository-root human entry point; works from any current directory.
+# Run operations and show advisory reflection cues; write research notes in STATE.md.
 set -eu
 root=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 export GRAPH_AGENT_ROOT="$root"
