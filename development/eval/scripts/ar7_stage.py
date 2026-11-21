@@ -4,7 +4,7 @@ from multiprocessing import get_context
 from pathlib import Path
 import sys
 
-from eval.scripts.ar5_controller_run import one
+from eval.paired import run_episode
 from harness.journal import append
 
 
@@ -14,10 +14,10 @@ def main():
     path=Path(out)
     if path.exists():raise ValueError('stage output already exists')
     if n=='1':
-        for r in map(one,work):append(path,r)
+        for r in map(run_episode,work):append(path,r)
     else:
         with get_context('fork').Pool(int(n)) as pool:
-            for r in pool.imap_unordered(one,work,chunksize=1):append(path,r)
+            for r in pool.imap_unordered(run_episode,work,chunksize=1):append(path,r)
 
 
 if __name__=='__main__':main()

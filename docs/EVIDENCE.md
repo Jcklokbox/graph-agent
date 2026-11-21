@@ -35,3 +35,7 @@ git show a17d4d26:<path>
 
 Fetch repository history first if the checkout is shallow and the requested
 commit is missing. Historical seeds and partially completed gates remain spent.
+The AR-6 paired runner is retired; its block IDs remain in
+[`spent_cohorts.py`](../development/research/spent_cohorts.py), and its original
+runner and incomplete evidence remain at the pre-cleanup revision above. The
+AR-7 audit preserves its registered stage program and does not open a new draw.

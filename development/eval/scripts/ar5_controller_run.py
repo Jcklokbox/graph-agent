@@ -7,39 +7,28 @@ from pathlib import Path
 from multiprocessing import get_context
 
 from envs.tasks import SPLITS, VARIANTS
-from eval import benchmark
+from eval.paired import episode_key, run_episode, schedule
 from harness.journal import append, load
-
-
-def schedule(names, seeds):
-    _,_,eb,bb=SPLITS['dev']
-    return [(name,i,eb+i,bb+i) for i in seeds for name in names]
-
-
-def one(job):
-    model,name,seed,es,bs = job
-    benchmark.AGENT.update(name=model,module=None)
-    return dict(k=[os.environ['PG_TREE'],seed,f'{model}|DEV|{name}'],m=benchmark.brain_run(name,es,bs))
 
 
 def run(out, model, names, seeds, start=None, stop=None, workers=1):
     todo = schedule(names,seeds)
     tree = os.environ['PG_TREE']
-    keys = {(tree, seed, f'{model}|DEV|{name}') for name,seed,_,_ in todo}
+    keys = {episode_key(tree, model, name, seed) for name,seed,_,_ in todo}
     records, dup, bad = load(out)
     if dup or bad or not records.keys()<=keys:
         raise ValueError('mixed or damaged controller journal')
-    tasks = [(model,*j) for j in todo[start:stop] if (tree,j[1],f'{model}|DEV|{j[0]}') not in records]
+    tasks = [(model,*j) for j in todo[start:stop] if episode_key(tree, model, j[0], j[1]) not in records]
     def emit(seq):
         for r in seq:
             append(out,r)
             m=r['m']; norm=(m['brain']-m['stay'])/(m['oracle']-m['stay'])
             print(r['k'][1:],round(norm,5),round(m['sec'],3),flush=True)
     if workers==1:
-        emit(map(one,tasks))
+        emit(map(run_episode,tasks))
     elif tasks:
         with get_context('fork').Pool(workers) as pool:
-            emit(pool.imap_unordered(one,tasks,chunksize=1))
+            emit(pool.imap_unordered(run_episode,tasks,chunksize=1))
 
 
 def main():

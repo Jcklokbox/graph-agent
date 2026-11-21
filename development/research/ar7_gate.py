@@ -13,13 +13,16 @@ import subprocess
 import sys
 import time
 
-from eval.scripts.ar5_controller_run import schedule
-from harness.journal import append
-from harness.snap import snapshot, tree_hash
-from research.ar6_pair_gate import (N, MARGIN, T995, VARIANTS_LOCKED, _norm, _read,
-                                   dependencies, digest, key)
+from eval.paired import episode_key, normalized_payoff, schedule
+from harness.journal import append, load_strict
+from harness.snap import dependencies, program_digest, snapshot, tree_hash
 
-BATCH = 10
+N, T995, MARGIN, BATCH = 20, 2.861, -.02, 10
+VARIANTS_LOCKED = (
+    'aut', 'canc', 'dist', 'aut-half', 'aut-noise4', 'dist-delay3', 'aut-serial300',
+    'aut-noise4-sticky', 'canc-noise3', 'dist-noise2-sticky', 'dist-noise2',
+    'aut-fooddelay2', 'dist-delay3-noise2', 'dist-noise3-p4', 'aut-fooddelay3-noise1',
+)
 SEEDS = tuple(1_100_000_000 + int.from_bytes(hashlib.sha256(
     f'graph-agent/ar7/paired20/v1/{i}'.encode()).digest()[:4],'big') % 900_000_000 for i in range(N))
 # Historical per-variant median batch wall seconds from spent AR6 journals.
@@ -69,7 +72,7 @@ def calibration(path, model, tree):
     if cfg['tree']!=tree or cfg['model']!=model or cfg['workers'] not in (1,2) or cfg['deps']!=dependencies():
         raise ValueError('timings must benchmark the exact finalist tree')
     ts=cfg['stages']
-    if cfg['program_sha256']!=digest(cal_packs(model)):
+    if cfg['program_sha256']!=program_digest(cal_packs(model)):
         raise ValueError('non-production-shape calibration')
     if not isinstance(ts,list) or len(ts)!=len(cal_packs(model)) or any(t['episodes']!=BATCH or t['exit']!=0
             or not math.isfinite(t['seconds']) or t['seconds']<=0 for t in ts):
@@ -95,7 +98,7 @@ def lock(root, model, commit, deadline, measurements):
     if not math.isfinite(deadline) or deadline-time.time()<required:
         raise ValueError(f'cannot fund full measured watchdogs: need {required}s')
     cfg=dict(tree=tree,commit=commit,model=model,models=models,n=N,batch=BATCH,seeds=list(SEEDS),
-             program_sha256=digest(program),variants=list(VARIANTS_LOCKED),margin=MARGIN,tcrit=T995,
+             program_sha256=program_digest(program),variants=list(VARIANTS_LOCKED),margin=MARGIN,tcrit=T995,
              caps=caps,workers=len(cpus),cpus=cpus,deps=dependencies(),required=required,deadline=deadline,
              pairs=N*len(VARIANTS_LOCKED),latest_start=deadline-required,
              timings=stats)
@@ -103,7 +106,7 @@ def lock(root, model, commit, deadline, measurements):
 
 
 def verify(cfg):
-    if (cfg['program_sha256']!=digest({m:packs(m) for m in cfg['models']}) or cfg['models']!=['v12',cfg['model']]
+    if (cfg['program_sha256']!=program_digest({m:packs(m) for m in cfg['models']}) or cfg['models']!=['v12',cfg['model']]
             or cfg['seeds']!=list(SEEDS) or cfg['variants']!=list(VARIANTS_LOCKED) or cfg['batch']!=BATCH
             or cfg['n']!=N or cfg['margin']!=MARGIN or cfg['tcrit']!=T995 or cfg['workers']!=len(cfg['cpus'])):
         raise ValueError('frozen protocol mismatch')
@@ -111,7 +114,7 @@ def verify(cfg):
 
 def score(cfg, rows, stages):
     tree=cfg['tree']; models=cfg['models']; program={m:packs(m) for m in models}
-    all_e={key(tree,m,v,i) for m in models for b in program[m] for v,i,_,_ in b}
+    all_e={episode_key(tree,m,v,i) for m in models for b in program[m] for v,i,_,_ in b}
     all_s={stage_key(tree,m,i) for m in models for i in range(len(program[m]))}
     if not rows.keys()<=all_e or not stages.keys()<=all_s:
         raise ValueError('unexpected episode/stage')
@@ -122,25 +125,25 @@ def score(cfg, rows, stages):
             if k not in stages:continue
             r=stages[k]
             if not (r['m']['cpus']==cfg['cpus'] and r['m']['cap']==cfg['caps'][m]
-                    and r['m']['program']==digest(b) and 0.<r['dt']<=cfg['caps'][m]+4):
+                    and r['m']['program']==program_digest(b) and 0.<r['dt']<=cfg['caps'][m]+4):
                 raise ValueError('wrong stage witness')
             if r['m']['exit']!=0:continue
-            wanted={key(tree,m,v,s) for v,s,_,_ in b}
+            wanted={episode_key(tree,m,v,s) for v,s,_,_ in b}
             if not wanted<=rows.keys():raise ValueError('successful stage missing episodes')
             verified.update(wanted);successful+=1
     counts=Counter(k[2] for k in verified);raw_counts=Counter(k[2] for k in rows)
     cells=[f'{m}|DEV|{v}' for m in models for v in VARIANTS_LOCKED]
-    pairs=sum(all(key(tree,m,v,j) in verified for m in models) for v,j,_,_ in schedule(VARIANTS_LOCKED,SEEDS))
+    pairs=sum(all(episode_key(tree,m,v,j) in verified for m in models) for v,j,_,_ in schedule(VARIANTS_LOCKED,SEEDS))
     report=dict(status='INCOMPLETE',tree=tree,model=cfg['model'],observed=len(rows),verified=len(verified),
                 total=len(all_e),stages=successful,expected_stages=len(all_s),per_cell={c:counts[c] for c in cells},
                 raw_per_cell={c:raw_counts[c] for c in cells},verified_pairs=pairs)
     if verified!=all_e:return report
     diffs=defaultdict(list);raw=defaultdict(list)
     for v,i,_,_ in schedule(VARIANTS_LOCKED,SEEDS):
-        a,b=(rows[key(tree,m,v,i)]['m'] for m in models)
+        a,b=(rows[episode_key(tree,m,v,i)]['m'] for m in models)
         if any(abs(a[k]-b[k])>1e-12 for k in ('stay','oracle')):
             raise ValueError('unmatched denominators')
-        x,y=_norm(a),_norm(b);raw[v].append((x,y));diffs[v].append(y-x)
+        x,y=normalized_payoff(a),normalized_payoff(b);raw[v].append((x,y));diffs[v].append(y-x)
     blocks=[statistics.mean(diffs[v][i] for v in VARIANTS_LOCKED) for i in range(N)]
     delta=statistics.mean(blocks);radius=T995*statistics.stdev(blocks)/math.sqrt(N)
     report.update(status='PASS' if delta-radius>=MARGIN else 'FAIL',paired=delta,n=N,
@@ -173,17 +176,17 @@ def gate(root, cfg, cache):
                 code=p.returncode
             except subprocess.TimeoutExpired:code=124
             dt=time.monotonic()-t
-            observed=_read(dest)
-            expected={key(tree,m,v,seed) for v,seed,_,_ in b}
+            observed=load_strict(dest)
+            expected={episode_key(tree,m,v,seed) for v,seed,_,_ in b}
             if not observed.keys()<=expected or code==0 and observed.keys()!=expected:
                 raise ValueError('stage emitted wrong keys')
             for r in observed.values():append(episodes,r)
-            append(stages,dict(k=stage_key(tree,m,i),dt=dt,m=dict(exit=code,cap=cap,cpus=cfg['cpus'],program=digest(b))))
+            append(stages,dict(k=stage_key(tree,m,i),dt=dt,m=dict(exit=code,cap=cap,cpus=cfg['cpus'],program=program_digest(b))))
             if code:break
             dest.unlink()  # merged with all exact rows checked above
         else:continue
         break
-    result=score(cfg,_read(episodes),_read(stages));write_json(root/'DEV.json',result)
+    result=score(cfg,load_strict(episodes),load_strict(stages));write_json(root/'DEV.json',result)
     (root/'stage-program.json').unlink(missing_ok=True)
     print(result['status'],result['verified'],flush=True)
     return {'PASS':0,'FAIL':2,'INCOMPLETE':3}[result['status']]
@@ -198,7 +201,7 @@ def main():
         lock(root,a.model,a.commit,a.deadline,a.measure);return
     cfg=read_json(root/'freeze.json');verify(cfg)
     if a.action=='run':raise SystemExit(gate(root,cfg,a.cache))
-    print(json.dumps(score(cfg,_read(root/'episodes.jsonl'),_read(root/'stages.jsonl')),indent=2,sort_keys=True))
+    print(json.dumps(score(cfg,load_strict(root/'episodes.jsonl'),load_strict(root/'stages.jsonl')),indent=2,sort_keys=True))
 
 
 if __name__=='__main__':main()
