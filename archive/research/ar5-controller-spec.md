@@ -28,3 +28,43 @@ If a powered paired comparison cannot fit the remaining allocation, report the a
 ### Finite-work joint rollout detail
 
 The existing marginal readout defines a joint law by mixing the regime-conditional product emissions that `_activity` actually uses. For quiet input, draw the shared zero-event clock once, then (when nonempty) draw the particle/regime from its pre-clock mass and draw the product conditional on nonempty. **No rejection loop:** choose the first success with mass `p_i × ∏_{j<i}(1−p_j)/(1−∏_j(1−p_j))`, then sample only suffix Bernoullis. This is exact in linear work even for a nearly silent model. Conditional process heads currently enter that product as marginals; adding covariance via shared process-state draws would change the quiet law and needs its own calibration and predictor validation rather than being called exact. At a real root, evaluate alternative actions from the *current* process belief; `predict(..., hypothetical=True)` currently means a probe after assimilating another observation, and is not the right current-root API. A trial implementation may only change a temporary readout/conditioning state until real `learn`.
+
+### D-108 candidate model (not itself gate acceptance)
+
+`v48` is the cause-scoped, signed event candidate. An actuated dwell witness
+must predict that alternative actions can retain or exit a local sensory
+mark; weak action correlations alone are insufficient. Its compound control
+scope has at most four bits. The finite Markov state statistics are learned
+online (not supplied transition/reward entries). A bounded transition replay
+reprojects sufficient statistics when the scope changes. Actual persistent
+transition surprise can recall one previous action/reward mode or start a
+new one; guesses do not touch that state.
+
+For a reached control state the reward model has at most sixteen outcome
+classes. Every real reward adds its actual magnitude, and the within-class
+mean carries that magnitude rather than converting `.45` to a success/failure.
+One sparse unary temporal witness is compared to the action-selected pooled
+null. A sensory-moderator witness can split a supported parent on both sides
+of a concurrent observation, with signed estimates and actual outcome
+likelihoods. There is no favorable-state/path oracle or inherited v12 readout.
+
+Planning enumerates bounded control outcomes and, for at most three active
+sensory parents, their exact marginal joint law (including the quiet-clock
+atom); otherwise it uses five common-random-number draws from the same law.
+When no live reward parent reads a new sensory emission, integrate that view
+out exactly. The inner action maximum is computed after a virtual real-atom
+update of the selected reward scope, with fixed structure and motion. The
+expected two-step value can be computed without epistemic exploration
+(`provisional_values(..., optimistic=False)`). Root selection with optimism
+also considers bounded unresolved-onset and untried-transition hypotheses,
+which are exploratory estimates, **not calibrated expected rewards**. The
+procedure is a finite-depth posterior projection; it is not a full Bayes
+search over all future graph structures or counterfactual intervention history.
+
+Control cardinality (≤16), replay length (≤2·16·A), actions, temporal lags,
+reward bins, moderator anchors and support enumeration are bounded. The
+contextual bank scans at most four onset sources against J potential
+moderators; it does not maintain all pairs. The scope filter, replay,
+projected sensor rows and real update visit O(J) entries at fixed N and those
+bounds, so full act+learn retains the passive O(Σ_g |P_g|) construction.
+Small-width ratios validate overhead, not the asymptotic proof itself.
