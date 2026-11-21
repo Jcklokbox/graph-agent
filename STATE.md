@@ -1,16 +1,13 @@
-# STATE — AR-5: 3b-1 accepted, 3b-2 not qualified
-Live anchor. Register `archive/research/runs/AR-5.md`; audit `archive/BRIEF-CE.md`; prior SPEC `development/results/spec333/`.
+# Active checkpoint
 
-## Contract and clock
-- Current branch `arena/b8e242cb-graph-agent`, PR #16 OPEN, main base `3f932b7`. Merge only after both milestones pass. Preserve frozen evidence; h2 exposed, not repeated for confirmation.
-- T0 monotonic **1545.582119**; dispatch ≤**15645.582119**; hard ≤**15945.582119** with final 300 s reserved. Two pinned CPUs; immutable snapshot/batch, atomic keyed journals, blocking ≤180 s; next reflection **8745.582119**. Read STATE and git log first after compaction.
-
-## 3b-1 verified
-- D-51 frozen cost FAIL 2.522914. D-53 frozen all exposed passed, D-40 FAILED (background −.122, inhibitor −.563 REV); preserve `development/results/ar5/gate1,gate2`. D-40 exposed, never use for confirmation again.
-- **D-65 `6f619568dc90` / `ac37d50` PASS**: C 2.080340 (4.682722/2.250941); A 10/10 no REV (PREE .124170 [.081228,.167111], inhibition .982190, reinstatement .475673); h1 6/6; v1/d2/d3 .809077/.921421/.959937. D-62 signed .348 [.039,.658], background .128 [.070,.185]. D-61 sole new confirmatory run **3/5 no REV**, signed .308 [.204,.412], competing hazards .096 [.077,.115], context interaction .570 [.525,.615], valid controls. 740/740, 47 stages, max 85.878 s; `development/results/ar5/gate3/validation.json`. Snapshot unit 88 pass + 1 external DEV-cache skip; passes outside. D-63 full-vector normalization resolves tuple/list O(J²), D-64 exact scoped quiet bypass.
-
-## 3b-2 frozen DEV-16 complete: FAIL, not accepted
-- D-108 v48: signed refinements require an admitted local unary cause; noisy cancellation .875/.938 in exposed seeds1/2. D-110 stop requested at 14/15 seed0; in-flight stage left 18 exposed rows, wall 99–118 steps/s. D-111 exact snapshot `621c56d67713`, 15/15 reward/control tests, N200 full act+learn C **1.78443** (3.234842/5.772399 CPU s low/high; 360 each). Frozen predictor remains unchanged, gate3 validator reproduced exactly.
-- **D-112** frozen `v48` / `621c56d67713` / `1f3908b`: 240/240 pairs, 177600 steps, 30/30 stages, 1533.45 s summed stage wall, max 68.10 s. Candidate **.887973133**, v12 **.891270803**, paired **−.003297670**, 99% CI **[−.043362131, +.036766790]**; registered lower bound **≥−.02** not met. Runner exit 2. `development/results/ar5/gate-dev16-v48/{DEV,validation}.json`: official judge byte-exact on replay; independent coverage, clock, paired denominators and CI verified. This does not establish inferiority, nor noninferiority.
-- **D-113 exposed traces**, same immutable tree: both cancellation forms seed6 receive zero positive rewards through tick420; clean seed0 gets 43, first at tick3. Sticky distal seed9 gets only .45 and 0 through tick470. Failure on those traces is lack of exposure to high payoff, not inability to fit reward features after observing it. D97 already shows an additional reuse failure in another run with positives; neither explanation is universal.
-- Next (new allocation only): build distinct no-label exposure and reuse counterexamples, improve bounded information-seeking without reviving off-state optimism, and register a fresh paired confirmation panel only after freezing a new candidate. Keep original DEV-16 as exposed regression evidence. PR #16 OPEN, no merge, T4 or C3. Current round ended below 03:57 UTC dispatch / 04:02 UTC hard cutoff.
+- **3b-1 accepted:** D65, freeze `6f619568dc90`; 740/740 keys, cost ratio 2.08034.
+  Evidence: `development/results/ar5/gate3/validation.json`.
+- **3b-2 not qualified:** frozen `v48` is a research candidate, not a replacement for `v12`.
+  D112 DEV-16: 240/240 pairs; Δ −0.00330, 99% CI [−0.04336, +0.03677], required lower ≥ −0.02.
+  Evidence: `development/results/ar5/gate-dev16-v48/{DEV,validation}.json`.
+- **Next:** distinguish never discovering payoff (D113) from failing to reuse observed payoff
+  (D97); test both without task labels. See [the three-hour plan](docs/AUTONOMY.md#next-three-hour-run).
+- **Recovery:** [run protocol](docs/AUTONOMY.md); an active run's clock, call budget,
+  job statuses and next action are in `.run/checkpoint.json`. AR-5 is closed, no live clock to resume.
+- **Provenance:** [evidence index](archive/README.md); checkpoint [PR #16](https://github.com/Jcklokbox/graph-agent/pull/16)
+  merged at `67ee305`. Archival merge is not 3b-2 acceptance. DEV-16 is now exposed regression evidence.
