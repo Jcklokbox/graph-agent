@@ -204,10 +204,17 @@ def provisional_values(f,x,uniforms,optimistic=True):
     rule=head.rule(); atoms=rule[3]; trans=head.all_transitions();code=int(head.code(b))
     r,p,_,_=head.likelihood(rule,input0[None,:])
     splits=head.signed_rules(rule) if hasattr(head,'signed_rules') else []
-    seen_phase=head.phase(b,f.hist)
+    onset=head.phase(b,f.hist)
+    # Root gate: which configuration may carry the optimism at this decision.
+    # The marginal law gates on onsets; a remaining-variance law gates on the
+    # activation of the feature the variance belongs to. Both are the reward
+    # law's own feature basis, so the shapes are the same (F-1,).
+    gate=(head.provisional_gate(b,f.hist) if optimistic and hasattr(head,'provisional_gate')
+          else onset)
+    seen_phase=gate
     group0=None
     if splits:
-        r,p,outcome,_,group0=head.context_moment(splits,input0[None,:],seen_phase[None,:],r,p,atoms)
+        r,p,outcome,_,group0=head.context_moment(splits,input0[None,:],onset[None,:],r,p,atoms)
         atoms0=outcome[0];group0=group0[0]
     else:
         atoms0=atoms
@@ -219,9 +226,17 @@ def provisional_values(f,x,uniforms,optimistic=True):
         bridge=None
     if optimistic:
         bound,_=head.provisional(rule)
-        incumbent=np.maximum(r,(bound*seen_phase).max(1))
+        incumbent=np.maximum(r,(bound*gate).max(1))
+        if hasattr(head,'cell_room'):
+            # ... and by the room left in the cell the hypothesis is about: the
+            # outcome state together with the observed configuration of the
+            # payoff's own screened parents. The state-only term is monotone in
+            # the state mean, so a payoff waiting in an untried configuration of a
+            # state whose mean is already poor cannot be exposed by it.
+            incumbent=np.maximum(incumbent,head.cell_room(b))
+
         if pair_probe:
-            offer=head.pair_context(rule,input0,seen_phase)
+            offer=head.pair_context(rule,input0,onset)
             incumbent=np.maximum(incumbent,offer if group0 is None else np.where(group0==0,offer,0.))
     active=head.slots>=0; cols=head.slots[active]
     states=np.flatnonzero(np.any(trans[:,code,:]>0.,axis=0)) if getattr(head,'sparse_outcomes',False) else head.ci
@@ -272,6 +287,10 @@ def provisional_values(f,x,uniforms,optimistic=True):
         if optimistic:
             if getattr(head,'elapsed_only',False):
                 phase[:,:f.J]=False  # no prospective novelty credit for unseen triggers
+            # Inside the tree the provisional payoff keeps its onset gate: a
+            # future configuration that has not just turned on is continuation,
+            # not a new opportunity. Only the root gate (which configuration may
+            # carry the optimism at the decision) uses the law's own feature basis.
             cont=np.maximum(cont,np.max(phase[:,None,:]*bound,axis=-1))
             if pair_probe:
                 cont=np.maximum(cont,prospective_pair if not splits else np.where(group2==0,prospective_pair,0.))

@@ -8,7 +8,7 @@ class CredibleEventReward(SparseSignedReward):
     one_window=True
 
     def provisional(self,rule):
-        _,var=super().provisional(rule)
+        _,var,_=super().provisional(rule)
         n=self.onset; m=(self.onset_reward+.5)/(1.+n)
         eligible=~np.tile(np.isin(np.arange(self.J),self.slots),self.L)
         strength=np.tile(self.onset_total/(.5+self.past_on),self.L)

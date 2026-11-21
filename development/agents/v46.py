@@ -6,7 +6,7 @@ from agents.v44 import Agent as Controller, SparseSignedReward
 
 class CompetitiveReward(SparseSignedReward):
     def provisional(self,rule):
-        optimistic,var=super().provisional(rule)
+        optimistic,var,_=super().provisional(rule)
         base=rule[5][:,None];n=self.onset
         mean=(self.onset_reward+.5)/(1.+n)
         strength=n*np.square(np.maximum(mean-base,0.))
