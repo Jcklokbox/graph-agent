@@ -1,14 +1,17 @@
-# Archive
+# Historical evidence index (not operating instructions)
 
-Superseded material, kept for reference. Nothing in `development/` imports it, and it is not
-maintained.
+Default repository search excludes `archive/`. Open only the linked file and section you need.
+Preserve historical languages, file paths and raw evidence; they do not set the active response language.
 
-- `development/` — the original `BlindGateGraphBrain` hypergraph prototype (`blind_gate_graph.py`,
-  `blind_gate.py`, `ops.py`, `test_despecialized.py`), the earlier benchmark scripts of the
-  posterior graph (`benchmark_envs.py`, `run_posterior_scenarios.py`, `transfer_suite.py`;
-  replaced by `development/tasks.py` and `development/benchmark.py`) and the last pre-
-  consolidation agent `posterior_graph_v10.py` (Round 12; imports nothing from here, runs with
-  the current `tasks.py` / `benchmark.py`).
-- `research/` — theory notes of the hypergraph prototype and of the early posterior-graph
-  design, the component probe and its results, the permutation-equivariance sweep, and
-  `round-log-r1-r12.md`, the full log of Rounds 1–12.
+| Need | Open |
+| --- | --- |
+| Current verdict or restart procedure | [STATE](../STATE.md), [autonomy](../docs/AUTONOMY.md) |
+| AR-5 gate decisions and D97/D113 failures | [AR-5 ledger](research/runs/AR-5.md), search by D-number |
+| Controller equation and acceptance checks | [3b-2 spec](research/ar5-controller-spec.md) |
+| Measurement caveats | [AR-5 test review](research/ar5-test-review.md) |
+| Original research goals and roadmap vocabulary | [goal](research/goal.md), [slice 3](research/slice3-plan.md) |
+| Earlier rounds and prototypes | [research index](research/README.md), [archived development](development/README.md) |
+
+Canonical numeric verdicts and raw paired journals are in `development/results/ar5/gate3/`
+and `development/results/ar5/gate-dev16-v48/`. For the exact pre-cleanup checkpoint use
+`git show 36ef8ce:STATE.md`; do not replay its expired clock.
