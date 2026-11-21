@@ -1,0 +1,31 @@
+name: Regression checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OPENBLAS_NUM_THREADS: "1"
+      NUMBA_NUM_THREADS: "1"
+      FACTOR_ISOLATION_CANDIDATE: v60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: development/requirements.txt
+      - run: python -m pip install -r development/requirements.txt
+      - name: Run the test suite
+        working-directory: development
+        run: python -m unittest discover -s tests
+      - name: Compare accepted verdicts byte for byte
+        run: bash tools/check_evidence.sh

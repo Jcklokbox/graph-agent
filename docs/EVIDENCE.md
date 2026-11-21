@@ -8,7 +8,11 @@ GRAPH_AGENT_MACHINE=1 python -m research.ar5_validate results/ar5/gate3
 python -m research.ar7_gate audit results/ar7/dev20-v60
 ```
 
-Compare each command's JSON with its accepted report:
+From the repository root, run `bash tools/check_evidence.sh` to perform the
+same byte-for-byte comparison as CI. It captures audit output in a temporary
+directory and leaves the saved evidence untouched.
+
+The accepted reports are:
 
 - [D65 / 3b-1 verdict](../development/results/ar5/gate3/validation.json)
 - [v60 / 3b-2 verdict](../development/results/ar7/dev20-v60/DEV.json)
