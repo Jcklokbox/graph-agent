@@ -11,4 +11,5 @@ Only active Markdown. Audit: `archive/BRIEF-CE.md`; run protocol: `archive/resea
 3. Run small paired A/h1/B/C screens on each isolated model change before spending on a judge. Retain the second core for diagnostics. Record counterexamples, update next block, commit.
 
 ## Current checkpoint
-- Kickoff; new holdout not read or run. Next after cost lane: separate opportunity/background credit and test omission vs dwell, neutral-place retrieval and signed transfer. 3b-2 needs the accepted factor posterior, including reward, no v12 predictor.
+- D-39: exact ordered particle gather and bounded parent/group proposals. Explicit warm N200 C screen 2.315 (5.1341/2.2178), no C acceptance until final freeze; N25 seed-0 guards unchanged, PREE only +.0403. D-40 schedules locked before candidate predictions; no holdout readout.
+- Next: eliminate global process switch with evidence-local ownership; smoke T1 transfer and opportunity/background model independently. Record results under `development/results/ar5/`.

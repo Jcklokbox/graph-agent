@@ -30,10 +30,12 @@ from __future__ import annotations
 
 import numpy as np
 
+from models.discovery import NeighborBank
 from models.online_hmm import PackedHMM
 
 KS = (2, 3, 4, 6)
 W, MIN_AGE, LOG_BF, REJECT, M, COOL = 500, 200, 3., 10., 6, 1500
+GROUP_WIDTH = 6               # hypothesis class: bounded emission width
 LAGS = 4                      # screening: max |correlation| over lags 0..LAGS
 C_FAST = 9.                   # fast test: merge when the pairwise log BF exceeds this (D-9)
 OWN = 3                       # fast test (null 'own'): j's own last OWN values form the key
@@ -223,8 +225,15 @@ class Decomposer:
         self.cool = {}
         self.t = 0
         m = len(self.chans)
-        self.s1 = np.zeros(m)                 # running sums for correlations
-        self.s11 = np.zeros((LAGS + 1, m, m))  # cross products at lags 0..LAGS
+        self.discovery = None if fast or conj else NeighborBank(m, 2 * GROUP_WIDTH, seed + 113, False)
+        if self.discovery is None:
+            # Historical witnesses with dense conjunctive/fast experiments.
+            self.s1 = np.zeros(m)
+            self.s11 = np.zeros((LAGS + 1, m, m))
+        else:
+            shape = (LAGS + 1, m, self.discovery.width)
+            self.pair_s = np.zeros((5, *shape))  # n, source sum, target sum, cross, source square
+            self.pair_y2 = np.zeros(shape)
         self.cnt = 0
         self.hist = []
         self.merges = []                      # (t, channels) log
@@ -277,6 +286,10 @@ class Decomposer:
                 for c in lst:
                     c.learn(bool(yb[j]), self.base[j])
         self._stats(y)
+        if self.discovery is not None and not self.discovery.complete and self.t % len(self.chans) == 0:
+            rr, cc = self.discovery.rotate()
+            self.pair_s[:, :, rr, cc] = 0.
+            self.pair_y2[:, rr, cc] = 0.
         if self.conj and self.t % 50 == 0 and self.t >= 200:
             self._conj_manage()
         if self.fast:
@@ -287,12 +300,55 @@ class Decomposer:
     # ------------------------------------------------------------------ structure
     def _stats(self, y):
         z = np.asarray(y, float)[self.chans]
-        self.s1 += z
-        self.s11[0] += np.outer(z, z)
-        for lag, past in enumerate(reversed(self.hist), 1):
-            self.s11[lag] += np.outer(past, z)
+        if self.discovery is None:
+            self.s1 += z
+            self.s11[0] += np.outer(z, z)
+            for lag, past in enumerate(reversed(self.hist), 1):
+                self.s11[lag] += np.outer(past, z)
+        elif self.discovery.width:
+            src = self.discovery.source
+            yy = z[:, None]
+            samples = [z, *reversed(self.hist)]
+            xx = np.asarray(samples)[:, src]
+            n = len(samples)
+            self.pair_s[0, :n] += 1.
+            self.pair_s[1, :n] += xx
+            self.pair_s[2, :n] += yy
+            self.pair_s[3, :n] += xx * yy
+            self.pair_s[4, :n] += xx * xx
+            self.pair_y2[:n] += yy * yy
         self.hist = (self.hist + [z])[-LAGS:]
         self.cnt += 1
+
+    def _sparse_scores(self):
+        """Matched-exposure lag correlations; scheduling only, not merge evidence."""
+        n, sx, sy, sxy, sxx = self.pair_s
+        nn = np.maximum(1., n)
+        vx, vy = sxx - sx * sx / nn, self.pair_y2 - sy * sy / nn
+        cov = sxy - sx * sy / nn
+        corr = np.abs(cov) / np.sqrt(np.maximum(vx * vy, 1e-12))
+        return np.max(corr, axis=0)
+
+    def _sparse_pairs(self, busy):
+        owners = {ch: g for g in self.groups for ch in g.chans}
+        order = {g: i for i, g in enumerate(self.groups)}
+        groups = {g: tuple(g.chans) for g in self.groups}
+        scores = self._sparse_scores()
+        valid = {g for g in self.groups if not busy.intersection(g.chans)}
+        best = {}
+        for j, sources in enumerate(self.discovery.source):
+            dest = owners[self.chans[j]]
+            if dest not in valid:
+                continue
+            for i, p in enumerate(sources):
+                orig = owners[self.chans[p]]
+                if orig is dest or orig not in valid or len(orig.chans) + len(dest.chans) > GROUP_WIDTH:
+                    continue
+                left, right = (orig, dest) if order[orig] < order[dest] else (dest, orig)
+                key = groups[left], groups[right]
+                if self.cool.get(key, -1) <= self.t:
+                    best[key] = max(best.get(key, 0.), scores[j, i])
+        return best
 
     def _fast(self, x, y):
         """Update the pairwise KT evidence with the transition x -> y and merge the groups of
@@ -360,24 +416,23 @@ class Decomposer:
     def _propose(self, y):
         if len(self.cand) >= M:
             return
-        C = self._corr()
-        idx = {c: i for i, c in enumerate(self.chans)}
         busy = {ch for c in self.cand for ch in c["g1"] + c["g2"]}
-        scored = []
-        G = [tuple(g.chans) for g in self.groups]
-        for i in range(len(G)):
-            for j in range(i + 1, len(G)):
-                key = (G[i], G[j])
-                if set(G[i]) & busy or set(G[j]) & busy or self.cool.get(key, -1) > self.t:
-                    continue
-                s = max(C[idx[a], idx[b]] for a in G[i] for b in G[j])
-                scored.append((s, key))
-        scored.sort(reverse=True)
-        for s, (g1, g2) in scored:
-            if len(self.cand) >= M:
-                break
-            if set(g1) & busy or set(g2) & busy:
-                continue
+        if self.discovery is not None:
+            options = self._sparse_pairs(busy)
+        else:
+            C = self._corr()
+            idx = {c: i for i, c in enumerate(self.chans)}
+            G = [tuple(g.chans) for g in self.groups]
+            options = {}
+            for i, g1 in enumerate(G):
+                for g2 in G[i + 1:]:
+                    key = g1, g2
+                    if not busy.intersection(g1 + g2) and self.cool.get(key, -1) <= self.t:
+                        options[key] = max(C[idx[a], idx[b]] for a in g1 for b in g2)
+        # M is fixed. Linear selection beats sorting all sparse proposals.
+        while options and len(self.cand) < M:
+            g1, g2 = max(options, key=lambda k: (options[k], k))
+            options = {k: s for k, s in options.items() if not set(g1 + g2).intersection(k[0] + k[1])}
             sd = self.seed + 1000 + self.t
             c = dict(g1=g1, g2=g2, t=self.t, d=0.,
                      merged=GroupModel(sorted(g1 + g2), self.A, sd, windows=self.win),
@@ -430,6 +485,8 @@ class Decomposer:
             self.groups.append(c["merged"])
             self.merges.append((self.t, tuple(sorted(c["g1"] + c["g2"])), "slow"))
         else:
+            if self.discovery is not None and len(self.cool) >= M * (1 + COOL // 50):
+                self.cool.pop(next(iter(self.cool)))
             self.cool[(c["g1"], c["g2"])] = self.t + COOL
 
     def peek(self, x, a, ch):

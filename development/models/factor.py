@@ -15,8 +15,10 @@ import re
 
 import numpy as np
 
+from models.discovery import NeighborBank
 from models.latent_cause import H_GRID
-from models.kernels import factor_gaussian, factor_read, factor_update
+from models.kernels import (copy_ancestors, factor_gaussian, factor_read, factor_update,
+                            systematic_ancestry)
 
 C_REG = 1.           # concentration: regime cell -> pooled cell
 C_GLOB = 1.          # concentration: pooled cell -> sub-configurations
@@ -103,17 +105,18 @@ class FactorModel:
         # slots and screening (deterministic: outside the particles)
         self.slots = [[None] * k for _ in range(J)]              # (channel position, lag)
         L = len(self.lags)
-        self.f1 = np.zeros((J, L, J, 2, 2, 2))   # i, lag, j, x_j(t), x_i(t-lag), x_j(t+1)
-        self.f0 = np.zeros((J, 2, 2))
-        self._screen_grid = np.ogrid[:J, :J]
-        self.sev = np.zeros((J, L, J))
+        # Retained parent slots plus a separate, bounded exploration bank.
+        self.discovery = NeighborBank(J, 2 * k + 2, seed + 103)
+        width = self.discovery.width
         self._q = None
-        if cond:
-            self.ct = np.zeros((L, 1, J))
-            self.cx = np.zeros((L, J, 1))
-            self.cr = np.zeros((L, 1, J))
-            self.cxr = np.zeros((L, J, J))
-            self.cev = np.zeros((J, L, J))
+        self.ct = np.zeros((J, width, L))
+        self.cx = np.zeros_like(self.ct)
+        self.cr = np.zeros_like(self.ct)
+        self.cxr = np.zeros_like(self.ct)
+        self.cev = np.zeros_like(self.ct)
+        if not cond:
+            self.f1 = np.zeros((J, width, L, 2, 2, 2))
+            self.f0 = np.zeros((J, 2, 2))
         self.hist = []                           # past observations (bits), newest last
         self.t = 0
         self._memo = None
@@ -414,60 +417,79 @@ class FactorModel:
     def _screen(self, b, bn, hist):
         J = np.arange(self.J)
         xo, xn = b.astype(int), bn.astype(int)
+        src = self.discovery.source
         if not self.cond:
             c0 = self.f0[J, xo]
             p0 = (c0[J, xn] + .5) / (c0.sum(1) + 1.)
-            I, Jm = self._screen_grid
+            I, S = np.ogrid[:self.J, :self.discovery.width]
         residual = xn - self._q
         for li, d in enumerate(self.lags):
             if d > len(hist):
                 continue
-            xs = self._lag(b, d, hist).astype(int)
+            xs = self._lag(b, d, hist)[src]
             if self.cond:
-                self.ct[li] += 1.
-                self.cx[li, :, 0] += xs
-                self.cr[li, 0] += residual
-                self.cxr[li] += xs[:, None] * residual
-                ct, cx = self.ct[li], self.cx[li]
-                cov = self.cxr[li] - cx * self.cr[li] / ct
-                self.cev[:, li] = cov ** 2 / (1. + cx * (1. - cx / ct))
+                ct = self.ct[:, :, li]
+                cx = self.cx[:, :, li]
+                cr = self.cr[:, :, li]
+                ct += 1.
+                cx += xs
+                cr += residual[:, None]
+                self.cxr[:, :, li] += xs * residual[:, None]
+                cov = self.cxr[:, :, li] - cx * cr / ct
+                self.cev[:, :, li] = cov ** 2 / (1. + cx * (1. - cx / ct))
             else:
-                c1 = self.f1[I, li, Jm, xo[Jm], xs[I]]
-                p1 = (np.take_along_axis(c1, xn[Jm][..., None], -1)[..., 0] + .5) / (c1.sum(-1) + 1.)
-                self.sev[:, li, :] += np.log(p1) - np.log(p0)[None, :]
-                self.f1[I, li, Jm, xo[Jm], xs[I], xn[Jm]] += 1.
+                xs = xs.astype(int)
+                c1 = self.f1[I, S, li, xo[:, None], xs]
+                p1 = (np.take_along_axis(c1, xn[:, None, None], -1)[..., 0] + .5) / (c1.sum(-1) + 1.)
+                self.cev[:, :, li] += np.log(p1) - np.log(p0)[:, None]
+                self.f1[I, S, li, xo[:, None], xs, xn[:, None]] += 1.
         if not self.cond:
             self.f0[J, xo, xn] += 1.
 
     def _reslot(self):
+        if not self.discovery.width:
+            return
         base = len(self.own_lags) + self.A
         L = len(self.lags)
-        for j in range(self.J):
-            scores = self.cev if self.cond else self.sev
-            e = scores[:, :, j].copy()
-            for li, d in enumerate(self.lags):
-                if d in self.own_lags:
-                    e[j, li] = -np.inf
+        for j, sources in enumerate(self.discovery.source):
+            scores = self.cev[j]
+            e = scores.copy()
+            row = {i: q for q, i in enumerate(sources)}
+            if j in row:
+                for li, d in enumerate(self.lags):
+                    if d in self.own_lags:
+                        e[row[j], li] = -np.inf
             if self.cond:
-                # Each source is one candidate family, regardless of the number of lag copies.
-                e[self.slow] = -np.inf
+                e[self.slow[sources]] = -np.inf
             sl = self.slots[j]
+            vals = []
             for slot in sl:
-                if slot is not None:
-                    i, d = slot
-                    if self.cond:
-                        e[i] = -np.inf
-                    else:
-                        e[i, self.lags.index(d)] = -np.inf
+                if slot is None:
+                    vals.append(-np.inf)
+                    continue
+                i, d = slot
+                li = self.lags.index(d)
+                q = row[i]
+                vals.append(scores[q, li])
+                if self.cond:
+                    e[q] = -np.inf
+                else:
+                    e[q, li] = -np.inf
             bi, bl = divmod(int(np.argmax(e)), L)
-            best = e[bi, bl]
             margin = .25 if self.cond else SWAP
-            vals = [scores[i, self.lags.index(d), j] if slot is not None else -np.inf
-                    for slot in sl for i, d in [slot or (0, 0)]]
             p = int(np.argmin(vals))
-            if best > margin and best > vals[p] + margin:
-                sl[p] = (bi, self.lags[bl])
+            if e[bi, bl] > margin and e[bi, bl] > vals[p] + margin:
+                sl[p] = (int(sources[bi]), self.lags[bl])
                 self._reset_pos(j, base + p)
+        # A traversal is the exposure budget, not a time-dependent model switch.
+        # Keep each challenger for one traversal interval before recycling a column.
+        if not self.discovery.complete and self.t % self.J == 0:
+            pinned = np.array([[slot[0] if slot else -1 for slot in row] for row in self.slots])
+            rr, cc = self.discovery.rotate(pinned)
+            for table in (self.ct, self.cx, self.cr, self.cxr, self.cev):
+                table[rr, cc] = 0.
+            if not self.cond:
+                self.f1[rr, cc] = 0.
 
     def _reset_pos(self, j, pos):
         for i, s in enumerate(self.sets):
@@ -495,9 +517,15 @@ class FactorModel:
         w /= w.sum()
         if 1. / (w ** 2).sum() >= self.N / 2:
             return
-        u = (self.rng.random() + np.arange(self.N)) / self.N
-        idx = np.minimum(np.searchsorted(np.cumsum(w), u), self.N - 1)
-        for nm in ("q1", "q0", "ev", "_E", "mu", "Sg", "hz", "mz", "used", "z", "rate1", "rate0"):
-            setattr(self, nm, getattr(self, nm)[idx].copy())
+        idx = systematic_ancestry(w, self.rng.random())
+        live = int(self.used.max())
+        # An unused row has never been scored; resetting a parent slot preserves
+        # its initial counts, evidence and covariance. Every ancestor beyond the
+        # previous maximum therefore has identical contents.
+        for bank in (self.q1, self.q0, self.ev, self._E, self.mu, self.Sg,
+                     self.mz, self.rate1, self.rate0):
+            copy_ancestors(bank.reshape(self.N, self.K, -1), idx, live)
+        for nm in ("hz", "used", "z"):
+            setattr(self, nm, getattr(self, nm)[idx])
         self.places = {p: (t, z[idx], n[idx]) for p, (t, z, n) in self.places.items()}
         self.logw = np.zeros(self.N)

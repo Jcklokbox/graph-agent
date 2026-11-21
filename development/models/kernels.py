@@ -195,3 +195,38 @@ def factor_gaussian(mu, cov, shared, shared_cov, v, center, sampled, y, fast, no
                 W[p] += g * err
                 for q in range(d):
                     V[p, q] -= g * sv[q]
+
+
+@njit(cache=True)
+def systematic_ancestry(w, offset):
+    """Ordered ancestors in one CDF pass (the left inverse at exact ties)."""
+    n = len(w)
+    idx = np.empty(n, np.int64)
+    i, c = 0, w[0]
+    for d in range(n):
+        u = (offset + d) / n
+        while i < n - 1 and c < u:
+            i += 1
+            c += w[i]
+        idx[d] = i
+    return idx
+
+
+@njit(cache=True)
+def copy_ancestors(bank, idx, live):
+    """Gather ordered ancestors in place, skipping identity and pristine tails.
+
+    If idx[d] > d, that source cannot need a left-ancestor copy (monotonicity);
+    read it before its right-ancestor copy. The reverse order handles the other
+    direction. Layout is [particle, regime, contiguous statistics].
+    """
+    for d in range(len(idx)):
+        s = idx[d]
+        if s > d:
+            for z in range(live):
+                bank[d, z, :] = bank[s, z, :]
+    for d in range(len(idx) - 1, -1, -1):
+        s = idx[d]
+        if s < d:
+            for z in range(live):
+                bank[d, z, :] = bank[s, z, :]
