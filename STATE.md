@@ -30,3 +30,5 @@ During an authorized run, keep the original clock and 220+20 call budget. Use th
 - Guards (seeds 0,6): aut 0.6075/0.6100, dist 0.5700/0.5705, aut-noise4 0.6075/0.6075, dist-noise2 0.5697/0.5703, aut-serial300 0.6100/0.6100, dist-noise2-sticky 0.5698/0.5680, aut-fooddelay2 0.5900/0.5925 — bit-identical to v48 and v44 on every cell.
 
 **Checks.** Scaling: registered C = sec(s-4x3)/sec(s-2x3) at N200/360 steps — v50 2.02919 (same box v48 2.04389; stored D111 v48 row 1.78443) ≤ 2.50. Controller isolation: `tests.test_factor_control` + `tests.test_factor_reward` = 15/15 OK. Predictor guards: `tests.test_factor` 7/7 OK; `parity_3b.py` fails identically (max abs 0.5209722818109068) with and without v50 on a clean stash — pre-existing in this sandbox (numpy 2.4.6), not caused by v50, which does not touch `FactorModel`. No formal gate rows run; no unseen seeds spent.
+
+**Freeze (D-114):** v50 frozen at commit `9f2b374cb0139a49a73e29e225b17a4d16ec8ff9` on `arena/126fc4e1-graph-agent`.
