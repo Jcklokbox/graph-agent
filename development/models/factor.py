@@ -151,6 +151,65 @@ class FactorModel:
         self.t = 0
         self._memo = None
         self.births = 0
+        self.reward = None
+        self.reward_successor = False
+        self.action_roles = None
+        self.reward_hybrid = False
+        self.reward_control = False
+        self.reward_phase = False
+        self.reward_optimistic = False
+        self.reward_event = False
+
+    def attach_reward(self, diagonal=False, successor=False, action_roles=False, hybrid=False, controlled=False, phase=False, exception=False, optimistic=False, event=False):
+        from models.factor_reward import BoundedReward, CausalReward, DiagonalReward, EventReward, ExceptionReward, HybridReward, OptimisticReward, OutcomeReward, PhaseReward
+        if self.reward is not None:
+            raise RuntimeError('reward member already attached')
+        cls = DiagonalReward if diagonal else BoundedReward
+        phase = phase or exception or optimistic or event
+        self.reward_successor = successor or hybrid or controlled or phase
+        self.reward_hybrid = hybrid
+        self.reward_control = controlled or phase
+        self.reward_phase = phase
+        self.reward_optimistic = optimistic
+        self.reward_event = event
+        self.reward = (EventReward(self.J,self.A,self.D) if event else
+                       OptimisticReward(self.J,self.A,self.D) if optimistic else
+                       ExceptionReward(self.J,self.A,self.D) if exception else
+                       PhaseReward(self.J,self.A,self.D) if phase else
+                       CausalReward(self.J,self.A,self.D) if controlled else
+                       HybridReward(self.J,self.A,self.D) if hybrid else
+                       OutcomeReward(self.J) if successor else cls(self.J,self.A,self.D))
+        if action_roles:
+            self.action_roles = np.zeros((self.J,self.A,2))
+            self._action_role_score = np.zeros(self.J)
+            self._action_past = None
+
+    def two_step_values(self, x, uniforms, theta=None):
+        """Action values from the factor's own sensory and real-reward members."""
+        if self.reward is None:
+            raise RuntimeError('real reward member not attached')
+        if self.reward_event:
+            from models.factor_rollout import event_values
+            return event_values(self,x,uniforms)
+        if self.reward_optimistic:
+            from models.factor_rollout import optimistic_values
+            return optimistic_values(self,x,uniforms)
+        if self.reward_phase:
+            from models.factor_rollout import phase_values
+            return phase_values(self,x,uniforms,theta)
+        if self.reward_successor:
+            from models.factor_rollout import outcome_values
+            return outcome_values(self,x,uniforms,theta)
+        from models.factor_projection import factor_current
+        from models.factor_reward import conditional_draws
+        b=self._bits(x)
+        quiet = not b[~self.slow].any()
+        out=np.empty(self.A)
+        for a,(w,q,slow_p,_) in enumerate(factor_current(self,x)):
+            y=conditional_draws(w,q,self.slow,slow_p,quiet,uniforms)
+            root=self.reward.root(b,self.hist,a,theta)
+            out[a]=self.reward.utility(root,a,y,b,self.hist,theta)
+        return out
 
     @property
     def slots(self):
@@ -252,7 +311,15 @@ class FactorModel:
             self._phasic_log[idx] += np.log((ct[np.arange(len(idx)), on.astype(int)] + 1.)
                                            / (ct.sum(1) + 2.))
             self._on_counts[idx, on.astype(int)] += 1.
-            self.slow = tonic_log_odds(self._role_log, self._phasic_log) > 0.
+            null = self._phasic_log
+            if self.action_roles is not None and self._action_past is not None:
+                a = self._action_past
+                c = self.action_roles[idx,a]
+                self._action_role_score[idx] += np.log((c[np.arange(len(idx)),on.astype(int)] + 1.)
+                                                        / (c.sum(1) + 2.))
+                self.action_roles[idx,a,on.astype(int)] += 1.
+                null = np.logaddexp(null,self._action_role_score) - np.log(2.)
+            self.slow = tonic_log_odds(self._role_log,null) > 0.
         self.last_bits = now
         return self._signature(b)
 
@@ -384,11 +451,20 @@ class FactorModel:
     def learn(self, x, a, y):
         N, ar = self.N, np.arange(self.N)
         b, bn = self._bits(x), self._bits(y)
+        if self.reward is not None:
+            if self.reward_hybrid or self.reward_control:
+                self.reward.learn_joint(b,self.hist,a,y[self.v],bn)
+            elif self.reward_successor:
+                self.reward.learn(bn,(),0,y[self.v])
+            else:
+                self.reward.learn(b,self.hist,a,y[self.v])
         yb = bn > .5
         kk = min(self.K, int(self.used.max()) + 1)
         key = (b.tobytes(), a)
         roles = self.slow.copy()
         place = self._observe_place(b)
+        if self.action_roles is not None:
+            self._action_past = a
         changed = self.slow & ~roles
         if changed.any():
             stale = (self._slot_src >= 0) & changed[np.maximum(0,self._slot_src)]

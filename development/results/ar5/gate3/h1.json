@@ -1,0 +1,69 @@
+{
+  "pass_rows": [
+    "inhibitor-alone",
+    "latent-inhibition",
+    "negative-patterning",
+    "overexpectation",
+    "overshadowing",
+    "renewal-AAB"
+  ],
+  "rev_rows": [],
+  "rows": {
+    "inhibitor-alone": {
+      "hi": 0.6829305147182743,
+      "lo": 0.40448409554864906,
+      "mean": 0.5437073051334617,
+      "n": 16,
+      "sd": 0.2612741740783272,
+      "status": "PASS",
+      "threshold": 0.05
+    },
+    "latent-inhibition": {
+      "hi": 0.7940540129956,
+      "lo": 0.7844890521781769,
+      "mean": 0.7892715325868884,
+      "n": 16,
+      "sd": 0.008975074073915044,
+      "status": "PASS",
+      "threshold": 0.05
+    },
+    "negative-patterning": {
+      "hi": 1.0116481451899269,
+      "lo": 0.9351249729795569,
+      "mean": 0.9733865590847419,
+      "n": 16,
+      "sd": 0.0718038632952873,
+      "status": "PASS",
+      "threshold": 0.05
+    },
+    "overexpectation": {
+      "hi": 0.0745804583203137,
+      "lo": 0.05179658959362603,
+      "mean": 0.06318852395696986,
+      "n": 16,
+      "sd": 0.021378750359321276,
+      "status": "PASS",
+      "threshold": 0.05
+    },
+    "overshadowing": {
+      "hi": 0.3415901655488026,
+      "lo": 0.32827205787797087,
+      "mean": 0.33493111171338674,
+      "n": 16,
+      "sd": 0.012496758235784843,
+      "status": "PASS",
+      "threshold": 0.05
+    },
+    "renewal-AAB": {
+      "hi": 0.2339197053856166,
+      "lo": 0.20184656183160735,
+      "mean": 0.21788313360861197,
+      "n": 16,
+      "sd": 0.030095140448060477,
+      "status": "PASS",
+      "threshold": 0.05
+    }
+  },
+  "status": "PASS",
+  "tuples": 160
+}
