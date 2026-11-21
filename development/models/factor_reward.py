@@ -612,6 +612,14 @@ class RetractableEventReward(EventReward):
         # charge below grows with the number of candidate sensors.
         separated=np.max(p.max(1)-p.min(1),axis=1)
         good=(separated>.5)&(self.evidence>np.log1p(self.J))
+        if getattr(self,'controlled_dwell',False):
+            # Scope models sustained actuators; a successor conditioned on a
+            # chosen approach is not thereby a controllable place. Require
+            # both entry/exit evidence and witnessed action-sensitive dwell.
+            stay=p[:,:,1]
+            good&=(stay.max(1)-stay.min(1)>.5)
+        if hasattr(self,'known_mode_roles'):
+            good|=self.known_mode_roles
         old=self.slots.copy()
         self.slots[~good[np.maximum(0,self.slots)]]=-1
         score=np.where(good,self.evidence,-np.inf);score[self.slots[self.slots>=0]]=-np.inf
@@ -643,7 +651,11 @@ class RetractableEventReward(EventReward):
         if self._observe_mark(b,a,bn):
             for z in self.type_count,self.type_sum,self.on,self.evidence_type,self.control_mass,self.trans,self.trans_total,self.onset:
                 z.fill(0.)
-            for r in self.replay:self._record(*r)
+            self._replaying=True
+            try:
+                for r in self.replay:self._record(*r)
+            finally:
+                self._replaying=False
         else:
             self._record(*self.replay[-1])
 
@@ -709,3 +721,40 @@ class ProvisionalEventReward(RetractableEventReward):
         prior/=prior.sum()
         p=self.trans+prior
         return p/p.sum(-1,keepdims=True)
+
+
+class ElapsedEventReward(ProvisionalEventReward):
+    """Do not trade reward for novelty that has not yet been observed."""
+    elapsed_only=True
+
+    def all_transitions(self):
+        valid=(self.ci & int(self.binary[self.slots<0].sum()))==0
+        seen=(self.control_mass>0)&valid
+        rest=valid&~seen
+        prior=np.zeros(self.C)
+        if seen.any():
+            prior[seen]=1./seen.sum()
+            if rest.any():
+                # A learned state dictionary may expand; residual mass is
+                # limited by how often an actually new state could still arise.
+                mass=1./(1.+self.control_mass.sum())
+                prior[seen]*=1.-mass;prior[rest]=mass/rest.sum()
+        else:
+            prior[valid]=1./valid.sum()
+        p=self.trans+prior
+        return p/p.sum(-1,keepdims=True)
+
+    def provisional(self,rule):
+        n=self.onset; m=(self.onset_reward+.5)/(1.+n)
+        v=np.maximum(0.,(self.onset_square+1./3)/(1.+n)-m*m)
+        eligible=~np.tile(np.isin(np.arange(self.J),self.slots),self.L)
+        strength=np.tile(self.onset_total/(.5+self.past_on),self.L)
+        rarity=1.-(.5+self.present)/(1.+self.total)
+        plausibility=strength*rarity*eligible
+        base=rule[5][:,None]
+        # When a cause is poorly tested, pull towards the contextual hypothesis
+        # in proportion to the transient-role probability, not mere activation.
+        local=base+plausibility*(m-base)
+        upper=local+plausibility*(1.-m)/np.sqrt(1.+n)
+        upper*=~rule[1].any(1)[:,None]
+        return upper,v

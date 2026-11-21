@@ -81,3 +81,41 @@ def factor_current(f,x):
         local,_=f._conditional(mem,kk,place,quiet)
         mix=local if pp is None else f.expert*local+(1.-f.expert)*pp[a]
         yield w,mix,slow_p,local
+
+
+def finite_marginal(w, q, slow, slow_p, quiet, indices):
+    """Exact low-dimensional marginal of the deployed joint clock law.
+
+    Caller bounds `indices`. Omitting fast channels changes the zero-observation
+    branch: subtract the full fast-null component from the restricted fast-null
+    pattern before putting back the shared clock's zero mass.
+    """
+    indices=np.asarray(indices,int)
+    n=len(indices)
+    patterns=(np.arange(2**n)[:,None]&(1<<np.arange(n)))!=0
+    weights=w.reshape(-1);weights=weights/weights.sum()
+    flat=q.reshape(-1,len(slow));fast=~slow
+    retained_fast=~slow[indices]
+    fast_idx=indices[retained_fast]
+    slow_idx=indices[~retained_fast]
+    fpattern=patterns[:,retained_fast]
+    p=flat[:,fast_idx]
+    z=np.prod(np.where(fpattern[:,None,:],p,1.-p),axis=2)
+    if quiet and fast.any() and len(fast_idx):
+        omitted=fast.copy();omitted[fast_idx]=False
+        with np.errstate(divide='ignore'):
+            log_idle=np.log1p(-flat[:,fast]).sum(1)
+            log_idle_omitted=np.log1p(-flat[:,omitted]).sum(1)
+        event=-np.expm1(log_idle)
+        quiet_mass=weights@np.exp(log_idle)
+        zero=~fpattern.any(1)
+        z[zero]*=-np.expm1(log_idle_omitted)
+        # Per-member conditioning happens before mixing, just as in sampler.
+        condition=np.divide(z,event,out=np.zeros_like(z),where=event>0.)
+        mass=condition@weights*(weights@event)+zero*quiet_mass
+    else:
+        mass=z@weights
+    if len(slow_idx):
+        r=np.zeros(len(slow));r[slow]=slow_p
+        mass*=np.prod(np.where(patterns[:,~retained_fast],r[slow_idx],1.-r[slow_idx]),axis=1)
+    return patterns,mass/mass.sum()

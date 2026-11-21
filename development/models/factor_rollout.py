@@ -2,7 +2,7 @@
 from __future__ import annotations
 import numpy as np
 
-from models.factor_projection import factor_current, scratch_lik, scratch_params, window_marg
+from models.factor_projection import factor_current, finite_marginal, scratch_lik, scratch_params, window_marg
 from models.factor_reward import conditional_draws
 
 
@@ -199,6 +199,7 @@ def provisional_values(f,x,uniforms,optimistic=True):
     that atom, and the transition factor, remain frozen during this lookahead.
     """
     head=f.reward; b=f._bits(x); input0=head.input(b,f.hist)[1:]
+    motion_optimism=optimistic and getattr(head,'motion_optimism',False)
     rule=head.rule(); atoms=rule[3]; trans=head.all_transitions();code=int(head.code(b))
     r,p,_,_=head.likelihood(rule,input0[None,:]); r,p=r[0],p[0]
     incumbent=r.copy()
@@ -206,29 +207,58 @@ def provisional_values(f,x,uniforms,optimistic=True):
         bound,_=head.provisional(rule)
         incumbent=np.maximum(r,(bound*head.phase(b,f.hist)).max(1))
     active=head.slots>=0; cols=head.slots[active]
-    marks=(head.ci[:,None]&head.binary[active])!=0
+    states=np.flatnonzero(np.any(trans[:,code,:]>0.,axis=0)) if getattr(head,'sparse_outcomes',False) else head.ci
+    marks=(states[:,None]&head.binary[active])!=0
     scores=np.zeros(f.A); sensory=uniforms[:,:f.J+3]
     hist=(*f.hist,b)
     tail=head.input(b,hist)[1+f.J:]
     tailphase=head.phase(b,hist)[f.J:]
     quiet=not b[~f.slow].any()
-    for a,(w,mix,slow_p,_) in enumerate(factor_current(f,x)):
-        y=conditional_draws(w,mix,f.slow,slow_p,quiet,sensory)
+    relevant=None
+    if getattr(head,'factored_projection',False):
+        known=rule[0][rule[1]]
+        relevant=np.unique(known[known<f.J])
+    if relevant is not None and len(relevant)==0:
+        laws=[None]*f.A
+    else:
+        laws=factor_current(f,x)
+    for a,law in enumerate(laws):
+        if law is None:
+            y=np.zeros((1,f.J)); branch_mass=np.ones(1)
+        else:
+            w,mix,slow_p,_=law
+            if relevant is not None and len(relevant)<=3:
+                parts,branch_mass=finite_marginal(w,mix,f.slow,slow_p,quiet,relevant)
+                y=np.zeros((len(parts),f.J));y[:,relevant]=parts
+            else:
+                y=conditional_draws(w,mix,f.slow,slow_p,quiet,sensory)
+                branch_mass=np.full(len(y),1./len(y))
         # Branch index is (residual sensory draw, controlled outcome).
-        by=np.repeat(y,head.C,axis=0)
+        by=np.repeat(y,len(states),axis=0)
         by[:,cols]=np.tile(marks,(len(y),1))
         feature=np.column_stack((by,np.broadcast_to(tail,(len(by),len(tail))))).astype(bool)
         m2,_,l2,z2=head.likelihood(rule,feature)
         cont=m2.copy()
         if optimistic:
-            onset=(by>.5)&~(b>.5); phase=np.column_stack((onset,np.broadcast_to(tailphase,(len(by),len(tailphase)))))
+            onset=(by>.5)&~(b>.5)
+            if getattr(head,'elapsed_only',False):
+                onset.fill(False)  # no prospective novelty credit for unseen triggers
+            phase=np.column_stack((onset,np.broadcast_to(tailphase,(len(by),len(tailphase)))))
             cont=np.maximum(cont,np.max(phase[:,None,:]*bound,axis=-1))
-        c=np.tile(head.ci,len(y));idx=np.arange(len(c)); motion=trans[:,c,:].transpose(1,0,2)
+        c=np.tile(states,len(y));idx=np.arange(len(c)); motion=trans[:,c,:].transpose(1,0,2)
         # Only reward type of the arrived state is updated by the real atom.
         # Atoms retain continuous representative utility (no Bernoulli cast).
         delta=l2[idx,c,:]/(z2[idx,c,None]+l2[idx,c,:])*(atoms[c]-m2[idx,c,None])
         q=np.einsum('baj,bj->ba',motion,cont)
+        if motion_optimism:
+            legal=head.control_mass>0.
+            peak=np.max(np.where(legal,cont,-np.inf),axis=1) if legal.any() else cont.max(1)
+            q+=(peak[:,None]-q)/(2.+head.trans_total[:,c].T)
         correction=motion[idx,:,c,None]*delta[:,None,:]
-        gain=(np.clip(q[:,:,None]+correction,0.,1.).max(1)*p[c]).sum(1).reshape(len(y),head.C).mean(0)
-        scores[a]=trans[a,code]@(incumbent+gain)
+        gain=branch_mass@(np.clip(q[:,:,None]+correction,0.,1.).max(1)*p[c]).sum(1).reshape(len(y),len(states))
+        values=incumbent[states]+gain
+        scores[a]=trans[a,code,states]@values
+        if motion_optimism:
+            peak=values[legal[states]].max() if legal[states].any() else values.max()
+            scores[a]+=(peak-scores[a])/(2.+head.trans_total[a,code])
     return scores
