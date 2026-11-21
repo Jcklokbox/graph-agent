@@ -63,3 +63,40 @@ latest gate start is **2026-11-21T13:46:38+00:00** (`1795268798.582`); gate dead
 episode. No independent fresh reference cache, no shortened or retried stage.
 
 AR7-04 was dispatched on the registered tree at `2026-11-21T11:48:29.491+00:00` UTC. No interim payoff comparisons are used.
+
+## Verdict: PASS; 3b-2 accepted
+
+Frozen v60 scored 0.929898 vs v12 0.880181; paired
+mean difference **+0.049716**, two-sided 99% CI
+**[+0.002288, +0.097145]**. The lower bound exceeds
+the registered -0.02 margin. There were 20/20 episodes per model in every
+one of the 15 cells, 600/600 verified episodes, 300/300 verified pairs, and
+60/60 full stages. No watchdog failure, dropped row, retry, or shortened
+stage. Largest gains are in late-food and delayed-noisy distal cells; serial
+and some distal cells still regress. This is not uniform superiority or T4.
+
+| Actual gate stages | Mean s | Max s | Registered cap s |
+| --- | ---: | ---: | ---: |
+| v12 (30 × 10) | 130.755 | 138.241 | 167 |
+| v60 (30 × 10) | 60.860 | 65.262 | 97 |
+
+The frozen auditor reproduces the verdict JSON byte-for-byte; an independent
+recalculation reproduces the paired interval. Exact D65 replay, all 15
+registered isolation cases, and full-step scaling ran and passed before the
+gate. Native suite: 129 passed and one snapshot-only skip, which passed
+separately with its unchanged external reference. The 740 historical D65
+episodes were not rerun. No fresh T4 or external transfer check was run.
+The historical v12 tables remain reproducible as a comparator; v60 does
+not import or call them.
+
+AR-7 closed at 8090.5 of 18,000 s through the close audit (about
+64 calls counted, including an uncertain pre-compaction subtotal; 65
+harness charges). The timestamped wrapper journal measures 0.968 s
+of non-wait administration (0.0120%); the initial failed
+init has a separate 0.228 s tool-wall upper bound. Explicit
+waits occupied 7401.4 s (91.48%) after
+merging overlapping wait spans; they are observation time overlapping active
+workers, not administrative compute.
+
+**Next run:** preregister blind T4 with serial reversals and delayed distal
+combinations that stress the observed weak cells.

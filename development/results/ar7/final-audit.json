@@ -1,0 +1,43 @@
+{
+  "baseline_diff_empty": true,
+  "candidate": "d2c4031bf14b236114e46009cd73fadb7a26f56c",
+  "dev_byte_exact": true,
+  "distinct_episodes": 600,
+  "external_reference_test": "PASS",
+  "gate": "PASS",
+  "independent_ci": [
+    0.0022875796081399877,
+    0.09714530099437546
+  ],
+  "native_snapshot": {
+    "pass": 129,
+    "run": 130,
+    "skip": 1
+  },
+  "pairs": 300,
+  "sha256": {
+    "DEV.json": "5fd812d7c57acf9afc871ed507bf6496089c661f8bea528d65dd0f984da4a004",
+    "episodes.jsonl": "210c3696a9342543df612506704ba2869fc2f61d5afd54ccfae355a96db5167e",
+    "freeze.json": "27cefe087713f2916e8bf9fa0db3d03eb6dc779bfe90f143e379223dbc6b770d",
+    "stages.jsonl": "a2b213c359f39e2042c363574155c9d8480fb16a3b92e9bf08247c8dc8588d7b"
+  },
+  "stages": {
+    "v12": {
+      "cap": 167,
+      "max": 138.24069444999986,
+      "mean": 130.75515315190017,
+      "min": 121.69993040400004,
+      "n": 30,
+      "total": 3922.654594557005
+    },
+    "v60": {
+      "cap": 97,
+      "max": 65.26156065000032,
+      "mean": 60.860383792700304,
+      "min": 56.02536771200175,
+      "n": 30,
+      "total": 1825.8115137810091
+    }
+  },
+  "tree": "6ba39c831f35"
+}
