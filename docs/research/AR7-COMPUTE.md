@@ -46,3 +46,13 @@ add the selected model to both actual-agent isolation cases (no-legacy under
 poison imports, and nonmutating deterministic planning). Candidate full
 act+learn process scaling is the registered warm N200 width pair; do not
 substitute an isolated update ratio for it.
+
+Observed in AR7-01 (8 episodes per row, exposed seeds 6/13, same four
+variants and warm cache): v59 took 124.064 s at one worker and 59.273 s at
+two (2.093×); v12 took 258.332 s and 136.158 s (1.897×). Non-timing outputs
+match across worker counts for all 16 pairs. Guest topology reports CPUs
+0 and 1 as siblings, but it did not predict measured throughput, and the
+v59 result above 2× is not a claim about physical parallelism (one pack per
+setting, run order and speed drift not controlled by replication). Use two
+workers, one numerical thread apiece, no other sustained jobs during timed
+stages. See `development/results/ar7/worker-cost.tsv` and raw receipts.

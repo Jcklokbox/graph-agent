@@ -1,0 +1,14 @@
+{"k":["6ba39c831f35",2,"v60|DEV|canc"],"m":{"brain":0.5375,"late_shocks":0.005,"oracle":0.54,"sec":11.13438868522644,"shocks":0.02,"stay":0.5}}
+{"k":["6ba39c831f35",2,"v60|DEV|canc-noise3"],"m":{"brain":0.535,"late_shocks":0.01,"oracle":0.54,"sec":13.764906406402588,"shocks":0.07,"stay":0.5}}
+{"k":["6ba39c831f35",6,"v60|DEV|canc"],"m":{"brain":0.5525,"late_shocks":0.005,"oracle":0.555,"sec":11.20856761932373,"shocks":0.06666666666666667,"stay":0.5}}
+{"k":["6ba39c831f35",6,"v60|DEV|canc-noise3"],"m":{"brain":0.545,"late_shocks":0.02,"oracle":0.555,"sec":12.723893404006958,"shocks":0.08333333333333333,"stay":0.5}}
+{"k":["6ba39c831f35",7,"v60|DEV|canc"],"m":{"brain":0.5575,"late_shocks":0.005,"oracle":0.56,"sec":12.0914945602417,"shocks":0.06666666666666667,"stay":0.5}}
+{"k":["6ba39c831f35",7,"v60|DEV|canc-noise3"],"m":{"brain":0.555,"late_shocks":0.01,"oracle":0.56,"sec":13.12834358215332,"shocks":0.07333333333333333,"stay":0.5}}
+{"k":["6ba39c831f35",8,"v60|DEV|canc"],"m":{"brain":0.5625,"late_shocks":0.005,"oracle":0.565,"sec":11.613629341125488,"shocks":0.056666666666666664,"stay":0.5}}
+{"k":["6ba39c831f35",8,"v60|DEV|canc-noise3"],"m":{"brain":0.5575,"late_shocks":0.015,"oracle":0.565,"sec":12.5684175491333,"shocks":0.06333333333333334,"stay":0.5}}
+{"k":["6ba39c831f35",12,"v60|DEV|canc"],"m":{"brain":0.555,"late_shocks":0.0,"oracle":0.555,"sec":11.516661167144775,"shocks":0.06666666666666667,"stay":0.5}}
+{"k":["6ba39c831f35",12,"v60|DEV|canc-noise3"],"m":{"brain":0.55,"late_shocks":0.01,"oracle":0.555,"sec":13.937757730484009,"shocks":0.06666666666666667,"stay":0.5}}
+{"k":["6ba39c831f35",13,"v60|DEV|canc"],"m":{"brain":0.545,"late_shocks":0.005,"oracle":0.5475,"sec":10.477537155151367,"shocks":0.06333333333333334,"stay":0.5}}
+{"k":["6ba39c831f35",15,"v60|DEV|canc"],"m":{"brain":0.5425,"late_shocks":0.005,"oracle":0.545,"sec":9.788815021514893,"shocks":0.021666666666666667,"stay":0.5}}
+{"k":["6ba39c831f35",13,"v60|DEV|canc-noise3"],"m":{"brain":0.5475,"late_shocks":0.0,"oracle":0.5475,"sec":12.575016021728516,"shocks":0.06,"stay":0.5}}
+{"k":["6ba39c831f35",15,"v60|DEV|canc-noise3"],"m":{"brain":0.54,"late_shocks":0.01,"oracle":0.545,"sec":12.921968936920166,"shocks":0.08,"stay":0.5}}
