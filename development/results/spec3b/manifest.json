@@ -1,0 +1,27 @@
+{
+  "spec": "SPEC-3b / Gate 3b-1",
+  "kernel": {
+    "base_tree": "98008dfd0fd6",
+    "checkpoint": "806c933",
+    "timing_tree": "ebebb7d68efd",
+    "workload": "T2 v1 savings/one, seed 0, CPU seconds, one BLAS thread, NumPy 2.4.6",
+    "reference_n200_seconds": 9.115112046,
+    "batched_n200_seconds": 4.56,
+    "batched_n25_seconds": 1.58,
+    "parity": {"particle_seed": 0, "stream_seed": 42, "transitions": 260, "n_particles": 200, "max_abs": 0.0}
+  },
+  "frozen_tree": "cf38b91bb916",
+  "model_commit": "16cd37a",
+  "agent": "factor-L4-P-C",
+  "screen": {"seeds": [0, 1, 2, 3], "n_particles": 25, "futility_z": -3.7328},
+  "s2": {
+    "n_particles": 200,
+    "alpha": 0.05,
+    "correction": null,
+    "A": {"set": "v1", "seeds": [0, 15], "rows": 10},
+    "B": {"sets": ["v1", "d2", "d3"], "seeds": [0, 5], "steps": [2000, 4000, 4000]},
+    "C": {"set": "dscale", "worlds": ["s-2x3", "s-4x3"], "seeds": [0, 0], "steps": 600},
+    "D": {"sets": ["h1", "h2"], "seeds": [0, 15], "budget_condition": "only if the complete manifest fits before the stage deadline"}
+  },
+  "seed_pairs_are_inclusive_ranges": "s2 only; screen lists individual seed IDs"
+}

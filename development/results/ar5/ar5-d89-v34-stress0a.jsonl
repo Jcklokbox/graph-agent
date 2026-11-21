@@ -1,0 +1,5 @@
+{"k":["6540262fe269",0,"v34|DEV|aut-half"],"m":{"brain":0.2975,"late_shocks":0.0,"oracle":0.30375,"sec":24.96309733390808,"shocks":0.08166666666666667,"stay":0.25}}
+{"k":["6540262fe269",0,"v34|DEV|aut-noise4"],"m":{"brain":0.6075,"late_shocks":0.0,"oracle":0.6075,"sec":15.038910150527954,"shocks":0.043333333333333335,"stay":0.5}}
+{"k":["6540262fe269",0,"v34|DEV|aut-serial300"],"m":{"brain":0.48625,"late_shocks":0.065,"oracle":0.6116666666666667,"sec":33.896790504455566,"shocks":0.07133333333333333,"stay":0.5}}
+{"k":["6540262fe269",0,"v34|DEV|aut-noise4-sticky"],"m":{"brain":0.59,"late_shocks":0.01,"oracle":0.6075,"sec":46.840980052948,"shocks":0.05,"stay":0.5}}
+{"k":["6540262fe269",0,"v34|DEV|canc-noise3"],"m":{"brain":0.5625,"late_shocks":0.01,"oracle":0.5675,"sec":28.344501972198486,"shocks":0.08,"stay":0.5}}

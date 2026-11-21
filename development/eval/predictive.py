@@ -25,7 +25,6 @@ the T1 worlds). Reference predictors: `marginal` (running base rates) and
 """
 from __future__ import annotations
 
-import re
 import json
 import sys
 import time
@@ -202,15 +201,9 @@ def make(name, n, A, v, seed, world=None):
         return BASELINES[name](n, A, v, seed)
     if name.startswith("hmm"):
         return _probe(name)(n, A, v, seed)
-    if name.startswith("factor"):           # 3b-1 predictor; factor-L<D>: lags 0..D (F2)
-        from models.factor import FactorModel
-        bad = [t for t in name.split("-")[1:] if not re.fullmatch(r"L\d+|N\d+|P|C", t)]
-        if bad:                                # removed/unknown flags must not run silently
-            raise ValueError(f"unknown factor flags {bad} in {name}")
-        D = next((int(p[1:]) for p in name.split("-")[1:] if p.startswith("L")), 0)
-        return FactorModel(n, A, v, seed, lags=tuple(range(D + 1)),
-                           own_lags=tuple(range(min(D, 2) + 1)), k=5 if D else 4,
-                           process="-P" in name, cond="-C" in name)
+    if name.startswith("factor"):
+        from models.factor import make_factor
+        return make_factor(name, n, A, v, seed)
     return StepLearnAdapter(agents.load(name), n, A, v, seed)
 
 

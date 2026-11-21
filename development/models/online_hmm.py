@@ -40,6 +40,7 @@ class OnlineHMM:
         self.b = None
         self.buf = []          # (alpha_prev, action, y) of the last L+1 transitions
         self.exclude = list(exclude)
+        self._lc = {}          # current-emission likelihoods for binary observations
 
     # ------------------------------------------------------------ parameters
     def T(self, a):
@@ -60,11 +61,22 @@ class OnlineHMM:
         return e
 
     def _lik(self, y, E):
-        y = np.asarray(y) > .5
-        L = np.where(y[None, :], E, 1. - E)
+        bits = np.asarray(y) > .5
+        key = bits.tobytes()
+        cached = self._lc.get(key)
+        if cached is not None and E is self._Ec:
+            return cached
+        return self._lik_many(bits[None], E)[0]
+
+    def _lik_many(self, bits, E):
+        # Batch over observations; keep the scalar channel reduction order.
+        L = np.where(bits[:, None, :], E, 1. - E)
         if self.exclude:
-            L[:, self.exclude] = 1.
-        return np.exp(np.log(np.maximum(L, 1e-300)).sum(1))
+            L[:, :, self.exclude] = 1.
+        ll = np.exp(np.log(np.maximum(L, 1e-300)).sum(-1))
+        if E is self._Ec:
+            self._lc.update((b.tobytes(), v) for b, v in zip(bits, ll))
+        return ll
 
     # ------------------------------------------------------------- interface
     def observe(self, x0):
@@ -74,23 +86,28 @@ class OnlineHMM:
     def predict(self, a):
         return (self.b @ self.T(a)) @ self.E()
 
-    def update(self, a, y):
+    def update(self, a, y, prior=None, lik=None):
         E = self.E()
         prev = self.b
-        lik = self._lik(y, E)
-        post = (prev @ self.T(a)) * lik
+        if lik is None:
+            lik = self._lik(y, E)
+        post = (prev @ self.T(a) if prior is None else prior) * lik
         self.b = post / post.sum()
         self.buf.append((prev, a, np.asarray(y, float)))
         if len(self.buf) > self.L:
-            self._learn_oldest(E)
+            self._learn_oldest(E, lik)
 
-    def _learn_oldest(self, E):
+    def _learn_oldest(self, E, latest):
         # backward messages over the buffered transitions with current parameters
         beta = np.ones(self.K)
         Ts = [self.T(a) for _, a, _ in self.buf]
-        liks = [self._lik(y, E) for _, _, y in self.buf]
+        if len(self.buf) > 1:
+            bits = np.asarray([y for _, _, y in self.buf[:-1]]) > .5
+            liks = self._lik_many(bits, E)
+        else:
+            liks = [latest]
         for k in range(len(self.buf) - 1, 0, -1):
-            beta = Ts[k] @ (liks[k] * beta)
+            beta = Ts[k] @ ((latest if k == len(self.buf) - 1 else liks[k]) * beta)
             beta /= beta.sum()
         prev, a, y = self.buf.pop(0)
         xi = prev[:, None] * Ts[0] * (liks[0] * beta)[None, :]
@@ -105,6 +122,112 @@ class OnlineHMM:
         self.non += g[:, None] * y[None, :]
         self.ntot += g
         self._Ec = None
+        self._lc.clear()
+
+
+def update_population(entries, a):
+    """Update independent HMMs in equal-shaped batches without cross-model reductions.
+
+    Entries carry the already-scored predictive belief and emission likelihood. Keep
+    short/discounted buffers on the general scalar path.
+    """
+    buckets = {}
+    for h, y, prior, lik in entries:
+        if len(h.buf) != h.L or h.decay != 1. or h.exclude:
+            h.update(a, y, prior=prior, lik=lik)
+        else:
+            buckets.setdefault((h.K, h.m, h.L), []).append((h, y, prior, lik))
+    for (K, _, L), batch in buckets.items():
+        if len(batch) == 1:
+            h, y, prior, lik = batch[0]
+            h.update(a, y, prior=prior, lik=lik)
+            continue
+        hs, ys, priors, latest = zip(*batch)
+        beliefs = np.asarray(priors) * np.asarray(latest)
+        beliefs /= beliefs.sum(-1, keepdims=True)
+        for h, y, b in zip(hs, ys, beliefs):
+            h.buf.append((h.b, a, y))
+            h.b = b
+        Ts = np.asarray([[h.T(ac) for _, ac, _ in h.buf] for h in hs])
+        if L:
+            bits = np.asarray([[y for _, _, y in h.buf[:-1]] for h in hs]) > .5
+            E = np.asarray([h.E() for h in hs])[:, None]
+            v = np.where(bits[:, :, None], E, 1. - E)
+            liks = np.exp(np.log(np.maximum(v, 1e-300)).sum(-1))
+            beta = (Ts[:, L] @ np.asarray(latest)[..., None])[..., 0]
+            beta /= beta.sum(-1, keepdims=True)
+            for i in range(L - 1, 0, -1):
+                beta = (Ts[:, i] @ (liks[:, i] * beta)[..., None])[..., 0]
+                beta /= beta.sum(-1, keepdims=True)
+            li = liks[:, 0] * beta
+        else:
+            li = np.asarray(latest)
+        prev, acts, target = zip(*(h.buf.pop(0) for h in hs))
+        xi = np.asarray(prev)[:, :, None] * Ts[:, 0] * li[:, None, :]
+        xi /= xi.reshape(len(hs), K * K).sum(-1)[:, None, None]
+        gamma = xi.sum(1)
+        emit = gamma[:, :, None] * np.asarray(target)[:, None, :]
+        for h, ac, xx, g, e in zip(hs, acts, xi, gamma, emit):
+            h.ntr[ac] += xx
+            h.non += e
+            h.ntot += g
+            h._Ec = None
+            h._Tc.clear()
+            h._lc.clear()
+
+
+class PackedHMM(OnlineHMM):
+    """Unit-decay, fully observed HMM used by the Decomposer population.
+
+    The same fixed-lag filter as OnlineHMM, with contiguous ring buffers and one
+    fused smoothing/count update. Other witness settings use the scalar class.
+    """
+
+    def __init__(self, m, actions, K, seed):
+        super().__init__(m, actions, K=K, seed=seed)
+        self._trans = np.empty_like(self.ntr)
+        self._emit = np.empty_like(self.non)
+        self._dirty = True
+        self._ix = self._age = 0
+        cap = self.L + 1
+        self._hb = np.empty((cap, K))
+        self._ha = np.empty(cap, dtype=np.int64)
+        self._hy = np.empty((cap, m))
+
+    def _refresh(self):
+        if self._dirty:
+            from models.kernels import hmm_params
+            hmm_params(self.ntr, self.non, self.ntot, self.alpha, self.sticky, self.shrink,
+                       self._trans, self._emit)
+            self._dirty = False
+
+    def T(self, a):
+        self._refresh()
+        return self._trans[a]
+
+    def E(self):
+        self._refresh()
+        return self._emit
+
+    def forward(self, a, read):
+        from models.kernels import hmm_forward
+        self._refresh()
+        return hmm_forward(self.b, self._trans[a], self._emit, read)
+
+    def score_learn(self, a, y, prior):
+        from models.kernels import hmm_step
+        self._refresh()
+        score = hmm_step(y, a, prior, self.b, self._trans, self._emit, self._hb, self._ha,
+                         self._hy, self._ix, self._age, self.ntr, self.non, self.ntot)
+        self._age = min(self._age + 1, self.L + 1)
+        self._ix = (self._ix + 1) % (self.L + 1)
+        self._dirty = self._age > self.L
+        return score
+
+    def update(self, a, y, prior=None, lik=None):
+        if prior is None:
+            prior, _ = self.forward(a, False)
+        self.score_learn(a, np.asarray(y, float), prior)
 
 
 class OnlineHMMPredictor:

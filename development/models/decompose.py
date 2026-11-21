@@ -30,10 +30,13 @@ from __future__ import annotations
 
 import numpy as np
 
-from models.online_hmm import OnlineHMM
+from models.discovery import NeighborBank
+from models.kernels import binary_dependency_scores
+from models.online_hmm import PackedHMM
 
 KS = (2, 3, 4, 6)
 W, MIN_AGE, LOG_BF, REJECT, M, COOL = 500, 200, 3., 10., 6, 1500
+GROUP_WIDTH = 6               # hypothesis class: bounded emission width
 LAGS = 4                      # screening: max |correlation| over lags 0..LAGS
 C_FAST = 9.                   # fast test: merge when the pairwise log BF exceeds this (D-9)
 OWN = 3                       # fast test (null 'own'): j's own last OWN values form the key
@@ -50,14 +53,19 @@ class Window:
     WIN, MIN = 4, 8
 
     def __init__(self, m, A):
-        self.m, self.t, self.hist, self.a = m, {}, [], 0
+        self.m, self.t, self.hist = m, {}, []
+        self._key_cache = {}
 
     def observe(self, x0):
         self.hist = [tuple(np.asarray(x0) > .5)]
+        self._key_cache.clear()
 
     def _keys(self, a):
-        h = self.hist[-self.WIN:]
-        return [(tuple(h[len(h) - j:]), a) for j in range(1, len(h) + 1)]
+        key = self._key_cache.get(a)
+        if key is None or key[0] is not self.hist:
+            h = self.hist[-self.WIN:]
+            key = self._key_cache[a] = (self.hist, [(tuple(h[-j:]), a) for j in range(1, len(h) + 1)])
+        return key[1]
 
     def marg(self, a):
         best = None
@@ -70,7 +78,9 @@ class Window:
     def update(self, a, y):
         z = np.asarray(y) > .5
         for key in self._keys(a):
-            c = self.t.setdefault(key, [np.zeros(self.m), 0.])
+            c = self.t.get(key)
+            if c is None:
+                c = self.t[key] = [np.zeros(self.m), 0.]
             c[0] += z
             c[1] += 1.
         self.hist = (self.hist + [tuple(z)])[-self.WIN:]
@@ -82,7 +92,7 @@ class GroupModel:
 
     def __init__(self, chans, A, seed, ks=KS, windows=False):
         self.chans = list(chans)
-        self.hs = [OnlineHMM(len(self.chans), A, K=k, seed=seed + 7 * k) for k in ks]
+        self.hs = [PackedHMM(len(self.chans), A, K=k, seed=seed + 7 * k) for k in ks]
         if windows:
             self.hs.append(Window(len(self.chans), A))
         self.logw = np.zeros(len(self.hs))
@@ -95,17 +105,16 @@ class GroupModel:
             h.observe(xs)
         self.started = True
 
-    def predict(self, x, a):
+    def predict(self, x, a, read=True):
         if not self.started:
             self.start(x)
-        w = np.exp(self.logw - self.logw.max())
-        w /= w.sum()
-        self._prior = [h.marg(a) if isinstance(h, Window) else h.b @ h.T(a) for h in self.hs]
-        return sum(wk * self._marg(p, h) for wk, p, h in zip(w, self._prior, self.hs))
-
-    @staticmethod
-    def _marg(p, h):
-        return p if isinstance(h, Window) else p @ h.E()
+        heads = [((p := h.marg(a)), p) if isinstance(h, Window) else h.forward(a, read)
+                 for h in self.hs]
+        self._prior = [p for p, _ in heads]
+        if read:
+            w = np.exp(self.logw - self.logw.max())
+            w /= w.sum()
+            return sum(wk * q for wk, (_, q) in zip(w, heads))
 
     @staticmethod
     def _lp(p, h, ys):
@@ -140,16 +149,20 @@ class GroupModel:
         return sum(wk * p for wk, p in zip(w, preds))
 
     def learn(self, a, y):
-        """Returns log P(y_g | past) under the mixture (before updating)."""
+        """Return prequential joint evidence; the candidate updates share the same rules."""
         ys = np.asarray(y, float)[self.chans]
-        lp = np.array([self._lp(p, h, ys) for p, h in zip(self._prior, self.hs)])
+        lp = np.empty(len(self.hs))
+        for i, (p, h) in enumerate(zip(self._prior, self.hs)):
+            if isinstance(h, Window):
+                lp[i] = self._lp(p, h, ys)
+                h.update(a, ys)
+            else:
+                lp[i] = h.score_learn(a, ys, p)
         w = self.logw - self.logw.max()
         mix = np.log(np.exp(w).sum())
         out = float(np.log(np.exp(w + lp).sum()) - mix)
         self.logw = self.logw + lp
         self.logw -= self.logw.max()
-        for h in self.hs:
-            h.update(a, ys)
         return out
 
 
@@ -213,9 +226,17 @@ class Decomposer:
         self.cool = {}
         self.t = 0
         m = len(self.chans)
-        self.s1 = np.zeros(m)                 # running sums for correlations
-        self.s11 = np.zeros((LAGS + 1, m, m))  # cross products at lags 0..LAGS
+        self.discovery = None if fast or conj else NeighborBank(m, 2 * GROUP_WIDTH, seed + 113, False)
+        if self.discovery is None:
+            # Historical witnesses with dense conjunctive/fast experiments.
+            self.s1 = np.zeros(m)
+            self.s11 = np.zeros((LAGS + 1, m, m))
+        else:
+            shape = (LAGS + 1, m, self.discovery.width)
+            self.pair_s = np.zeros((4, *shape))  # binary n, source sum, target sum, cross
         self.cnt = 0
+        self.proposal_count = 0
+        self.tested_evidence = {}
         self.hist = []
         self.merges = []                      # (t, channels) log
         if fast:                              # D-9: exact pairwise sequential evidence
@@ -230,12 +251,14 @@ class Decomposer:
 
     # ------------------------------------------------------------------ interface
     def predict(self, x, a):
+        # A group's gather must not convert a full-width Python sequence.
+        x = np.asarray(x, dtype=float)
         out = np.full(self.n, .5)
         for g in self.groups:
             out[g.chans] = g.predict(x, a)
         for c in self.cand:
             for k in ("merged", "sep1", "sep2"):
-                c[k].predict(x, a)
+                c[k].predict(x, a, read=False)
         self.base = out.copy()
         if self.conj:
             for j, lst in self.cj.items():
@@ -248,15 +271,25 @@ class Decomposer:
         return out
 
     def learn(self, x, a, y):
+        y = np.asarray(y, dtype=float)
         self.t += 1
-        for g in self.groups:
-            g.learn(a, y)
+        scores = {tuple(g.chans): g.learn(a, y) for g in self.groups}
         done = []
         for c in self.cand:
-            c["d"] += c["merged"].learn(a, y) - c["sep1"].learn(a, y) - c["sep2"].learn(a, y)
-            age = self.t - c["t"]
-            if age >= W or (age >= MIN_AGE and c["d"] < -REJECT):
-                done.append(c)
+            jm = c["merged"].learn(a, y)
+            js = c["sep1"].learn(a, y) + c["sep2"].learn(a, y)
+            if self.discovery is None:
+                c["d"] += jm - js
+                age = self.t - c["t"]
+                if age >= W or (age >= MIN_AGE and c["d"] < -REJECT):
+                    done.append(c)
+            else:
+                c["joint"] += jm
+                c["fresh"] += js
+                c["warm"] += scores[c["g1"]] + scores[c["g2"]]
+                c["d"] = c["joint"] - np.logaddexp(c["fresh"], c["warm"]) + np.log(2.)
+                if abs(c["d"]) > c["bar"]:
+                    done.append(c)
         for c in done:
             self.cand.remove(c)
             self._decide(c)
@@ -266,22 +299,66 @@ class Decomposer:
                 for c in lst:
                     c.learn(bool(yb[j]), self.base[j])
         self._stats(y)
+        if self.discovery is not None and not self.discovery.complete and self.t % len(self.chans) == 0:
+            rr, cc = self.discovery.rotate()
+            self.pair_s[:, :, rr, cc] = 0.
         if self.conj and self.t % 50 == 0 and self.t >= 200:
             self._conj_manage()
         if self.fast:
             self._fast(x, y)
-        if self.t % 50 == 0 and self.t >= 200:
+        if self.discovery is not None:
+            # Work-scheduling cadence from the modeled lag horizon, not an
+            # onset or acceptance age. Decisions are scored on every transition.
+            if self.t % (LAGS + 1) == 0:
+                self._propose(y)
+        elif self.t % 50 == 0 and self.t >= 200:
             self._propose(y)
 
     # ------------------------------------------------------------------ structure
     def _stats(self, y):
         z = np.asarray(y, float)[self.chans]
-        self.s1 += z
-        self.s11[0] += np.outer(z, z)
-        for lag, past in enumerate(reversed(self.hist), 1):
-            self.s11[lag] += np.outer(past, z)
+        if self.discovery is None:
+            self.s1 += z
+            self.s11[0] += np.outer(z, z)
+            for lag, past in enumerate(reversed(self.hist), 1):
+                self.s11[lag] += np.outer(past, z)
+        elif self.discovery.width:
+            src = self.discovery.source
+            yy = (z > .5)[:, None]
+            samples = [z, *reversed(self.hist)]
+            xx = (np.asarray(samples) > .5)[:, src]
+            n = len(samples)
+            self.pair_s[0, :n] += 1.
+            self.pair_s[1, :n] += xx
+            self.pair_s[2, :n] += yy
+            self.pair_s[3, :n] += xx * yy
         self.hist = (self.hist + [z])[-LAGS:]
         self.cnt += 1
+
+    def _sparse_pairs(self, busy):
+        owners = {ch: g for g in self.groups for ch in g.chans}
+        order = {g: i for i, g in enumerate(self.groups)}
+        groups = {g: tuple(g.chans) for g in self.groups}
+        scores = binary_dependency_scores(self.pair_s)
+        # One null vs degree × lags possible parent choices per target.
+        code = np.log(max(1, self.discovery.width * (LAGS + 1)))
+        valid = {g for g in self.groups if not busy.intersection(g.chans)}
+        best = {}
+        for j, sources in enumerate(self.discovery.source):
+            dest = owners[self.chans[j]]
+            if dest not in valid:
+                continue
+            for i, p in enumerate(sources):
+                orig = owners[self.chans[p]]
+                if orig is dest or orig not in valid or len(orig.chans) + len(dest.chans) > GROUP_WIDTH:
+                    continue
+                left, right = (orig, dest) if order[orig] < order[dest] else (dest, orig)
+                key = groups[left], groups[right]
+                prior = self.tested_evidence.get(key, 0.)
+                score = scores[j, i]
+                if score > code + prior:
+                    best[key] = max(best.get(key, -np.inf), score)
+        return best
 
     def _fast(self, x, y):
         """Update the pairwise KT evidence with the transition x -> y and merge the groups of
@@ -349,24 +426,24 @@ class Decomposer:
     def _propose(self, y):
         if len(self.cand) >= M:
             return
-        C = self._corr()
-        idx = {c: i for i, c in enumerate(self.chans)}
         busy = {ch for c in self.cand for ch in c["g1"] + c["g2"]}
-        scored = []
-        G = [tuple(g.chans) for g in self.groups]
-        for i in range(len(G)):
-            for j in range(i + 1, len(G)):
-                key = (G[i], G[j])
-                if set(G[i]) & busy or set(G[j]) & busy or self.cool.get(key, -1) > self.t:
-                    continue
-                s = max(C[idx[a], idx[b]] for a in G[i] for b in G[j])
-                scored.append((s, key))
-        scored.sort(reverse=True)
-        for s, (g1, g2) in scored:
-            if len(self.cand) >= M:
-                break
-            if set(g1) & busy or set(g2) & busy:
-                continue
+        if self.discovery is not None:
+            options = self._sparse_pairs(busy)
+        else:
+            C = self._corr()
+            idx = {c: i for i, c in enumerate(self.chans)}
+            G = [tuple(g.chans) for g in self.groups]
+            options = {}
+            for i, g1 in enumerate(G):
+                for g2 in G[i + 1:]:
+                    key = g1, g2
+                    if not busy.intersection(g1 + g2) and self.cool.get(key, -1) <= self.t:
+                        options[key] = max(C[idx[a], idx[b]] for a in g1 for b in g2)
+        # M is fixed. Linear selection beats sorting all sparse proposals.
+        while options and len(self.cand) < M:
+            g1, g2 = max(options, key=lambda k: (options[k], k))
+            proposal_score = options[(g1, g2)]
+            options = {k: s for k, s in options.items() if not set(g1 + g2).intersection(k[0] + k[1])}
             sd = self.seed + 1000 + self.t
             c = dict(g1=g1, g2=g2, t=self.t, d=0.,
                      merged=GroupModel(sorted(g1 + g2), self.A, sd, windows=self.win),
@@ -374,6 +451,14 @@ class Decomposer:
                      sep2=GroupModel(g2, self.A, sd + 2, ks=self._ks(g2), windows=self.win))
             for k in ("merged", "sep1", "sep2"):
                 c[k].start(y)               # belief from the latest observation
+            if self.discovery is not None:
+                self.proposal_count += 1
+                # Structural prior charges locating the edge and its latent
+                # dimension. Repeated looks get a summable prior over trials.
+                k = self.proposal_count
+                edge = np.log1p(self.discovery.width * (LAGS + 1))
+                bar = edge + np.log(k) + np.log1p(k) + np.log(len(KS))
+                c.update(bar=bar, joint=0., fresh=0., warm=0., tested=proposal_score)
             self.cand.append(c)
             busy |= set(g1) | set(g2)
 
@@ -414,12 +499,18 @@ class Decomposer:
         G = [tuple(g.chans) for g in self.groups]
         if c["g1"] not in G or c["g2"] not in G:
             return
-        if c["d"] > LOG_BF:
+        if c["d"] > c.get("bar", LOG_BF):
             self.groups = [g for g in self.groups if tuple(g.chans) not in (c["g1"], c["g2"])]
             self.groups.append(c["merged"])
             self.merges.append((self.t, tuple(sorted(c["g1"] + c["g2"])), "slow"))
         else:
-            self.cool[(c["g1"], c["g2"])] = self.t + COOL
+            key = c["g1"], c["g2"]
+            if self.discovery is None:
+                self.cool[key] = self.t + COOL
+            else:
+                if len(self.tested_evidence) >= max(1, len(self.chans) * self.discovery.width):
+                    self.tested_evidence.pop(next(iter(self.tested_evidence)))
+                self.tested_evidence[key] = c["tested"]
 
     def peek(self, x, a, ch):
         """Probe: P(channel ch on at the step after a hypothetical observation x)."""
@@ -429,6 +520,7 @@ class Decomposer:
     def peek_all(self, x, a):
         """Predictive marginals of every channel after a hypothetical observation x (not
         learned); the value channel stays .5."""
+        x = np.asarray(x, dtype=float)
         out = np.full(self.n, .5)
         for g in self.groups:
             if g.started:

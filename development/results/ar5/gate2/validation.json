@@ -1,0 +1,48 @@
+{
+  "all_pass": false,
+  "commit": "f41e9c2a76f0dec7a69d5b29f4c79485ccc87856",
+  "completed_tuples": 812,
+  "heldout_opened": true,
+  "max_stage_s": 82.64846996899996,
+  "registered_tuples": 812,
+  "sets": {
+    "A": {
+      "completed": 272,
+      "expected": 272,
+      "status": "PASS"
+    },
+    "C": {
+      "completed": 2,
+      "expected": 2,
+      "status": "PASS"
+    },
+    "d2": {
+      "completed": 24,
+      "expected": 24,
+      "status": "PASS"
+    },
+    "d3": {
+      "completed": 18,
+      "expected": 18,
+      "status": "PASS"
+    },
+    "h1": {
+      "completed": 160,
+      "expected": 160,
+      "status": "PASS"
+    },
+    "holdout": {
+      "completed": 288,
+      "expected": 288,
+      "status": "FAIL"
+    },
+    "v1": {
+      "completed": 48,
+      "expected": 48,
+      "status": "PASS"
+    }
+  },
+  "stage_count": 45,
+  "summed_stage_s": 1033.740247917999,
+  "tree": "814b0333575c"
+}
