@@ -10,6 +10,7 @@ on a particle's sampled allocation.
 """
 from __future__ import annotations
 
+from collections import OrderedDict
 from itertools import combinations
 import re
 
@@ -23,10 +24,7 @@ from models.kernels import (copy_ancestors, factor_gaussian, factor_read, factor
 C_REG = 1.           # concentration: regime cell -> pooled cell
 C_GLOB = 1.          # concentration: pooled cell -> sub-configurations
 SWAP = np.log(3.)    # slot swap margin (v18)
-GAP_SCALE = 64.     # steps for relaxation of an unobserved regime
 NEW_ASSOC = .40    # association shrinkage in an as-yet unused regime
-FREE_RATE = .12     # mixture mass for an event without an observed parent
-EXPERT_SWITCH = .002  # hazard of switching the predictive family
 F32 = np.float32
 CANONICAL = "factor-L4-P-C"    # M_factor: the one configuration used by every suite (SPEC-3b.2)
 
@@ -84,15 +82,19 @@ class FactorModel:
         self.rate1 = np.zeros((N, K, J))
         self.rate0 = np.zeros_like(self.rate1)
         self.expert = np.full(J, .5)
+        self._expert_logodds = np.zeros(J)
         # regime factor
         self.hz = np.asarray(H_GRID)[self.rng.integers(len(H_GRID), size=N)]
-        self.hz = np.maximum(self.hz, .003)
+
         self.mz = np.zeros((N, K))
         self.used = np.ones(N, int)
         self.z = np.zeros(N, int)
         self.beta, self.alpha = beta, alpha
         self.mz[:, 0] = 1.
-        self.places = {}       # signature -> (last time, regime posterior, historical occupancy)
+        # Capacity matches the finite latent inventory. A forgotten location is
+        # a prior predictive query, not an unbounded copy on every resample.
+        self.places = OrderedDict()  # signature -> (last mark, posterior, occupancy)
+        self.background = {}        # bounded place -> [observed zero/one counts]
         self.place = ()
         self.slow = np.zeros(J, bool)
         self._role_log = np.zeros((J, len(H_GRID)))
@@ -225,34 +227,34 @@ class FactorModel:
         dr = counts[:, :kk] + self.beta * G
         dr /= dr.sum(1, keepdims=True)
         gap = max(0, self.t - last_t - 1)
-        retain = (1. - self.hz) * np.exp(-gap / GAP_SCALE)
+        retain = np.exp((gap + 1) * np.log1p(-self.hz))
         dr *= (1. - retain[:, None])
         dr += retain[:, None] * post[:, :kk]
         return dr
 
-    def _process_scope(self):
-        """Committed groups get the process expert when no slow scope is identified.
+    def _conditional(self, mem, kk, place, quiet=False):
+        """Place background followed by (if observable) cue-excess emission.
 
-        A merge has paid its joint Bayes factor; mixing the committed group's
-        channel marginals back into unrelated regime tables loses that evidence.
-        Singleton predictions also retain that expert when their neighbors have
-        supplied evidence for a factorized stream.
+        No quiet observation forces an update of a cue contingency. Regime
+        rates provide one pseudocount of shared prior evidence for baselines;
+        observed place history owns the rest. The no-place case does not
+        distinguish literal silence from a delayed or continuously present cue.
         """
-        return self.proc is not None and not self.slow.any() and sum(
-            len(g.chans) > 1 for g in self.proc.groups) >= 2
-
-    def _conditional(self, mem, kk, pp, quiet=False):
-        # A small parent-missing component makes a free event evidence about the
-        # baseline rate of an existing regime, without discarding the cue model.
         n1, n0 = self.rate1[:, :kk], self.rate0[:, :kk]
         pooled = (n1.sum(1, keepdims=True) + .5) / ((n1 + n0).sum(1, keepdims=True) + 1.)
         rate = (n1 + pooled) / (n1 + n0 + 1.)
-        fresh = np.arange(kk)[None, :] >= self.used[:, None]
-        free = np.where(fresh, NEW_ASSOC, FREE_RATE if quiet else 0.)[..., None]
-        if pp is None:
-            return mem["q"] * (1. - free) + free * rate
-        local = mem["q"] if not self.slow.any() else mem["q"] * (1. - free) + free * rate
-        return self.expert * local + (1. - self.expert) * pp
+        fresh = (np.arange(kk)[None, :] >= self.used[:, None])[..., None]
+        if not self.slow.any():
+            # No inferred place: preserve conditional lag and process learning.
+            return mem["q"] * (1. - NEW_ASSOC * fresh) + NEW_ASSOC * fresh * rate, np.zeros_like(rate)
+        bg = self.background.get(place)
+        base = rate if bg is None else (bg[1] + rate) / (1. + bg[0] + bg[1])
+        if quiet:
+            # Regime-specific marks retain a context-dependent memory path;
+            # quiet timing is removed from assignment by _activity below.
+            return base, base
+        q = mem["q"] * (1. - NEW_ASSOC * fresh)
+        return base + (1. - base) * q, base
 
     @staticmethod
     def _activity(pj, w, b, fast):
@@ -288,11 +290,6 @@ class FactorModel:
         key = (b.tobytes(), a)
         if not hypothetical and self._memo is not None and key == self._memo[0]:
             return self._memo[1]
-        if self._process_scope():
-            out = self.proc.peek_all(x, a) if hypothetical else self.proc.predict(x, a)
-            if not hypothetical:
-                self._memo = key, out, None, None
-            return out
         kk = min(self.K, int(self.used.max()) + 1)
         hist = self.hist
         pp = None
@@ -302,7 +299,8 @@ class FactorModel:
         prior = self._regime_prior(self._signature(b), kk)
         out = np.full(self.n, .5)
         w = np.exp(self.logw - self.logw.max())[:, None] * prior
-        pj = self._conditional(mem, kk, pp, not b[~self.slow].any())
+        local, _ = self._conditional(mem, kk, self._signature(b), not b[~self.slow].any())
+        pj = local if pp is None else self.expert * local + (1. - self.expert) * pp
         activity = self._activity(pj, w, b, ~self.slow)
         w_eval = w if activity is None else w * activity[1]
         out[self.ch] = np.einsum("nk,nkj->j", w_eval, pj) / w.sum()
@@ -321,17 +319,6 @@ class FactorModel:
         kk = min(self.K, int(self.used.max()) + 1)
         key = (b.tobytes(), a)
         place = self._observe_place(b)
-        if self._process_scope():
-            if self._memo is None or key != self._memo[0]:
-                self.proc.predict(x, a)
-            self.proc.learn(x, a, y)
-            self._memo = None
-            self.hist = (self.hist + [b])[-max(1, self.D + 1):]
-            self.place = place
-            jr = np.arange(self.J)
-            self.slow_counts[jr, b.astype(int), yb.astype(int)] += 1.
-            self.t += 1
-            return
         if self._memo is not None and key == self._memo[0] and self._memo[2] is not None:
             _, _, mem, pp = self._memo
         else:
@@ -354,22 +341,23 @@ class FactorModel:
         prior = self._regime_prior(place, kk)
         w = np.exp(self.logw - self.logw.max())[:, None] * prior
         quiet = not b[fast].any()
-        pj = self._conditional(mem, kk, pp, quiet)
+        pz, base = self._conditional(mem, kk, place, quiet)
+        pj = pz if pp is None else self.expert * pz + (1. - self.expert) * pp
         activity = self._activity(pj, w, b, fast)
         w_eval = w if activity is None else w * activity[1]
         raw = np.einsum("nk,nkj->j", w, pj) / w.sum()
         self._q = raw if activity is None else np.einsum("nk,nkj->j", w_eval, pj) / w.sum()
         if pp is not None:
             # Prequential family evidence is shared, not restarted with a regime.
-            q_local = (raw - (1. - self.expert) * pp) / self.expert
-            py, qy = np.where(yb, pp, 1. - pp), np.where(yb, q_local, 1. - q_local)
-            e = self.expert * qy / (self.expert * qy + (1. - self.expert) * py)
-            if not self.slow.any() or b[fast].any():
-                self.expert[fast] = EXPERT_SWITCH + (1. - 2. * EXPERT_SWITCH) * e[fast]
+            pred_local = np.einsum("nk,nkj->j", w, pz) / w.sum()
+            py, qy = np.where(yb, pp, 1. - pp), np.where(yb, pred_local, 1. - pred_local)
+            if not self.slow.any() or not quiet:
+                logbf = np.log(np.maximum(qy, 1e-12)) - np.log(np.maximum(py, 1e-12))
+                self._expert_logodds[fast] += logbf[fast]
+                self.expert[fast] = np.exp(-np.logaddexp(0., -self._expert_logodds[fast]))
         # Only the contextual expert provides evidence about the contextual regime.
         # The process expert is updated on the same stream, but does not explain away
         # a change point in the local model.
-        pz = self._conditional(mem, kk, None, quiet)
         ll = self._activity(pz, w, b, fast)
         lik = np.prod(np.where(yb[fast], pz[..., fast], 1. - pz[..., fast]), axis=2)
         if ll is not None:
@@ -386,7 +374,11 @@ class FactorModel:
         self.z = zt
         self.started = True
         if place not in self.places:
+            if len(self.places) >= self.K:
+                forgotten, _ = self.places.popitem(last=False)
+                self.background.pop(forgotten, None)
             self.places[place] = (self.t, None, np.zeros_like(self.mz))
+        self.places.move_to_end(place)
         counts = self.places[place][2]
         filtered *= np.arange(kk)[None, :] < self.used[:, None]
         filtered /= filtered.sum(1, keepdims=True)
@@ -397,17 +389,35 @@ class FactorModel:
         if b[fast].any() or yb[fast].any() or self.places[place][1] is None:
             counts += post
             self.places[place] = (self.t, post, counts)
-        self.rate1[ar, zt] += yb & fast
-        self.rate0[ar, zt] += ~yb & fast
-        cells = mem["cells"]
-        factor_update(self.q1, self.q0, self.ev, self._E, self.mu, mem["v"],
-                      mem["center"], cells, mem["pg"], zt, yb, fast)
-        factor_gaussian(self.mu, self.Sg, self.shared_mu, self.shared_cov,
-                        mem["v"], mem["center"], zt, yb, fast, self.noise)
-        pg = np.clip(self._pooled(cells), 1e-6, 1. - 1e-6)
-        self.evg += np.log(np.where(yb[:, None], pg, 1. - pg)) * fast[:, None]
-        self.g1[jr[:, None], cells] += (yb & fast)[:, None]
-        self.g0[jr[:, None], cells] += (~yb & fast)[:, None]
+        scoped = self.slow.any()
+        if quiet or not scoped:
+            self.rate1[ar, zt] += yb & fast
+            self.rate0[ar, zt] += ~yb & fast
+        if quiet and scoped:
+            bg = self.background.setdefault(place, np.zeros((2, self.J)))
+            bg[0] += ~yb & fast
+            bg[1] += yb & fast
+        else:
+            cells = mem["cells"]
+            bs = base[ar, zt]
+            # Conditional expected cue count given the observed label and
+            # current regime. Fractional credit approximates posterior updates
+            # (lost reduced-state dependence is reintroduced in toy checks).
+            obs = pz[ar, zt]
+            credit = np.where(yb[None, :], np.maximum(0., obs - bs) / np.maximum(1e-12, obs), 1.)
+            factor_update(self.q1, self.q0, self.ev, self._E, self.mu, mem["v"],
+                          mem["center"], cells, mem["pg"], zt, yb, fast, bs, credit)
+            factor_gaussian(self.mu, self.Sg, self.shared_mu, self.shared_cov,
+                            mem["v"], mem["center"], zt, yb, fast, self.noise, credit)
+            pg = np.clip(self._pooled(cells), 1e-6, 1. - 1e-6)
+            post_w = np.exp(self.logw - self.logw.max())
+            post_w /= post_w.sum()
+            w_cue = np.einsum("n,nj->j", post_w, credit) * fast
+            bbar = np.einsum("nk,nkj->j", w, base) / w.sum()
+            px = bbar[:, None] + (1. - bbar[:, None]) * pg
+            self.evg += np.log(np.where(yb[:, None], px, 1. - px)) * fast[:, None]
+            self.g1[jr[:, None], cells] += (yb * w_cue)[:, None]
+            self.g0[jr[:, None], cells] += (~yb * w_cue)[:, None]
         self._resample()
         self._screen(b, bn, hist_before)
         self.t += 1
@@ -527,5 +537,5 @@ class FactorModel:
             copy_ancestors(bank.reshape(self.N, self.K, -1), idx, live)
         for nm in ("hz", "used", "z"):
             setattr(self, nm, getattr(self, nm)[idx])
-        self.places = {p: (t, z[idx], n[idx]) for p, (t, z, n) in self.places.items()}
+        self.places = OrderedDict((p, (t, z[idx], n[idx])) for p, (t, z, n) in self.places.items())
         self.logw = np.zeros(self.N)

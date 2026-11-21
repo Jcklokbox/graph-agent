@@ -13,3 +13,8 @@ Only active Markdown. Audit: `archive/BRIEF-CE.md`; run protocol: `archive/resea
 ## Current checkpoint
 - D-39: exact ordered particle gather and bounded parent/group proposals. Explicit warm N200 C screen 2.315 (5.1341/2.2178), no C acceptance until final freeze; N25 seed-0 guards unchanged, PREE only +.0403. D-40 schedules locked before candidate predictions; no holdout readout.
 - Next: eliminate global process switch with evidence-local ownership; smoke T1 transfer and opportunity/background model independently. Record results under `development/results/ar5/`.
+
+## Milestone: D-45
+- No global multi-group age cutover. Group candidates now admitted by bounded lag evidence and committed by joint vs warm/fresh separate predictive odds; widths capped. PREE local credibility and gap survival changed independently.
+- N25 four-seed A screen 9/10 (+.111 PREE; sessions fail); D44 seed-0 T1 v1 .850, d3 .953. 11 focused tests. Reversal toy remains variable. New holdout reference-control check only; candidate still unseen.
+- Next: measure N200 B/C, complete h1 and sign screens, replace remaining global regime coupling if needed. Keep one active hypothesis change at a time; no 3b-2 without a complete frozen 3b-1.

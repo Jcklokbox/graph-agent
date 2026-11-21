@@ -4,6 +4,7 @@ No fast-math: likelihood, posterior and sufficient-statistic computations must
 remain deterministic when the same tuple is resumed on the same snapshot.
 """
 import numpy as np
+from math import lgamma, log, pi
 from numba import njit
 
 
@@ -133,7 +134,7 @@ def factor_read(q1, q0, weights, mu, v, center, cells, pg, kk, fast, used):
 
 
 @njit(cache=True)
-def factor_update(q1, q0, ev, weights, mu, v, center, cells, pg, sampled, y, fast):
+def factor_update(q1, q0, ev, weights, mu, v, center, cells, pg, sampled, y, fast, base, credit):
     """Score then count one observed transition in each sampled regime."""
     J, S = cells.shape
     for i in range(q1.shape[0]):
@@ -146,25 +147,29 @@ def factor_update(q1, q0, ev, weights, mu, v, center, cells, pg, sampled, y, fas
                 add += mu[i, z, j, p] * v[j, p]
             pred = np.float32(max(.01, min(.99, add)))
             sign = y[j]
+            bg = np.float32(base[i, j])
+            wt = np.float32(credit[i, j])
+            pred = bg + (np.float32(1.) - bg) * pred
             ev[i, z, j, S] += np.log(pred if sign else np.float32(1.) - pred)
             peak = ev[i, z, j, S]
             for s in range(S):
                 c = cells[j, s]
                 a, b = q1[i, z, j, c], q0[i, z, j, c]
                 prob = (a + pg[j, s]) / (a + b + np.float32(1.))
+                prob = bg + (np.float32(1.) - bg) * prob
                 prob = min(np.float32(1. - 1e-6), max(np.float32(1e-6), prob))
                 ev[i, z, j, s] += np.log(prob if sign else np.float32(1.) - prob)
                 peak = max(peak, ev[i, z, j, s])
                 if sign:
-                    q1[i, z, j, c] += 1.
+                    q1[i, z, j, c] += wt
                 else:
-                    q0[i, z, j, c] += 1.
+                    q0[i, z, j, c] += wt
             for s in range(S + 1):
                 weights[i, z, j, s] = np.exp(ev[i, z, j, s] - peak)
 
 
 @njit(cache=True)
-def factor_gaussian(mu, cov, shared, shared_cov, v, center, sampled, y, fast, noise):
+def factor_gaussian(mu, cov, shared, shared_cov, v, center, sampled, y, fast, noise, credit):
     """Sparse-vector rank-one conditioning in place (no particle covariance copies)."""
     d = v.shape[1]
     for j in range(v.shape[0]):
@@ -173,13 +178,17 @@ def factor_gaussian(mu, cov, shared, shared_cov, v, center, sampled, y, fast, no
         active = np.nonzero(v[j])[0]
         sv = np.empty(d)
         tgt = (1. if y[j] else 0.) - center[j]
+        avg = np.mean(credit[:, j])
         for i in range(len(sampled) + 1):
+            wt = avg if i == len(sampled) else credit[i, j]
+            if wt <= 0.:
+                continue
             if i == len(sampled):
                 W, V = shared[j], shared_cov[j]
             else:
                 z = sampled[i]
                 W, V = mu[i, z, j], cov[i, z, j]
-            var = noise
+            var = noise / wt
             err = tgt
             for p in range(d):
                 s = 0.
@@ -230,3 +239,27 @@ def copy_ancestors(bank, idx, live):
         if s < d:
             for z in range(live):
                 bank[d, z, :] = bank[s, z, :]
+
+
+@njit(cache=True)
+def binary_dependency_scores(moments):
+    """Max log Jeffreys/Krichevsky–Trofimov evidence over retained lags.
+
+    This is only a scheduling statistic: serially correlated pairs violate its
+    iid null. The matched online joint/separate comparison validates proposals.
+    """
+    lags, targets, degree = moments[0].shape
+    best = np.full((targets, degree), -np.inf)
+    norm = log(pi)
+    for j in range(targets):
+        for p in range(degree):
+            for d in range(lags):
+                n = moments[0, d, j, p]
+                x = moments[1, d, j, p]
+                y = moments[2, d, j, p]
+                both = moments[3, d, j, p]
+                l0 = lgamma(y + .5) + lgamma(n - y + .5) - lgamma(n + 1.)
+                l1 = lgamma(both + .5) + lgamma(x - both + .5) - lgamma(x + 1.)
+                l1 += lgamma(y - both + .5) + lgamma(n - x - y + both + .5) - lgamma(n - x + 1.)
+                best[j, p] = max(best[j, p], l1 - l0 - norm)
+    return best

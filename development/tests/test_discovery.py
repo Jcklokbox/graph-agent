@@ -39,7 +39,7 @@ class DiscoveryTests(unittest.TestCase):
             f = FactorModel(n + 1, 2, n, N=2, cond=True, process=True)
             d = f.proc
             factor = sum(getattr(f, x).size for x in ('ct', 'cx', 'cr', 'cxr', 'cev'))
-            return factor, d.pair_s.size + d.pair_y2.size
+            return factor, d.pair_s.size
         self.assertEqual(tuple(2 * x for x in make(24)), make(48))
         d = Decomposer(2, 2, 1)
         d.predict([1., 0.], 0)
