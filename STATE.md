@@ -4,15 +4,15 @@
 Retain original clock and 220+20 calls; ~30-minute cues are advisory.
 
 <!-- managed-next -->
-- **Run AR-6 (active):** Test read-only full signed-law projection and exact v59 closed-loop guard parity
+- **Run AR-6 (active):** Audit signed and unary model evidence on exactly the same bounded real replay support
 <!-- managed-next -->
 
 - **3b-1 accepted:** D65 `6f619568dc90`, 740/740, cost 2.080340. Immutable `development/results/ar5/gate3/validation.json`.
 - **3b-2 open:** v48 D112 failed; frozen fresh v58 DEV-20 **INCOMPLETE**, 456/600 verified rows, 224/300 pairs, 57/76 stages. Timeout, no retry, CI or efficacy claim. T4 not opened.
-- **Local:** Real reward exposure restores reuse; soft means and nonadditive information improve exposed discovery. After real dwell bouts split lateral codes, same-side but not opposite-side adverse contact changes fixed cancellation choice (8/8). Valid choice held on 6/8; seed15 clean/noisy selects lagged food marker instead.
-- **Global:** v57 changed sensory inference and was vetoed. v58 holds the canonical law (640 bit-exact predictions, 10 pure plans, work 1.863 in registered case); active 14→28 stress spans 2.285–2.792. Bounded attachment is not broad scaling or C2 transfer.
+- **Local:** Real exposure restores reuse. After dwell separates lateral codes, same-side but not opposite adverse contact changes fixed cancellation (8/8); valid choice held on 6/8. The seed15 alias is a lagged outcome marker.
+- **Global:** v57 failed predictor parity. v58/v59 pass 640 predictions, 10 pure plans and registered work (1.863/1.823). Active-width cost is workload-dependent; no C2 transfer claim.
 - **Resolved:** opposite-side intervention was aliased at coarse state resolution before actuator evidence. Conditional credit requires both reached outcomes and distinguishable represented states.
 - **Resolved:** longer spacing removes the lagged outcome alias in both seed15 tapes and preserves cancellation. Noisy seed6 loses valid entry, so timing is a causal contrast, not a general fix.
-- **150-minute reflection:** joint evidence already prefers the real current compound to the lagged unary alias. This is a hard parent-family error, not just insufficient information. v59 shares projection exactly on tested tapes; CPU −28–34%.
-- **Next falsifier:** use the complete evidence-selected compound law at read-only probes. Recover seed15 valid entry without cancelled entry; do not promote weak cells or infer closed-loop gain.
+- **150-minute reflection:** joint evidence prefers the current compound; its projected decision restores both signs on seed15. v59 matches 23 exposed records and cuts active CPU 28–34%.
+- **Next falsifier:** recompute both evidence families on exactly the same bounded replay support. If the seed15 margin collapses, fix evidence windows before changing policy.
 - [Evidence](docs/research/AR6.md) · [Recovery](docs/research/RECOVERY-AUDIT.md)

@@ -1,0 +1,14 @@
+{"k":["21b29b7eb182",2,"v59|DEV|canc"],"m":{"brain":0.5375,"late_shocks":0.005,"oracle":0.54,"sec":18.95274567604065,"shocks":0.02,"stay":0.5}}
+{"k":["21b29b7eb182",2,"v59|DEV|canc-noise3"],"m":{"brain":0.535,"late_shocks":0.01,"oracle":0.54,"sec":13.772175788879395,"shocks":0.07,"stay":0.5}}
+{"k":["21b29b7eb182",6,"v59|DEV|canc"],"m":{"brain":0.5525,"late_shocks":0.005,"oracle":0.555,"sec":10.692837476730347,"shocks":0.06666666666666667,"stay":0.5}}
+{"k":["21b29b7eb182",6,"v59|DEV|canc-noise3"],"m":{"brain":0.545,"late_shocks":0.02,"oracle":0.555,"sec":12.815930604934692,"shocks":0.08666666666666667,"stay":0.5}}
+{"k":["21b29b7eb182",7,"v59|DEV|canc"],"m":{"brain":0.5575,"late_shocks":0.005,"oracle":0.56,"sec":11.501430034637451,"shocks":0.06666666666666667,"stay":0.5}}
+{"k":["21b29b7eb182",7,"v59|DEV|canc-noise3"],"m":{"brain":0.555,"late_shocks":0.01,"oracle":0.56,"sec":12.041759014129639,"shocks":0.07333333333333333,"stay":0.5}}
+{"k":["21b29b7eb182",8,"v59|DEV|canc"],"m":{"brain":0.5625,"late_shocks":0.005,"oracle":0.565,"sec":11.221128463745117,"shocks":0.06166666666666667,"stay":0.5}}
+{"k":["21b29b7eb182",8,"v59|DEV|canc-noise3"],"m":{"brain":0.5575,"late_shocks":0.015,"oracle":0.565,"sec":12.284306526184082,"shocks":0.06333333333333334,"stay":0.5}}
+{"k":["21b29b7eb182",12,"v59|DEV|canc"],"m":{"brain":0.555,"late_shocks":0.0,"oracle":0.555,"sec":11.376356363296509,"shocks":0.06666666666666667,"stay":0.5}}
+{"k":["21b29b7eb182",12,"v59|DEV|canc-noise3"],"m":{"brain":0.54,"late_shocks":0.025,"oracle":0.555,"sec":13.868282318115234,"shocks":0.07666666666666666,"stay":0.5}}
+{"k":["21b29b7eb182",13,"v59|DEV|canc"],"m":{"brain":0.545,"late_shocks":0.005,"oracle":0.5475,"sec":10.920783519744873,"shocks":0.06333333333333334,"stay":0.5}}
+{"k":["21b29b7eb182",13,"v59|DEV|canc-noise3"],"m":{"brain":0.535,"late_shocks":0.02,"oracle":0.5475,"sec":13.503472328186035,"shocks":0.06333333333333334,"stay":0.5}}
+{"k":["21b29b7eb182",15,"v59|DEV|canc"],"m":{"brain":0.5425,"late_shocks":0.005,"oracle":0.545,"sec":10.082113981246948,"shocks":0.021666666666666667,"stay":0.5}}
+{"k":["21b29b7eb182",15,"v59|DEV|canc-noise3"],"m":{"brain":0.54,"late_shocks":0.01,"oracle":0.545,"sec":13.091487884521484,"shocks":0.08,"stay":0.5}}
