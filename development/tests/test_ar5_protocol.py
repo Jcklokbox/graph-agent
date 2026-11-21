@@ -59,3 +59,11 @@ class HoldoutProtocolTests(unittest.TestCase):
         r=paired_score(ref,out,'h','agent')
         self.assertEqual(r['status'],'PASS'); self.assertAlmostEqual(r['paired'],0.)
         self.assertEqual(r['n_blocks'],16); self.assertAlmostEqual(r['v12'],.8912708030208981)
+
+    def test_two_step_reference_prefers_informative_act_without_double_bonus(self):
+        from research.ar5_voi_fixture import observe_then_choose, dirichlet_mean_moments
+        (q_info, voi),(q_idle, noinfo) = observe_then_choose()
+        self.assertAlmostEqual(q_info,.855); self.assertAlmostEqual(voi,.4)
+        self.assertAlmostEqual(q_idle,.675); self.assertEqual(noinfo,0.)
+        m, ep, obs = dirichlet_mean_moments(4, 1.8, .81)
+        self.assertAlmostEqual(m,.46); self.assertAlmostEqual(ep*6,obs)
