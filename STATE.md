@@ -4,7 +4,7 @@
 Retain original clock and 220+20 calls; ~30-minute cues are advisory.
 
 <!-- managed-next -->
-- **Run AR-6 (active):** Audit signed and unary model evidence on exactly the same bounded real replay support
+- **Run AR-6 (active):** Recompute both signed model selection and its complete value law from the same replay window
 <!-- managed-next -->
 
 - **3b-1 accepted:** D65 `6f619568dc90`, 740/740, cost 2.080340. Immutable `development/results/ar5/gate3/validation.json`.
@@ -14,5 +14,5 @@ Retain original clock and 220+20 calls; ~30-minute cues are advisory.
 - **Resolved:** opposite-side intervention was aliased at coarse state resolution before actuator evidence. Conditional credit requires both reached outcomes and distinguishable represented states.
 - **Resolved:** longer spacing removes the lagged outcome alias in both seed15 tapes and preserves cancellation. Noisy seed6 loses valid entry, so timing is a causal contrast, not a general fix.
 - **150-minute reflection:** joint evidence prefers the current compound; its projected decision restores both signs on seed15. v59 matches 23 exposed records and cuts active CPU 28–34%.
-- **Next falsifier:** recompute both evidence families on exactly the same bounded replay support. If the seed15 margin collapses, fix evidence windows before changing policy.
+- **Next falsifier:** The seed15 joint evidence survives common support (+1.536), though other cells weaken. Reconstruct all three reward laws from that same replay; test both decision signs without unsupported activation.
 - [Evidence](docs/research/AR6.md) · [Recovery](docs/research/RECOVERY-AUDIT.md)

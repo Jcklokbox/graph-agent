@@ -12,13 +12,24 @@ from harness.journal import append
 from models.factor_rollout import provisional_values
 
 
-def projected(f,c,x,u):
-    h=f.reward; choices={};rank={}
+def real_atoms(h,c,j,m,l):
+    """All three exhaustive branches use the very same actual tape window."""
+    n=np.zeros((3,h.B));s=np.zeros_like(n)
+    for _,_,value,by,features,onset in h.replay:
+        if h.code(by)!=c:continue
+        g=int(bool(features[l*h.J+m])) if onset[l*h.J+j] else 2
+        a=min(h.B-1,int(value*h.B));n[g,a]+=1.;s[g,a]+=value
+    return n,s
+
+
+def projected(f,c,x,u,common_window=False):
+    h=f.reward; choices={};rank={};sample={}
     for k in np.flatnonzero(h.control_mass>0.):
-        score=structure_scores(h,k);b=score['best_compound'];a=score['best_unary']
+        score=structure_scores(h,k,common_window);b=score['best_compound'];a=score['best_unary']
         if b and b[0][0]>max(0.,a[0][0] if a else 0.):
             bf,j,m,l,_=b[0];d=int(np.flatnonzero(h.anchors==j)[0]);key=int(k)
             choices[key]=(j,m,l,d,bf);rank[str(key)]=[j,m,l,bf]
+            if common_window:sample[key]=real_atoms(h,k,j,m,l)
     if not choices:return dict(choices=rank,q=provisional_values(f,x,u,False).tolist())
     original_rule=h.rule;original_splits=h.signed_rules;original_context=h.context_moment
     def rule():
@@ -40,6 +51,12 @@ def projected(f,c,x,u):
         mu,p,r,count,group=original_context(s,x,phase,mean,p,atoms)
         for c,(j,m,l,d,_) in choices.items():
             outside=~phase[:,l*h.J+j]
+            if c in sample:
+                n,amount=sample[c];k=np.where(outside,2,x[:,l*h.J+m].astype(int))
+                alpha=n[k]+1./h.B;mass=alpha/alpha.sum(1,keepdims=True);values=(amount[k]+h.center/h.B)/alpha
+                p[:,c]=mass;r[:,c]=values;mu[:,c]=(mass*values).sum(1)
+                count[:,c]=alpha.sum(1);group[:,c]=1+3*(d*h.L+l)+k
+                continue
             if not outside.any():continue
             n=h.type_count[c]-h.ctx_atoms[c,d,l,m].sum(0)
             amount=h.type_sum[c]-h.ctx_amount[c,d,l,m].sum(0)
@@ -54,13 +71,13 @@ def projected(f,c,x,u):
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('out',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('out',type=Path);p.add_argument('--common-window',action='store_true');a=p.parse_args()
     for v in ('canc','canc-noise3'):
         for seed in (6,15):
             for period in (5,7):
                 variant=VARIANTS[v];table=build(variant,seed,4,16,period)
                 for arm in ('same','opposite','neutral'):
-                    z=run(variant,seed,arm,table,period,projected)
+                    z=run(variant,seed,arm,table,period,lambda f,c,x,u: projected(f,c,x,u,a.common_window))
                     append(a.out,dict(k=[os.environ['PG_TREE'],seed,f'{v}|{arm}|period{period}'],m=z))
                     print(v,seed,period,arm,[(r['cancelled'],round(r['structure']['q'][0]-r['structure']['q'][1],3)) for r in z['results']],flush=True)
 
