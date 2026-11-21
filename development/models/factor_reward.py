@@ -681,16 +681,15 @@ class ProvisionalEventReward(RetractableEventReward):
     def __init__(self,J,A,lag):
         super().__init__(J,A,lag)
         self.onset_reward=np.zeros_like(self.onset)
-        self.onset_square=np.zeros_like(self.onset)
 
     def _record(self,b,a,y,bn,x,phase):
         super()._record(b,a,y,bn,x,phase)
-        c=int(self.code(bn)); self.onset_reward[c]+=y*phase;self.onset_square[c]+=y*y*phase
+        c=int(self.code(bn)); self.onset_reward[c]+=y*phase
 
     def _observe_mark(self,b,a,bn):
         revised=super()._observe_mark(b,a,bn)
         if revised:
-            self.onset_reward.fill(0.);self.onset_square.fill(0.)
+            self.onset_reward.fill(0.)
         return revised
 
     def provisional(self,rule):
@@ -698,14 +697,13 @@ class ProvisionalEventReward(RetractableEventReward):
         allowed=~np.tile(np.isin(np.arange(self.J),self.slots),self.L)
         n=self.onset; s=self.onset_reward
         m=(s+.5)/(1.+n)
-        v=np.maximum(0.,(self.onset_square+1./3)/(1.+n)-m*m)
         # Fully untested onsets retain a large possible novel effect, supported
         # cases retain it in proportion to remaining posterior mean deviation.
         strength=np.tile(self.onset_total/(.5+self.past_on),self.L)
         prevalence=(.5+self.present)/(1.+self.total)
         u=m+(1.-m)*strength*(1.-prevalence)/np.sqrt(1.+n)
         u*=allowed;u*=~known[:,None]
-        return np.maximum(0.,u),v
+        return np.maximum(0.,u)
 
     def likelihood(self,rule,x):
         idx,weight,p,atoms,p0,base,_=rule
@@ -746,7 +744,6 @@ class ElapsedEventReward(ProvisionalEventReward):
 
     def provisional(self,rule):
         n=self.onset; m=(self.onset_reward+.5)/(1.+n)
-        v=np.maximum(0.,(self.onset_square+1./3)/(1.+n)-m*m)
         eligible=~np.tile(np.isin(np.arange(self.J),self.slots),self.L)
         strength=np.tile(self.onset_total/(.5+self.past_on),self.L)
         rarity=1.-(.5+self.present)/(1.+self.total)
@@ -757,4 +754,4 @@ class ElapsedEventReward(ProvisionalEventReward):
         local=base+plausibility*(m-base)
         upper=local+plausibility*(1.-m)/np.sqrt(1.+n)
         upper*=~rule[1].any(1)[:,None]
-        return upper,v
+        return upper

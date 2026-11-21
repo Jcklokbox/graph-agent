@@ -12,7 +12,7 @@ class RecurrentRegimes:
     no sensitivity to an episode index or to sensor/action identities.
     """
     _banks=('trans','trans_total','control_mass','type_count','type_sum','on',
-            'evidence_type','onset','onset_reward','onset_square')
+            'evidence_type','onset','onset_reward')
 
     def __init__(self,J,A,lag):
         super().__init__(J,A,lag)

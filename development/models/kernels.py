@@ -105,34 +105,52 @@ def hmm_step(y, a, prior, b, tr, em, h_b, h_a, h_y, ix, age, ntr, non, ntot):
     return np.log(score)
 
 
+@njit(inline='always')
+def _read_regime(out, q1, q0, weights, mu, v, center, cells, pg, fast, deficit):
+    J, S = cells.shape
+    for j in range(J):
+        if not fast[j]:
+            continue
+        add = center[j]
+        for p in range(v.shape[1]):
+            add += mu[j, p] * v[j, p]
+        w = weights[j, S]
+        pa = np.float32(max(.01, min(.99, add)))
+        num = w * pa
+        den = w
+        for s in range(S):
+            c = cells[j, s]
+            a, b = q1[j, c], q0[j, c]
+            p = (a + pg[j, s]) / (a + b + np.float32(1.))
+            w = weights[j, s]
+            num += w * p
+            den += w
+        q = num / den
+        rho = deficit[j]
+        out[j] = q if rho == 0. else (1. - rho) * q + rho * pa
+
+
 @njit(cache=True)
 def factor_read(q1, q0, weights, mu, v, center, cells, pg, kk, fast, used, deficit):
-    """Read all live regimes; sufficient statistics are contiguous by member."""
+    """Read live regimes separately and evaluate the common birth row once."""
     n = q1.shape[0]
-    J, S = cells.shape
+    J = cells.shape[0]
     out = np.full((n, kk, J), .5)
+    birth = np.full(J, .5)
+    have_birth = False
     for i in range(n):
-        for z in range(min(kk, used[i] + 1)):
-            for j in range(J):
-                if not fast[j]:
-                    continue
-                add = center[j]
-                for p in range(v.shape[1]):
-                    add += mu[i, z, j, p] * v[j, p]
-                w = weights[i, z, j, S]
-                pa = np.float32(max(.01, min(.99, add)))
-                num = w * pa
-                den = w
-                for s in range(S):
-                    c = cells[j, s]
-                    a, b = q1[i, z, j, c], q0[i, z, j, c]
-                    p = (a + pg[j, s]) / (a + b + np.float32(1.))
-                    w = weights[i, z, j, s]
-                    num += w * p
-                    den += w
-                q = num / den
-                rho = deficit[j]
-                out[i, z, j] = q if rho == 0. else (1. - rho) * q + rho * pa
+        for z in range(min(kk, used[i])):
+            _read_regime(out[i, z], q1[i, z], q0[i, z], weights[i, z], mu[i, z],
+                         v, center, cells, pg, fast, deficit)
+        z = used[i]
+        if z < kk:
+            # Slot reset and resampling preserve identical prior statistics in
+            # each never-used row. Particle and place effects are applied later.
+            if not have_birth:
+                _read_regime(birth, q1[i, z], q0[i, z], weights[i, z], mu[i, z],
+                             v, center, cells, pg, fast, deficit)
+                have_birth = True
+            out[i, z] = birth
     return out
 
 
