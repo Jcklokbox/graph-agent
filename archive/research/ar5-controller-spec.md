@@ -68,3 +68,12 @@ moderators; it does not maintain all pairs. The scope filter, replay,
 projected sensor rows and real update visit O(J) entries at fixed N and those
 bounds, so full act+learn retains the passive O(Σ_g |P_g|) construction.
 Small-width ratios validate overhead, not the asymptotic proof itself.
+
+### Frozen result
+
+The v48 DEV-16 qualification completed but failed the registered
+noninferiority rule: 240 matched pairs, mean difference −0.003298,
+99% CI [−0.043362, +0.036767] against lower limit −0.02. See
+`development/results/ar5/gate-dev16-v48/DEV.json` and `validation.json`.
+The passing isolation and scaling checks do not make v48 an accepted
+agent. The passive 3b-1 result is unchanged.
