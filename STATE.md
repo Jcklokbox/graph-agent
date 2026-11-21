@@ -4,7 +4,7 @@
 Retain original clock and 220+20 calls; ~30-minute cues are advisory.
 
 <!-- managed-next -->
-- **Run AR-6 (active):** Measure exact signed-compound evidence against every eligible unary parent on the exposed calibration tapes
+- **Run AR-6 (active):** Test read-only full signed-law projection and exact v59 closed-loop guard parity
 <!-- managed-next -->
 
 - **3b-1 accepted:** D65 `6f619568dc90`, 740/740, cost 2.080340. Immutable `development/results/ar5/gate3/validation.json`.
@@ -13,5 +13,6 @@ Retain original clock and 220+20 calls; ~30-minute cues are advisory.
 - **Global:** v57 changed sensory inference and was vetoed. v58 holds the canonical law (640 bit-exact predictions, 10 pure plans, work 1.863 in registered case); active 14→28 stress spans 2.285–2.792. Bounded attachment is not broad scaling or C2 transfer.
 - **Resolved:** opposite-side intervention was aliased at coarse state resolution before actuator evidence. Conditional credit requires both reached outcomes and distinguishable represented states.
 - **Resolved:** longer spacing removes the lagged outcome alias in both seed15 tapes and preserves cancellation. Noisy seed6 loses valid entry, so timing is a causal contrast, not a general fix.
-- **Next falsifier:** shared projection passes 640 exact q checks and cuts active CPU 28–34%. Test whether exact joint model evidence already favors current signed causes over the lagged unary alias; if not, seek timing variation rather than loosen admission.
+- **150-minute reflection:** joint evidence already prefers the real current compound to the lagged unary alias. This is a hard parent-family error, not just insufficient information. v59 shares projection exactly on tested tapes; CPU −28–34%.
+- **Next falsifier:** use the complete evidence-selected compound law at read-only probes. Recover seed15 valid entry without cancelled entry; do not promote weak cells or infer closed-loop gain.
 - [Evidence](docs/research/AR6.md) · [Recovery](docs/research/RECOVERY-AUDIT.md)

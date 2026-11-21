@@ -44,7 +44,7 @@ def main():
         for seed in (6,7,12,15):
             for period in (5,7):
                 variant=VARIANTS[v];table=build(variant,seed,4,16,period)
-                result=run(variant,seed,'same',table,period,structure_scores)
+                result=run(variant,seed,'same',table,period,lambda f,c,x,u: structure_scores(f.reward,c))
                 key=[os.environ['PG_TREE'],seed,f'{v}|adverse|period{period}']
                 append(a.out,dict(k=key,m=result));print(seed,key[-1],result['results'][0]['structure'],flush=True)
 

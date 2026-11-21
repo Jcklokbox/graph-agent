@@ -70,7 +70,7 @@ def run(v,seed,arm,table,period=5,diagnose=None):
               left=int(c),right=right,slots=h.slots.tolist(),parent=rule[0][c][rule[1][c]].tolist(),
               splits=[dict(j=int(j),m=int(m),lag=int(l),n=h.ctx_n[c,d,l,m].tolist(),u=h.ctx_s[c,d,l,m].tolist())
                       for j,m,l,s,g,d in pairs if s[c]]))
-            if diagnose is not None:results[-1]['structure']=diagnose(h,c)
+            if diagnose is not None:results[-1]['structure']=diagnose(f,c,x,u)
         a=moves.get(t,1);y,r,*_=env.step(a)
         if t in cal:prefix_r.append(float(r))
         if t in pos:events['positive' if r==1. else 'invalid']+=1
