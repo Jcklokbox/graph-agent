@@ -1,5 +1,6 @@
 """Control-plan isolation, observational-law parity and exact tiny enumeration."""
 import importlib
+import os
 import pickle
 import subprocess
 import sys
@@ -11,6 +12,14 @@ import numpy as np
 from models.factor import CANONICAL, FactorModel, make_factor
 from models.factor_projection import factor_current, finite_marginal
 from research.ar5_voi_fixture import Branch, exact_q
+
+
+CONTROLLERS=('v21','v22','v23','v28','v37','v38')
+
+
+def isolation_models():
+    candidate=os.environ.get('FACTOR_ISOLATION_CANDIDATE')
+    return (*CONTROLLERS,candidate) if candidate else CONTROLLERS
 
 
 class FactorControlTests(unittest.TestCase):
@@ -47,7 +56,7 @@ class FactorControlTests(unittest.TestCase):
             np.testing.assert_allclose(f.two_step_values([1.,0.,0.],u),[q0,q1],rtol=0,atol=1e-14)
 
     def test_virtual_rollouts_preserve_live_state_and_rng(self):
-        for name in ('v21','v22','v23','v28','v37','v38'):
+        for name in isolation_models():
             cls=importlib.import_module(f'agents.{name}').Agent
             a=cls(6,2,5,seed=48,draws=2)
             rng=np.random.default_rng(81); x=rng.integers(0,2,6).astype(float)
@@ -68,7 +77,7 @@ class Poison:
         if fullname in {"agents.v12", "agents.v11", "models.context_tree"}:
             raise AssertionError("legacy controller dependency: " + fullname)
 sys.meta_path.insert(0,Poison())
-for name in ('v21','v22','v23','v28','v37','v38'):
+for name in sys.argv[1:]:
     agent=importlib.import_module('agents.'+name).Agent(5,2,4,seed=2,draws=2)
     x=[1.,0.,0.,0.,.5]
     for i in range(8):
@@ -76,7 +85,7 @@ for name in ('v21','v22','v23','v28','v37','v38'):
         y=[float(bool(a)),1.-a,i%2,0.,.45]
         agent.learn(y);x=y
 '''
-        p=subprocess.run([sys.executable,'-c',code],capture_output=True,text=True,timeout=60)
+        p=subprocess.run([sys.executable,'-c',code,*isolation_models()],capture_output=True,text=True,timeout=60)
         self.assertEqual(p.returncode,0,p.stdout+p.stderr)
 
 

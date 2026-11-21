@@ -1,0 +1,10 @@
+{
+  "expected_stages": 76,
+  "model": "v58",
+  "observed": 461,
+  "stages": 57,
+  "status": "INCOMPLETE",
+  "total": 600,
+  "tree": "be8ec30ccb64",
+  "verified": 456
+}

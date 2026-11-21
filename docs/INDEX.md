@@ -8,7 +8,7 @@ call ceiling survive recovery; never substitute an archival checkpoint.
 | --- | --- |
 | Recover, dispatch, reflect, publish | [Autonomy contract](AUTONOMY.md) |
 | Why / how to test the next mechanism | [L-1–L-10](research/LAWS.md), [roadmap](research/ROADMAP.md), [baseline inventory](research/BASELINES.md) |
-| Prior lessons and exact experiment IDs | [AR-1–AR-5](research/RUNS.md), [D-0–D-38](research/DECISIONS.md) |
+| Prior lessons and exact experiment IDs | [AR-1–AR-6](research/RUNS.md), [AR-6 evidence](research/AR6.md), [AR-7 acceptance](research/AR7.md), [D-0–D-38](research/DECISIONS.md) |
 | Equations, biological controls, BRIEF-CE | [Technical map](research/ARCHITECTURE.md) |
 | Historical evidence and source verification | [Archive index](../archive/README.md) |
 

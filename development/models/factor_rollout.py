@@ -191,7 +191,7 @@ def event_values(f,x,uniforms,optimistic=True):
     return scores
 
 
-def provisional_values(f,x,uniforms,optimistic=True):
+def provisional_values(f,x,uniforms,optimistic=True,*, root_explore=True, continuation_explore=True):
     """Enumerate the control state; sample only residual sensory observations.
 
     Atom probabilities in the inner tree add the observed first atom to the
@@ -199,6 +199,9 @@ def provisional_values(f,x,uniforms,optimistic=True):
     that atom, and the transition factor, remain frozen during this lookahead.
     """
     head=f.reward; b=f._bits(x); input0=head.input(b,f.hist)[1:]
+    information=optimistic and hasattr(head,'discovery_value') and (head.slots>=0).any()
+    if information and head.information_mode=='replace':
+        root_explore=continuation_explore=False
     motion_optimism=optimistic and getattr(head,'motion_optimism',False)
     one_window=optimistic and getattr(head,'one_window',False)
     rule=head.rule(); atoms=rule[3]; trans=head.all_transitions();code=int(head.code(b))
@@ -212,17 +215,31 @@ def provisional_values(f,x,uniforms,optimistic=True):
     else:
         atoms0=atoms
     r,p=r[0],p[0]
+    root_updated=None
+    old_root=r
+    if hasattr(head,'refine_root') and (head.slots>=0).any():
+        r,p,atoms0,root_updated=head.refine_root(p,atoms0,rule,input0,seen_phase)
     incumbent=r.copy()
     pair_probe=optimistic and hasattr(head,'pair_context')
     bridge,base=head.bridge_table(rule) if optimistic and hasattr(head,'bridge_table') else (None,None)
     if bridge is not None and not bridge.any():
         bridge=None
+    # A nonadditive information score needs the fixed forecast as well.
+    # Share only inputs that are identical under both forecasts. A bridge
+    # can change whether the sensory projection is required at all.
+    shared_fixed=(information and getattr(head,'intrinsic_opportunity',False)
+                  and getattr(head,'share_fixed_projection',False)
+                  and bridge is None and not one_window)
+    q_fixed=np.zeros(f.A) if shared_fixed else None
     if optimistic:
         bound,_=head.provisional(rule)
+    if optimistic and root_explore:
         incumbent=np.maximum(r,(bound*seen_phase).max(1))
         if pair_probe:
             offer=head.pair_context(rule,input0,seen_phase)
             incumbent=np.maximum(incumbent,offer if group0 is None else np.where(group0==0,offer,0.))
+    if root_updated is not None:
+        incumbent=np.where(root_updated,r,incumbent)
     active=head.slots>=0; cols=head.slots[active]
     states=np.flatnonzero(np.any(trans[:,code,:]>0.,axis=0)) if getattr(head,'sparse_outcomes',False) else head.ci
     marks=(states[:,None]&head.binary[active])!=0
@@ -230,7 +247,7 @@ def provisional_values(f,x,uniforms,optimistic=True):
     hist=(*f.hist,b)
     tail=head.input(b,hist)[1+f.J:]
     tailphase=head.phase(b,hist)[f.J:]
-    if pair_probe:
+    if pair_probe and continuation_explore:
         prospective_pair=head.pair_context(rule,np.r_[np.zeros(f.J),tail],np.r_[np.zeros(f.J,bool),tailphase],shift=True)
     quiet=not b[~f.slow].any()
     relevant=None
@@ -269,7 +286,7 @@ def provisional_values(f,x,uniforms,optimistic=True):
         if splits:
             m2,_,_,count2,group2=head.context_moment(splits,feature,phase,m2,p2,atoms)
         cont=m2.copy()
-        if optimistic:
+        if optimistic and continuation_explore:
             if getattr(head,'elapsed_only',False):
                 phase[:,:f.J]=False  # no prospective novelty credit for unseen triggers
             cont=np.maximum(cont,np.max(phase[:,None,:]*bound,axis=-1))
@@ -293,6 +310,10 @@ def provisional_values(f,x,uniforms,optimistic=True):
         correction=motion[idx,:,c,None]*delta[:,None,:]
         gain=branch_mass@(np.clip(q[:,:,None]+correction,0.,1.).max(1)*p[c]).sum(1).reshape(len(y),len(states))
         discount=getattr(head,'discount',1.)
+        if shared_fixed:
+            q0=np.einsum('baj,bj->ba',motion,m2.copy())
+            fixed_gain=branch_mass@(np.clip(q0[:,:,None]+correction,0.,1.).max(1)*p[c]).sum(1).reshape(len(y),len(states))
+            q_fixed[a]=trans[a,code,states]@(r[states]+discount*fixed_gain)
         if one_window:
             q0=np.einsum('baj,bj->ba',motion,m2)
             if motion_optimism:
@@ -311,4 +332,15 @@ def provisional_values(f,x,uniforms,optimistic=True):
             if motion_optimism:
                 peak=values[legal[states]].max() if legal[states].any() else values.max()
                 scores[a]+=(peak-scores[a])/(2.+head.trans_total[a,code])
+    if information:
+        if getattr(head,'intrinsic_opportunity',False):
+            # Treat acquired decision information as an alternative to the
+            # inherited exploration forecast, not a second payment for it.
+            q=q_fixed if shared_fixed else provisional_values(f,x,uniforms,False)
+            bonus=head.discovery_value(q,trans[:,code,:],rule,input0,seen_phase)
+            return np.maximum(scores,q+bonus)
+        if root_updated is None:
+            scores+=head.discovery_value(scores,trans[:,code,:],rule,input0,seen_phase)
+        else:
+            scores+=head.discovery_value(scores,trans[:,code,:],rule,input0,seen_phase,root_effect=r-old_root)
     return scores

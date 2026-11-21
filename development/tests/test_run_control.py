@@ -12,6 +12,8 @@ from harness import run_control as rc
 
 class RunControlTests(unittest.TestCase):
     def setUp(self):
+        # Snapshot jobs suppress the outer beacon; unit cases own their mode.
+        self.enterContext(patch.dict(os.environ, {rc.beacon.MACHINE: "0"}))
         tmp = self.enterContext(tempfile.TemporaryDirectory())
         self.root = Path(tmp)
         self.path = self.root / 'state.json'

@@ -1,0 +1,15 @@
+{
+  "admin_fraction": 0.00011960617550393421,
+  "approximate_tool_calls": 64,
+  "audit_close_epoch": 1795267679.7371411,
+  "authorization_anchor": 1795259589.267097,
+  "harness_charged_calls": 65,
+  "initial_failed_init_tool_upper_seconds": 0.228,
+  "measured_admin_seconds": 0.96767018,
+  "pre_compaction_count_uncertainty": true,
+  "wait_union_fraction": 0.9148301302734181,
+  "wait_union_seconds": 7401.405764387,
+  "wall_allowance": 18000,
+  "wall_seconds": 8090.470044067,
+  "wrapped_calls": 30
+}

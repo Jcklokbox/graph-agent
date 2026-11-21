@@ -1,0 +1,23 @@
+{
+  "dev20": "INCOMPLETE",
+  "docs": "43 historical sources byte exact, zero Cyrillic",
+  "frozen_tree_reconstructed": "be8ec30ccb64",
+  "immutable_baseline_diff": "empty",
+  "origin_main": "08d61eacd7f94a5711ecbf5d64081e1d63b77a18",
+  "replayed_byte_exact": [
+    "ar5/gate3/validation.json",
+    "ar5/gate-dev16-v48/validation.json",
+    "ar6/dev20-v58/DEV.json"
+  ],
+  "repository_native_test_result": "PASS",
+  "repository_native_tests": 126,
+  "sha256": {
+    "ar5/gate-dev16-v48/validation.json": "fc7e2fe4a92e2bc33311b568d050b34630dd839fced41411113c6a76d88989fc",
+    "ar5/gate3/validation.json": "3985f3ec7cbd5ebdbaf04f57cd41066308ea035e599bf4ef09354fa76a1432ae",
+    "ar6/dev20-v58/DEV.json": "5c1386d0159c85c85884cba9ac6bcc1ce7a2518d124a647f540fd5aad4f15485",
+    "ar6/dev20-v58/episodes.jsonl": "de00f84eec0a9d82a8d4a61419685c24f76bbe63d420096425727cb59fcbd2cd",
+    "ar6/dev20-v58/freeze.json": "34344b72be6cd7147d4fd6069e54360908ea0f15fad41341223f45091867adba",
+    "ar6/dev20-v58/stages.jsonl": "8750b4054b8ddeb073c1ce9a8362aa23457454206d171ff8e99a1f554359e99a"
+  },
+  "t4": "NOT_OPENED"
+}

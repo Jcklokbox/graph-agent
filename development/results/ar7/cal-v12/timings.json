@@ -1,0 +1,48 @@
+{
+  "cpus": [
+    0,
+    1
+  ],
+  "deps": {
+    "llvmlite": "0.50.0",
+    "numba": "0.68.1",
+    "numpy": "2.4.6",
+    "python": "3.11.2"
+  },
+  "model": "v12",
+  "program_sha256": "d1d6cc3d2d36e531ca90a58e22f2a77a36fae1153ec49309c835fc5226294e84",
+  "stages": [
+    {
+      "episodes": 10,
+      "exit": 0,
+      "seconds": 120.42617029600115
+    },
+    {
+      "episodes": 10,
+      "exit": 0,
+      "seconds": 132.1528831709984
+    },
+    {
+      "episodes": 10,
+      "exit": 0,
+      "seconds": 131.06140401899938
+    },
+    {
+      "episodes": 10,
+      "exit": 0,
+      "seconds": 126.16386357099873
+    },
+    {
+      "episodes": 10,
+      "exit": 0,
+      "seconds": 126.63220283800001
+    },
+    {
+      "episodes": 10,
+      "exit": 0,
+      "seconds": 130.36976555100046
+    }
+  ],
+  "tree": "6ba39c831f35",
+  "workers": 2
+}
