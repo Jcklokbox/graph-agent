@@ -199,6 +199,9 @@ def provisional_values(f,x,uniforms,optimistic=True,*, root_explore=True, contin
     that atom, and the transition factor, remain frozen during this lookahead.
     """
     head=f.reward; b=f._bits(x); input0=head.input(b,f.hist)[1:]
+    information=optimistic and hasattr(head,'discovery_value') and (head.slots>=0).any()
+    if information and head.information_mode=='replace':
+        root_explore=continuation_explore=False
     motion_optimism=optimistic and getattr(head,'motion_optimism',False)
     one_window=optimistic and getattr(head,'one_window',False)
     rule=head.rule(); atoms=rule[3]; trans=head.all_transitions();code=int(head.code(b))
@@ -312,4 +315,6 @@ def provisional_values(f,x,uniforms,optimistic=True,*, root_explore=True, contin
             if motion_optimism:
                 peak=values[legal[states]].max() if legal[states].any() else values.max()
                 scores[a]+=(peak-scores[a])/(2.+head.trans_total[a,code])
+    if information:
+        scores+=head.discovery_value(scores,trans[:,code,:],rule,input0,seen_phase)
     return scores
