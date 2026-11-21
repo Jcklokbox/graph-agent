@@ -39,6 +39,7 @@ from pathlib import Path
 
 import numpy as np
 
+import agents
 from envs.tasks import SPLITS, VARIANTS
 from eval import benchmark
 
@@ -203,7 +204,7 @@ def replay(path, scr, procs):
             return verdict, why, t
 
 
-def live(scr, procs, budget_s, every, out, meta):
+def live(scr, procs, budget_s, every, out, meta, *, agent, settings):
     import multiprocessing as mp
     from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
     _, _, eb, bb = SPLITS["dev"]
@@ -218,7 +219,8 @@ def live(scr, procs, budget_s, every, out, meta):
                 if job is None:
                     break
                 nm, s = job
-                running[ex.submit(benchmark.brain_run, nm, eb + s, bb + s)] = (nm, s)
+                future = ex.submit(benchmark.brain_run, nm, eb + s, bb + s, agent, settings)
+                running[future] = (nm, s)
             if not running:
                 verdict, why = scr.decide()
                 verdict = verdict or "EXHAUSTED"
@@ -258,10 +260,9 @@ def main(argv):
         verdict, why, t = replay(opt("--replay"), scr, procs)
         print(scr.report(t, verdict, why))
         return
-    if "--kw" in argv:
-        benchmark.BRAIN_KW.update(json.loads(opt("--kw")))
-    benchmark.AGENT["name"] = opt("--agent", "v11")
-    benchmark.agent_module()
+    settings = json.loads(opt("--kw", "{}"))
+    agent = opt("--agent", "v11")
+    agents.load(agent)  # Validate before dispatch and warm the forked workers.
     budget = float(opt("--budget-min", 20)) * 60
     if "--resume" in argv:
         scr.resume(opt("--resume"))
@@ -271,12 +272,12 @@ def main(argv):
     if need > budget / 60:
         print(f"WARNING: budget {budget / 60:.0f} min < plan; expect BUDGET unless the effect is "
               f"large - raise --delta, restrict variants, or do not run", flush=True)
-    print(f"screen: agent {benchmark.AGENT['name']} kw {benchmark.BRAIN_KW} vs {base_path}"
+    print(f"screen: agent {agent} kw {settings} vs {base_path}"
           f" | {len(names)} variants, <= {scr.max_seeds} seeds, delta {scr.delta}, budget {budget / 60:.0f} min",
           flush=True)
     live(scr, procs, budget, float(opt("--every", 120)), opt("--out"),
-         dict(split="dev", agent=benchmark.AGENT["name"], settings=benchmark.BRAIN_KW,
-              base=str(base_path)))
+         dict(split="dev", agent=agent, settings=settings,
+              base=str(base_path)), agent=agent, settings=settings)
 
 
 if __name__ == "__main__":

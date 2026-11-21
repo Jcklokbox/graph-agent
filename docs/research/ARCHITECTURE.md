@@ -47,6 +47,19 @@ benchmark comparator, not a v60 dependency.
 | Accepted evidence | [D65 and AR-7 replay](../EVIDENCE.md) validates saved evidence with no new episodes. The freeze identifies the original code, not the current checkout. |
 | Retired experiments | Recover original drivers and configurations through the recorded [Git history](../EVIDENCE.md), not by treating spent cohorts as fresh evidence. |
 
+## Evaluation jobs
+
+A [controller episode](../../development/eval/benchmark.py) receives its
+variant, environment seed, agent seed, agent name, and constructor settings
+from the caller. The benchmark and sequential screen pass those arguments to
+workers instead of relying on mutable benchmark defaults. The legacy benchmark
+`--set` option still changes agent module attributes: its overrides apply to one
+benchmark invocation and its forked workers, then the parent restores them.
+
+The [paired DEV runner](../../development/eval/scripts/ar5_controller_run.py)
+reads the snapshot identity at dispatch and passes it to the journal record
+builder. Journal keys, benchmark metrics, and audit rules are unchanged.
+
 ## Regression checks
 
 The [CI regression job](../../.github/workflows/regression.yml) runs the full
