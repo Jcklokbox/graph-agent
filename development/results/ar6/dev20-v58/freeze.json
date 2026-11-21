@@ -1,0 +1,67 @@
+{
+  "batch": 8,
+  "commit": "467daf536c3645f8351ee7bedc01b57fa4c8c760",
+  "cpus": [
+    0,
+    1
+  ],
+  "deadline": 1795254052.6387186,
+  "deps": {
+    "llvmlite": "0.50.0",
+    "numba": "0.68.1",
+    "numpy": "2.4.6",
+    "python": "3.11.2"
+  },
+  "margin": -0.02,
+  "model": "v58",
+  "models": [
+    "v12",
+    "v58"
+  ],
+  "n": 20,
+  "pairs": 300,
+  "program_sha256": "ad908ead9da4dd35f0044a448c8d03c753093e88878d7459b83617b767ad5d58",
+  "seed_ids": [
+    574217728,
+    219059547,
+    927914078,
+    575384491,
+    319673886,
+    320387074,
+    327538271,
+    327754322,
+    284437906,
+    159619071,
+    66779653,
+    462874508,
+    661194305,
+    547620564,
+    518049384,
+    742241594,
+    164533340,
+    304824665,
+    192541410,
+    327245283
+  ],
+  "steps_per_model": 222000,
+  "tcrit": 2.861,
+  "tree": "be8ec30ccb64",
+  "variants": [
+    "aut",
+    "canc",
+    "dist",
+    "aut-half",
+    "aut-noise4",
+    "dist-delay3",
+    "aut-serial300",
+    "aut-noise4-sticky",
+    "canc-noise3",
+    "dist-noise2-sticky",
+    "dist-noise2",
+    "aut-fooddelay2",
+    "dist-delay3-noise2",
+    "dist-noise3-p4",
+    "aut-fooddelay3-noise1"
+  ],
+  "version": 1
+}

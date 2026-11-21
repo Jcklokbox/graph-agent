@@ -4,14 +4,13 @@
 Retain original clock and 220+20 calls; ~30-minute cues are advisory.
 
 <!-- managed-next -->
-- **Run AR-6 (active):** Test v58 reward-only attachment with registered exposed panel and exact canonical predictor parity
+- **Run AR-6 (active):** Run and audit the single unchanged v58 DEV-20 against actual paired v12 without interim model selection
 <!-- managed-next -->
 
 - **3b-1 accepted:** D65 `6f619568dc90`, 740/740, cost 2.080340. Immutable `development/results/ar5/gate3/validation.json`.
 - **3b-2 unqualified:** v48 D112 DEV-16 240/240; Δ −.003298, 99% CI [−.043362,+.036767], lower bar ≥−.02. Archive merge is not qualification.
 - **Local:** Matched anonymous reward exposure restored hard cancellation reuse; adverse controls did not. Soft real-atom means let a single success matter, restoring clean discovery. Fixed replay retains all five erroneous cancelled-left entries.
-- **Earlier reflection:** Separate the reward law from two sources of exploration. AR6-08 nonadditive acquisition improves five of seven exposed noisy pairs; clean unchanged, all nine guards held or improved. The signed-selector fixture does not establish the real cause of left errors.
-- **Global:** Configural acquisition cannot substitute for representing adverse conditions in the posterior payoff law. Keep the accepted predictor isolated and bound the reward branch per credited parent. Fresh 3b-2 still gates T4, then C2–C5; no exposed trajectory is confirmation.
-- **Resolved:** v57 fails predictor parity despite unchanged source: inherited action-conditioned role inference changes the predictive null. Do not freeze it.
-- **Next falsifier:** v58 keeps the reward law but uses canonical sensory roles. Demand exact tape parity, bounded N200 work and no material exposed guard/discovery regression before DEV-20.
-- [Research evidence](docs/research/AR6.md) · [Recovery audit](docs/research/RECOVERY-AUDIT.md)
+- **Global:** Nonadditive decision information preserved clean discovery, improved five noisy trajectories and held all nine matched guards. Binding exploration to the same action opportunity is preferable to paying twice. This is exposed evidence, not acceptance.
+- **Resolved:** v57 inherited action-conditioned sensory roles; parity vetoed it. v58 changes only attachment. It matches 23 exposed results, 640 exact canonical predictions, 10 pure plans and work 1.863 ≤2.50. Accepted 3b-1 evidence is unchanged.
+- **Next falsifier:** Complete the one frozen fresh DEV-20 v58/v12 comparison (300 pairs, 99% lower bound ≥−.02); no partial pass. Only a completed pass justifies proceeding to blind T4 before C3–C5.
+- [Evidence](docs/research/AR6.md) · [Recovery](docs/research/RECOVERY-AUDIT.md)
