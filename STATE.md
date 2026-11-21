@@ -4,15 +4,13 @@
 Retain original clock and 220+20 calls; ~30-minute cues are advisory.
 
 <!-- managed-next -->
-- **Run AR-6 (active):** Separate lateral control codes with identical real dwell bouts before re-testing signed adverse credit
+- **Run AR-6 (active):** Test temporal alias by changing cue spacing at matched event ordinals on two exposed seeds
 <!-- managed-next -->
 
 - **3b-1 accepted:** D65 `6f619568dc90`, 740/740, cost 2.080340. Immutable `development/results/ar5/gate3/validation.json`.
-- **3b-2 unqualified:** v48 D112 DEV-16 240/240; Δ −.003298, 99% CI [−.043362,+.036767], lower bar ≥−.02. Archive merge is not qualification.
-- **Local:** Matched anonymous reward exposure restored hard cancellation reuse; matched same-side adverse controls did not. Soft real-atom means let a single success matter, restoring clean discovery. Fixed replay retains all five erroneous cancelled-left entries.
-- **Global:** Nonadditive information preserved clean discovery, improved five noisy trajectories and held nine exposed guards. Do not pay twice for one test.
-- **Resolved:** v57 inherited action-conditioned sensory roles; parity vetoed it. v58 changes only attachment. It matches 23 exposed results, 640 exact canonical predictions, 10 pure plans and work 1.863 ≤2.50. Accepted 3b-1 evidence is unchanged.
-- **Fresh gate INCOMPLETE:** frozen DEV-20 verified 456/600 rows (224/300 pairs), 57/76 stages. A shortened stage timed out; no retry, CI or acceptance. Efficacy is not inferred from the prefix.
-- **Resolved:** opposite-side adverse exposure also reversed the fixed cancelled decision; the learned center/noncenter code aliases the two lateral states. Physical matching alone was not a distinct negative control.
-- **Next falsifier:** shared off-cue entry/dwell/return bouts must first separate the lateral codes. Then test whether same-side adverse contact changes fixed left value more than exact-tick opposite-side contact.
+- **3b-2 open:** v48 D112 failed; frozen fresh v58 DEV-20 **INCOMPLETE**, 456/600 verified rows, 224/300 pairs, 57/76 stages. Timeout, no retry, CI or efficacy claim. T4 not opened.
+- **Local:** Real reward exposure restores reuse; soft means and nonadditive information improve exposed discovery. After real dwell bouts split lateral codes, same-side but not opposite-side adverse contact changes fixed cancellation choice (8/8). Valid choice held on 6/8; seed15 clean/noisy selects lagged food marker instead.
+- **Global:** v57 changed sensory inference and was vetoed. v58 holds the canonical law (640 bit-exact predictions, 10 pure plans, work 1.863 in registered case); active 14→28 stress spans 2.285–2.792. Bounded attachment is not broad scaling or C2 transfer.
+- **Resolved:** opposite-side intervention was aliased at coarse state resolution before actuator evidence. Conditional credit requires both reached outcomes and distinguishable represented states.
+- **Next falsifier:** change five to seven ticks between cue windows at the same reward/control ordinals. Test whether valid-entry recovery on seed15 tracks loss of the lagged payoff parent without renewed cancelled entry.
 - [Evidence](docs/research/AR6.md) · [Recovery](docs/research/RECOVERY-AUDIT.md)

@@ -13,8 +13,15 @@ from harness.journal import append
 from models.factor_rollout import provisional_values
 
 
-def build(v,seed,n,calibration=0):
-    _,_,eb,_=SPLITS['dev']; env=v.make(eb+seed);x=env.reset()
+def timed_env(v,seed,period):
+    env=v.make(seed);base=env
+    while hasattr(base,'env'):base=base.env
+    base.period=period
+    return env
+
+
+def build(v,seed,n,calibration=0,period=5):
+    _,_,eb,_=SPLITS['dev']; env=timed_env(v,eb+seed,period);x=env.reset()
     pos,neg,probe,cal=[],[],[],{}; cycles=0
     for t in range(360):
         if x[3]:
@@ -34,8 +41,8 @@ def build(v,seed,n,calibration=0):
     raise ValueError('tape has insufficient reachable matched cue windows')
 
 
-def run(v,seed,arm,table):
-    _,_,eb,bb=SPLITS['dev'];env=v.make(eb+seed);x=env.reset()
+def run(v,seed,arm,table,period=5):
+    _,_,eb,bb=SPLITS['dev'];env=timed_env(v,eb+seed,period);x=env.reset()
     agent=agent_class(load('v58'))(v.n_inputs,v.n_actions,11,seed=bb+seed);f=agent.factor;h=f.reward
     pos,neg,probe,cal=table;wp=dict(probe);moves=dict(cal)
     for t in pos:moves.update({t:0,t+1:2})
@@ -59,6 +66,7 @@ def run(v,seed,arm,table):
             results.append(dict(t=t,cancelled=wp[t],fixed=fixed.tolist(),q=q.tolist(),
               left_mean=float(means[0,c]),left_base=float(mu[0,c]),left_soft=float(soft[c]),
               soft_used=bool(used[c]),left_cells=observed,reach=reach,ctrl=h.control_mass.tolist(),
+              witness={str(j): [float(h.evidence_type[c,j]),bool(feat[j])] for j in (3,7,4*f.J+5)},
               left=int(c),right=right,slots=h.slots.tolist(),parent=rule[0][c][rule[1][c]].tolist(),
               splits=[dict(j=int(j),m=int(m),lag=int(l),n=h.ctx_n[c,d,l,m].tolist(),u=h.ctx_s[c,d,l,m].tolist())
                       for j,m,l,s,g,d in pairs if s[c]]))
@@ -80,15 +88,16 @@ def main():
     p.add_argument('--variant',default='canc-noise3',choices=['canc','canc-noise3'])
     p.add_argument('--seeds',nargs='+',type=int,default=[6,7,12,15]);p.add_argument('--dose',type=int,default=4)
     p.add_argument('--calibration',type=int,default=0,help='shared balanced noncue dwell cycles')
+    p.add_argument('--period',type=int,choices=(5,7),default=5)
     a=p.parse_args();v=VARIANTS[a.variant];tree=os.environ['PG_TREE']
     for s in a.seeds:
-        table=build(v,s,a.dose,a.calibration);sensor=None;rewards=None
+        table=build(v,s,a.dose,a.calibration,a.period);sensor=None;rewards=None
         for arm in ('neutral','opposite','same'):
-            trace=run(v,s,arm,table)
+            trace=run(v,s,arm,table,a.period)
             if sensor is None:sensor=trace['sensor'];rewards=trace['calibration_rewards']
             elif sensor!=trace['sensor'] or rewards!=trace['calibration_rewards']:
                 raise ValueError('unmatched exogenous tape or calibration payoff')
-            append(a.out,dict(k=[tree,s,f'{a.variant}|{arm}|{a.dose}|cal{a.calibration}'],m=trace))
+            append(a.out,dict(k=[tree,s,f'{a.variant}|{arm}|{a.dose}|cal{a.calibration}|period{a.period}'],m=trace))
             print(s,arm,trace['events'],len(trace['results']),flush=True)
 
 
