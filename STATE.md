@@ -4,7 +4,7 @@
 Retain original clock and 220+20 calls; ~30-minute cues are advisory.
 
 <!-- managed-next -->
-- **Run AR-6 (active):** Bound joint-model admission with matched actual contact doses and unchanged probe clocks
+- **Run AR-6 (active):** Hold four positive contacts fixed and vary only local adverse dose with matched controls
 <!-- managed-next -->
 
 - **3b-1 accepted:** D65 `6f619568dc90`, 740/740, cost 2.080340. Immutable `development/results/ar5/gate3/validation.json`.
@@ -14,5 +14,5 @@ Retain original clock and 220+20 calls; ~30-minute cues are advisory.
 - **Resolved:** opposite-side intervention was aliased at coarse state resolution before actuator evidence. Conditional credit requires both reached outcomes and distinguishable represented states.
 - **Resolved:** longer spacing removes the lagged outcome alias in both seed15 tapes and preserves cancellation. Noisy seed6 loses valid entry, so timing is a causal contrast, not a general fix.
 - **150-minute reflection:** joint evidence prefers the current compound; its projected decision restores both signs on seed15. v59 matches 23 exposed records and cuts active CPU 28–34%.
-- **Next falsifier:** shared replay preserves the seed15 joint-evidence margin and both decision signs. Test actual contact dose 1/2/4 at matched probe times to bound supported admission before deployment.
+- **Next falsifier:** compound admission occurs at 4+4 same-side contacts only in the matched diagonal dose probe. Freeze four positives and vary only adverse count to identify the source of this admission effect.
 - [Evidence](docs/research/AR6.md) · [Recovery](docs/research/RECOVERY-AUDIT.md)
