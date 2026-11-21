@@ -4,7 +4,7 @@
 Retain original clock and 220+20 calls; ~30-minute cues are advisory.
 
 <!-- managed-next -->
-- **Run AR-6 (active):** Test temporal alias by changing cue spacing at matched event ordinals on two exposed seeds
+- **Run AR-6 (active):** Test exact shared projection against recursive v58 on matched actual tapes and active widths
 <!-- managed-next -->
 
 - **3b-1 accepted:** D65 `6f619568dc90`, 740/740, cost 2.080340. Immutable `development/results/ar5/gate3/validation.json`.
@@ -12,5 +12,6 @@ Retain original clock and 220+20 calls; ~30-minute cues are advisory.
 - **Local:** Real reward exposure restores reuse; soft means and nonadditive information improve exposed discovery. After real dwell bouts split lateral codes, same-side but not opposite-side adverse contact changes fixed cancellation choice (8/8). Valid choice held on 6/8; seed15 clean/noisy selects lagged food marker instead.
 - **Global:** v57 changed sensory inference and was vetoed. v58 holds the canonical law (640 bit-exact predictions, 10 pure plans, work 1.863 in registered case); active 14→28 stress spans 2.285–2.792. Bounded attachment is not broad scaling or C2 transfer.
 - **Resolved:** opposite-side intervention was aliased at coarse state resolution before actuator evidence. Conditional credit requires both reached outcomes and distinguishable represented states.
-- **Next falsifier:** change five to seven ticks between cue windows at the same reward/control ordinals. Test whether valid-entry recovery on seed15 tracks loss of the lagged payoff parent without renewed cancelled entry.
+- **Resolved:** longer spacing removes the lagged outcome alias in both seed15 tapes and preserves cancellation. Noisy seed6 loses valid entry, so timing is a causal contrast, not a general fix.
+- **Next falsifier:** share the duplicate fixed/optimistic branch projection without changing q or decisions. Bound CPU and p99 on the matched active tape. No new efficacy gate.
 - [Evidence](docs/research/AR6.md) · [Recovery](docs/research/RECOVERY-AUDIT.md)

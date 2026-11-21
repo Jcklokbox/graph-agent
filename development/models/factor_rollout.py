@@ -224,6 +224,13 @@ def provisional_values(f,x,uniforms,optimistic=True,*, root_explore=True, contin
     bridge,base=head.bridge_table(rule) if optimistic and hasattr(head,'bridge_table') else (None,None)
     if bridge is not None and not bridge.any():
         bridge=None
+    # A nonadditive information score needs the fixed forecast as well.
+    # Share only inputs that are identical under both forecasts. A bridge
+    # can change whether the sensory projection is required at all.
+    shared_fixed=(information and getattr(head,'intrinsic_opportunity',False)
+                  and getattr(head,'share_fixed_projection',False)
+                  and bridge is None and not one_window)
+    q_fixed=np.zeros(f.A) if shared_fixed else None
     if optimistic:
         bound,_=head.provisional(rule)
     if optimistic and root_explore:
@@ -303,6 +310,10 @@ def provisional_values(f,x,uniforms,optimistic=True,*, root_explore=True, contin
         correction=motion[idx,:,c,None]*delta[:,None,:]
         gain=branch_mass@(np.clip(q[:,:,None]+correction,0.,1.).max(1)*p[c]).sum(1).reshape(len(y),len(states))
         discount=getattr(head,'discount',1.)
+        if shared_fixed:
+            q0=np.einsum('baj,bj->ba',motion,m2.copy())
+            fixed_gain=branch_mass@(np.clip(q0[:,:,None]+correction,0.,1.).max(1)*p[c]).sum(1).reshape(len(y),len(states))
+            q_fixed[a]=trans[a,code,states]@(r[states]+discount*fixed_gain)
         if one_window:
             q0=np.einsum('baj,bj->ba',motion,m2)
             if motion_optimism:
@@ -325,7 +336,7 @@ def provisional_values(f,x,uniforms,optimistic=True,*, root_explore=True, contin
         if getattr(head,'intrinsic_opportunity',False):
             # Treat acquired decision information as an alternative to the
             # inherited exploration forecast, not a second payment for it.
-            q=provisional_values(f,x,uniforms,False)
+            q=q_fixed if shared_fixed else provisional_values(f,x,uniforms,False)
             bonus=head.discovery_value(q,trans[:,code,:],rule,input0,seen_phase)
             return np.maximum(scores,q+bonus)
         if root_updated is None:
