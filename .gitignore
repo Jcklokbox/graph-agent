@@ -4,3 +4,6 @@ __pycache__/
 /development/results/runs/
 
 /.run/
+
+# AR-6 alt-N local virtualenv (excluded from snapshots; do not commit)
+/.venv/
