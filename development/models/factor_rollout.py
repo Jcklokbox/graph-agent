@@ -191,7 +191,7 @@ def event_values(f,x,uniforms,optimistic=True):
     return scores
 
 
-def provisional_values(f,x,uniforms,optimistic=True):
+def provisional_values(f,x,uniforms,optimistic=True,*, root_explore=True, continuation_explore=True):
     """Enumerate the control state; sample only residual sensory observations.
 
     Atom probabilities in the inner tree add the observed first atom to the
@@ -219,6 +219,7 @@ def provisional_values(f,x,uniforms,optimistic=True):
         bridge=None
     if optimistic:
         bound,_=head.provisional(rule)
+    if optimistic and root_explore:
         incumbent=np.maximum(r,(bound*seen_phase).max(1))
         if pair_probe:
             offer=head.pair_context(rule,input0,seen_phase)
@@ -230,7 +231,7 @@ def provisional_values(f,x,uniforms,optimistic=True):
     hist=(*f.hist,b)
     tail=head.input(b,hist)[1+f.J:]
     tailphase=head.phase(b,hist)[f.J:]
-    if pair_probe:
+    if pair_probe and continuation_explore:
         prospective_pair=head.pair_context(rule,np.r_[np.zeros(f.J),tail],np.r_[np.zeros(f.J,bool),tailphase],shift=True)
     quiet=not b[~f.slow].any()
     relevant=None
@@ -269,7 +270,7 @@ def provisional_values(f,x,uniforms,optimistic=True):
         if splits:
             m2,_,_,count2,group2=head.context_moment(splits,feature,phase,m2,p2,atoms)
         cont=m2.copy()
-        if optimistic:
+        if optimistic and continuation_explore:
             if getattr(head,'elapsed_only',False):
                 phase[:,:f.J]=False  # no prospective novelty credit for unseen triggers
             cont=np.maximum(cont,np.max(phase[:,None,:]*bound,axis=-1))
