@@ -38,3 +38,26 @@ likelihood, not the prior streaming identity inserted into the production path.
 
 See [compute and preregistration](AR7-COMPUTE.md) and
 [raw receipts](../../development/results/ar7/).
+
+## Frozen qualification
+
+- Candidate `d2c4031bf14b236114e46009cd73fadb7a26f56c`, tree `6ba39c831f35`. D65 fixed-tape
+  parity: 640/640 byte-exact predictions and 10 pure planning checkpoints.
+  Archived 740-tuple journal aggregation is byte-identical; its episodes
+  were not regenerated. All 15 named D111 cases passed with v60 included in
+  the actual-agent isolation cases. Warm full-step N200 CPU scaling:
+  2.597444 s → 4.834566 s, ratio 1.861278 ≤ 2.50.
+- Program SHA-256 `7f04badee1c825d7474ce20fe863ffd2f67243bf4b615a49b945d3c59d2838b3`. Fresh 20×15 blocks; 30 full,
+  independently balanced stages per model. Both models run on CPUs 0,1 with
+  2 workers and single-thread numerical libraries.
+
+| Actual model on the finalist tree | Exposed stages / episodes | Mean / max stage s | Watchdog s |
+| --- | ---: | ---: | ---: |
+| v12 | 6 / 60 | 127.801 / 132.153 | 167 |
+| v60 | 6 / 60 | 64.848 / 76.203 | 97 |
+
+Fund all stages and grace: 8190 s, plus 600 s for audit. This
+supersedes the proxy 11,580 s / latest start 1795265408. At exact freeze the
+latest gate start is **2026-11-21T13:46:38+00:00** (`1795268798.582`); gate deadline
+`1795276988.582`. The immutable freeze was published before any fresh
+episode. No independent fresh reference cache, no shortened or retried stage.

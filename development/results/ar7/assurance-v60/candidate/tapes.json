@@ -1,0 +1,24 @@
+{
+  "canc-noise3": {
+    "dtype": "<f8",
+    "output_sha256": "ad693bbeaee19dc4a0270bfd02a4e41adee369eacd4f97f6f360cec296bde719",
+    "pure_plans": 5,
+    "shape": [
+      320,
+      15
+    ],
+    "tape_sha256": "3e31c051c65fa4cac911fc2a59e5aee2c81971b500d906e1e4d6f4a6f2c9e043",
+    "transitions": 320
+  },
+  "sticky": {
+    "dtype": "<f8",
+    "output_sha256": "59cbaf543e91bf55437ea4cd092972e9590e0a59092eeb43f3c810faf35a2d18",
+    "pure_plans": 5,
+    "shape": [
+      320,
+      13
+    ],
+    "tape_sha256": "052ff531d721194ef792664c0664f5476c86ebb244aa3d3d2de62f3929581efd",
+    "transitions": 320
+  }
+}

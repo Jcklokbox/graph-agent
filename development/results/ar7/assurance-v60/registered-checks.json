@@ -1,0 +1,55 @@
+{
+  "d65_740_replayed_aggregator": true,
+  "d65_740_rerun": false,
+  "d65_journal_validation_sha256": "3985f3ec7cbd5ebdbaf04f57cd41066308ea035e599bf4ef09354fa76a1432ae",
+  "isolation_names": [
+    "test_action_correlation_alone_does_not_make_a_pulse_actuator (tests.test_factor_control.FactorControlTests.test_action_correlation_alone_does_not_make_a_pulse_actuator)",
+    "test_exact_marginal_retains_hidden_idle_mass (tests.test_factor_control.FactorControlTests.test_exact_marginal_retains_hidden_idle_mass)",
+    "test_exact_two_step_coupled_vs_anticoupled (tests.test_factor_control.FactorControlTests.test_exact_two_step_coupled_vs_anticoupled)",
+    "test_joint_law_root_projection_matches_passive_path (tests.test_factor_control.FactorControlTests.test_joint_law_root_projection_matches_passive_path)",
+    "test_legacy_modules_poisoned_before_import (tests.test_factor_control.FactorControlTests.test_legacy_modules_poisoned_before_import)",
+    "test_projected_control_tree_matches_explicit_atom_assimilation (tests.test_factor_control.FactorControlTests.test_projected_control_tree_matches_explicit_atom_assimilation)",
+    "test_relabelled_actuation_switches_without_inheriting_value_hypothesis (tests.test_factor_control.FactorControlTests.test_relabelled_actuation_switches_without_inheriting_value_hypothesis)",
+    "test_signed_context_uses_observed_real_reward_atoms (tests.test_factor_control.FactorControlTests.test_signed_context_uses_observed_real_reward_atoms)",
+    "test_virtual_rollouts_preserve_live_state_and_rng (tests.test_factor_control.FactorControlTests.test_virtual_rollouts_preserve_live_state_and_rng)",
+    "test_action_history_keeps_controllable_dwell_out_of_exogenous_scope (tests.test_factor_reward.FactorRewardTests.test_action_history_keeps_controllable_dwell_out_of_exogenous_scope)",
+    "test_exact_quiet_clock_and_particle_mixture (tests.test_factor_reward.FactorRewardTests.test_exact_quiet_clock_and_particle_mixture)",
+    "test_fractional_wellbeing_stays_a_scalar (tests.test_factor_reward.FactorRewardTests.test_fractional_wellbeing_stays_a_scalar)",
+    "test_nonempty_condition_with_tiny_probabilities (tests.test_factor_reward.FactorRewardTests.test_nonempty_condition_with_tiny_probabilities)",
+    "test_process_continuation_uses_previous_not_next_action (tests.test_factor_reward.FactorRewardTests.test_process_continuation_uses_previous_not_next_action)",
+    "test_rank_one_branch_matches_explicit_update (tests.test_factor_reward.FactorRewardTests.test_rank_one_branch_matches_explicit_update)"
+  ],
+  "model": "v60",
+  "parity": {
+    "bit_exact": true,
+    "d65": "6f619568dc90",
+    "model": "v60",
+    "tapes": {
+      "canc-noise3": {
+        "dtype": "<f8",
+        "output_sha256": "ad693bbeaee19dc4a0270bfd02a4e41adee369eacd4f97f6f360cec296bde719",
+        "pure_plans": 5,
+        "shape": [
+          320,
+          15
+        ],
+        "tape_sha256": "3e31c051c65fa4cac911fc2a59e5aee2c81971b500d906e1e4d6f4a6f2c9e043",
+        "transitions": 320
+      },
+      "sticky": {
+        "dtype": "<f8",
+        "output_sha256": "59cbaf543e91bf55437ea4cd092972e9590e0a59092eeb43f3c810faf35a2d18",
+        "pure_plans": 5,
+        "shape": [
+          320,
+          13
+        ],
+        "tape_sha256": "052ff531d721194ef792664c0664f5476c86ebb244aa3d3d2de62f3929581efd",
+        "transitions": 320
+      }
+    },
+    "tree": "6ba39c831f35"
+  },
+  "scale_ratio": 1.8612780256078738,
+  "tree": "6ba39c831f35"
+}
