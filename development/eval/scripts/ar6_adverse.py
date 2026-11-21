@@ -60,7 +60,7 @@ def run(v,seed,arm,table):
               left_mean=float(means[0,c]),left_base=float(mu[0,c]),left_soft=float(soft[c]),
               soft_used=bool(used[c]),left_cells=observed,reach=reach,ctrl=h.control_mass.tolist(),
               left=int(c),right=right,slots=h.slots.tolist(),parent=rule[0][c][rule[1][c]].tolist(),
-              splits=[dict(j=j,m=m,lag=l,n=h.ctx_n[c,d,l,m].tolist(),u=h.ctx_s[c,d,l,m].tolist())
+              splits=[dict(j=int(j),m=int(m),lag=int(l),n=h.ctx_n[c,d,l,m].tolist(),u=h.ctx_s[c,d,l,m].tolist())
                       for j,m,l,s,g,d in pairs if s[c]]))
         a=moves.get(t,1);y,r,*_=env.step(a)
         if t in cal:prefix_r.append(float(r))
