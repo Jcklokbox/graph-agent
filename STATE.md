@@ -4,7 +4,7 @@
 Preserve original clock and reserve. No run without authorization.
 
 <!-- managed-next -->
-- **Run AR-6 (active):** Audit final artifacts within reserve; await authorization for the joint signed model and fresh qualification
+- **Run AR-6 (closed):** Await authorization: test the common-support joint selector, then a fully funded fresh gate
 <!-- managed-next -->
 
 - **3b-1 accepted:** D65 `6f619568dc90`, 740/740, cost 2.080340; immutable `development/results/ar5/gate3/validation.json`.
