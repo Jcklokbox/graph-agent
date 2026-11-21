@@ -31,7 +31,7 @@ class InformationTests(unittest.TestCase):
 
 class SignedSelectionTests(unittest.TestCase):
     def test_sensory_favorite_does_not_override_outcome_support(self):
-        from agents.v56 import SignedSelection
+        from models.factor_event_reward import SignedSelection
         h=SignedSelection(5,2,1); h.slots[0]=0; h.anchors[0]=1
         h.context_t=100; h.context_x[[2,3]]=12; h.anchor_n[0]=40
         h.pair_on[0,[2,3]]=20; h.assoc[0,[2,3]]=[20.,10.]

@@ -1,15 +1,27 @@
 """Independently calculate the selected real atom law on its retained support."""
 import pickle
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
-from agents.v60 import JointReward
+from agents.v60 import Agent, JointReward
 from eval.scripts.ar6_parent_evidence import structure_scores
 from eval.scripts.ar6_parent_projection import real_atoms
 
 
 class JointRewardTests(unittest.TestCase):
+    def test_controller_attaches_only_the_final_event_reward(self):
+        with patch('models.factor_reward.EventReward') as placeholder, \
+                patch('agents.v60.JointReward', wraps=JointReward) as factory:
+            agent = Agent(5, 2, 4, seed=7)
+        factor = agent.factor
+        placeholder.assert_not_called()
+        factory.assert_called_once_with(factor.J, factor.A, factor.D)
+        self.assertIsInstance(factor.reward, JointReward)
+        self.assertTrue(factor.reward_event and factor.reward_control)
+        self.assertIsNone(factor.action_roles)
+
     def test_common_support_and_real_amplitudes(self):
         h=JointReward(4,2,1)
         h.slots[0]=0;h.anchors[0]=1;h.context_t=80;h.context_x[2]=11

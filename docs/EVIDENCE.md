@@ -15,8 +15,9 @@ Compare each command's JSON with its accepted report:
 - [v60 freeze](../development/results/ar7/dev20-v60/freeze.json) and
   [audit hashes and checks](../development/results/ar7/final-audit.json)
 
-The recorded content identities refer to the original code, not this cleaned
-checkout. To reconstruct a frozen code tree, export `development/` from its
+The recorded content identities refer to the original code, not the current
+checkout. Retired numbered agents are available from the corresponding
+research revisions in Git history. To reconstruct a frozen code tree, export `development/` from its
 registered commit into a scratch directory with `git archive`:
 
 | Freeze | Commit | Content tree |
