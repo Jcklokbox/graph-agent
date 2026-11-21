@@ -30,4 +30,8 @@ def main():
             print(t, round(rec['dt'],3),flush=True)
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    from harness.beacon import cli
+
+    with cli():
+        main()

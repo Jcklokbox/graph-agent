@@ -39,4 +39,8 @@ def main():
         append(root/'stages.jsonl',dict(k=[tree,0,f'{first}|{stop}'],m=dict(exit=code,steps=sum(VARIANTS[v].steps for v,i in completed),count=len(completed)),dt=time.monotonic()-t))
         if code:raise SystemExit(code)
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    from harness.beacon import cli
+
+    with cli():
+        main()

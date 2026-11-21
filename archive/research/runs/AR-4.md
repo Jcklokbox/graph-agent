@@ -1,8 +1,8 @@
 # AR-4 — Autonomous Run 4
 
 **Start 13:08:06 UTC 2026-11-20 · budget 4 h · deadline 17:08 UTC.** No new long run after 16:08;
-final report 16:53–17:08 (not earlier). Rules and goals: `../autonomous-runs.md`; context:
-`../checkpoint-ru.md`, `../revision-2026-11-20-ru.md`.
+final report 16:53–17:08 (not earlier). Historical rules and goals: now indexed in the run history; context:
+the English [run history](../../../docs/research/RUNS.md) and [baseline inventory](../../../docs/research/BASELINES.md).
 Decision before the run: no new predictor mixtures on top of v12 (v19 cancelled); next artefact
 is one predictor model 3b-1.
 

@@ -36,4 +36,8 @@ def main():
     append(a.out,dict(k=[os.environ['PG_TREE'],a.seed,f'{a.model}|{a.variant}|deviations'],
                       m=dict(shocks=dict(shocks),event_miss=dict(event_miss),examples=trial)))
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    from harness.beacon import cli
+
+    with cli():
+        main()

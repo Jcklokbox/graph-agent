@@ -1,7 +1,7 @@
 # AR-3 — Autonomous Run 3
 
 **Start 09:35:52 UTC 2026-11-20 · budget 4 h · deadline 13:35 UTC.** No new long run after 12:35.
-Rules and goals: `../autonomous-runs.md` (G1 T2 for v18, G2 DEV feasibility for v18, G3 held-out
+Rules and goals: the historical protocol (superseded by [autonomy](../../../docs/AUTONOMY.md)) (G1 T2 for v18, G2 DEV feasibility for v18, G3 held-out
 T2 set; afterwards goals chosen dynamically).
 
 ## Cycles
@@ -205,4 +205,4 @@ F-12 rhythm (≈ 10 min per cycle): F-13 place-conditioned regime prior for the 
 a shared place factor in the agent (P-1). Contributing causes: the final report was written
 early (12:16) "as insurance" and pulled toward closing; a restriction I set myself (no
 candidate on h2 in AR-3) was treated as if nothing else was possible; the pipeline context had
-drifted (see `../checkpoint-ru.md`). Rules added to `../autonomous-runs.md`.
+drifted (see the [English run history](../../../docs/research/RUNS.md)). Rules added to the historical protocol (superseded by [autonomy](../../../docs/AUTONOMY.md)).

@@ -48,4 +48,8 @@ def main():
             print(a.row,group,tag,round(m['actual'],3),m['signature'],m['role'],round(m['h'],4),m['anchor'],flush=True)
 
 
-if __name__=='__main__': main()
+if __name__=='__main__':
+    from harness.beacon import cli
+
+    with cli():
+        main()

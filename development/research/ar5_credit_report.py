@@ -51,4 +51,8 @@ def main():
     a=p.parse_args(); print(json.dumps(report(a.signed,a.background),indent=2,sort_keys=True))
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    from harness.beacon import cli
+
+    with cli():
+        main()

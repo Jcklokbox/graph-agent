@@ -60,5 +60,8 @@ def analyse(jpath, tree, Ns=(25, 50, 100)):
 
 
 if __name__ == "__main__":
-    import sys
-    print(json.dumps(analyse(sys.argv[1], sys.argv[2])))
+    from harness.beacon import cli
+
+    with cli():
+        import sys
+        print(json.dumps(analyse(sys.argv[1], sys.argv[2])))

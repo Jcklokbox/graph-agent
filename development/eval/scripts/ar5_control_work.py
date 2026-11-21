@@ -51,4 +51,8 @@ def main():
         print(world,r,flush=True)
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    from harness.beacon import cli
+
+    with cli():
+        main()

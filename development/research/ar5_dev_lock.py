@@ -68,7 +68,7 @@ def run(root,cache):
     if cfg['python']!=platform.python_version() or {p:version(p) for p in cfg['deps']}!=cfg['deps']:
         raise ValueError('execution environment changed')
     cpus=','.join(map(str,cfg['cpus']));jp=root/'candidate.jsonl';sj=root/'stages.jsonl'
-    env=dict(os.environ,PG_TREE=tree,PYTHONDONTWRITEBYTECODE='1',OPENBLAS_NUM_THREADS='1',
+    env=dict(os.environ,GRAPH_AGENT_MACHINE="1",PG_TREE=tree,PYTHONDONTWRITEBYTECODE='1',OPENBLAS_NUM_THREADS='1',
              NUMBA_NUM_THREADS='1',NUMBA_CACHE_DIR=cache,PYTHONPATH=os.pathsep.join(
                  [snap,os.environ.get('PYTHONPATH','/tmp/graph-agent-deps')]))
     keys=[(tree,s,f'{model}|DEV|{v}') for v,s,_,_ in todo]
@@ -118,4 +118,8 @@ def main():
         raise SystemExit(run(a.root.resolve(),a.cache))
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    from harness.beacon import cli
+
+    with cli():
+        main()

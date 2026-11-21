@@ -1,17 +1,18 @@
-# Historical evidence index (not operating instructions)
+# Historical evidence
 
-Default repository search excludes `archive/`. Open only the linked file and section you need.
-Preserve historical languages, file paths and raw evidence; they do not set the active response language.
+Start at [the active index](../docs/INDEX.md). [Technical references](research/README.md)
+and [archived code](development/README.md) remain available, not part of the active contract.
+`development/results/ar5/gate3/` and `development/results/ar5/gate-dev16-v48/`
+contain untouched numeric verdicts and paired journals.
 
-| Need | Open |
-| --- | --- |
-| Current verdict or restart procedure | [STATE](../STATE.md), [autonomy](../docs/AUTONOMY.md) |
-| AR-5 gate decisions and D97/D113 failures | [AR-5 ledger](research/runs/AR-5.md), search by D-number |
-| Controller equation and acceptance checks | [3b-2 spec](research/ar5-controller-spec.md) |
-| Measurement caveats | [AR-5 test review](research/ar5-test-review.md) |
-| Original research goals and roadmap vocabulary | [goal](research/goal.md), [slice 3](research/slice3-plan.md) |
-| Earlier rounds and prototypes | [research index](research/README.md), [archived development](development/README.md) |
+**Two layers.** English modules preserve the decision-relevant interpretations, equations,
+figures, contradictions and evidence limits. `docs/source-map.json` audits every pre-cleanup
+Markdown file and names its exact source path, immutable commit, bytes, SHA-256 and section offsets.
+This makes source preservation byte-lossless via Git; condensed text alone is not an invertible
+translation. Raw non-English prose is not emitted by the excerpt tool. Do not load it into an
+active run. Shallow checkouts may need `git fetch --unshallow origin` before historical lookup.
 
-Canonical numeric verdicts and raw paired journals are in `development/results/ar5/gate3/`
-and `development/results/ar5/gate-dev16-v48/`. For the exact pre-cleanup checkpoint use
-`git show 36ef8ce:STATE.md`; do not replay its expired clock.
+```sh
+./ar exec python3 tools/doc_audit.py check
+./ar exec python3 tools/doc_audit.py excerpt D-36 --part 2 --page 0
+```

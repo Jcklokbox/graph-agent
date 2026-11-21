@@ -92,4 +92,8 @@ def main():
             print(a.kind,seed,arm,{k:round(v['pred'],3) for k,v in m['4'].items()},flush=True)
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    from harness.beacon import cli
+
+    with cli():
+        main()

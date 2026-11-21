@@ -246,5 +246,8 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    sys.path.insert(0, os.path.dirname(HERE))
-    sys.exit(main(sys.argv[1:]))
+    from harness.beacon import cli
+
+    with cli():
+        sys.path.insert(0, os.path.dirname(HERE))
+        sys.exit(main(sys.argv[1:]))

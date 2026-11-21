@@ -68,7 +68,7 @@ def run(path, suite_list, prefix):
     runtime = {pkg:version(pkg) for pkg in f['dependencies']}
     if runtime != f['dependencies'] or platform.python_version() != f['python']:
         raise ValueError('dependency/interpreter mismatch')
-    env = dict(os.environ, PG_TREE=tree, PYTHONDONTWRITEBYTECODE='1', OPENBLAS_NUM_THREADS='1',
+    env = dict(os.environ, GRAPH_AGENT_MACHINE="1", PG_TREE=tree, PYTHONDONTWRITEBYTECODE='1', OPENBLAS_NUM_THREADS='1',
                NUMBA_NUM_THREADS='1', NUMBA_CACHE_DIR=prefix, PYTHONPATH=os.pathsep.join(
                    [snap, os.environ.get('PYTHONPATH','/tmp/graph-agent-deps')]))
     for suite in suite_list:
@@ -120,4 +120,8 @@ def main():
         raise SystemExit(run(root,a.suites,a.cache))
 
 
-if __name__=='__main__': main()
+if __name__=='__main__':
+    from harness.beacon import cli
+
+    with cli():
+        main()

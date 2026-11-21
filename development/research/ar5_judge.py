@@ -210,4 +210,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    from harness.beacon import cli
+
+    with cli():
+        main()
