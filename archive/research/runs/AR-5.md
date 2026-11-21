@@ -115,3 +115,13 @@ Local: D-52 and D-53 preserve both paired forecast playbacks bit-for-bit, reduce
 Global: D-51 marginal timing miss was real, not eligible for repeat selection. D-53 improves actual work while retaining forecasting semantics; prior gates don't transfer. Candidate D-40 still unopened; no 3b-2 execution.
 
 Re-plan: second official immutable C/A/h1/B gate, then D-40 if unlocked. At ~30 min reflect with judge progress and verify reserve, next move depends on the first complete failing requirement. Evidence paths `development/results/ar5/`; temp driver in `/tmp/ar5-gate2`.
+
+Pending standalone bound/fidelity control (after timed judge, no contention): same per-channel sticky Markov state/emission law with (a) independent chains or (b) hidden pair sharing under random channel relabeling, `eval/scripts/ar5_structure_control.py`. Predict no spurious partition explosion, higher discovery on (b), and bounded source incidences as width grows. Pure XOR with IID independent parents still has no pairwise marginal evidence for proposal; documentation must not claim full relation discovery. A future sparse synergy proposal would pay a bounded sampling budget and report its detection latency separately, not silently enumerate triples.
+
+### Reflection 1 (~30 min, after A completion)
+
+Local: D-53 official frozen C **2.438522** (4.484223/1.838910, PASS); A **10/10, 0 REV**, 272/272. PREE **+.120169 [.077175,.163164]**; inhibition +.985575; reinstatement +.475673; sessions +.101012. Scope separation plus retained odds/role evidence solved the old screen failures on this exposed battery. h1/B and D-40 are not yet verdicts. No new holdout draws until guard disclosure.
+
+Global: the first freeze's 2.523 failure was not retimed. Copy and cache fixes preserve measured trajectories while reducing live work, not masking it with model cutovers. A is substantially better but has been used in development; no new-generalization claim. Memory proofs use finite caps, and shared latent regime still couples processes beyond group-local HMMs.
+
+Re-plan: let the frozen driver finish h1 and B, then D-40 if unlocked; no next predictor intervention unless it identifies a concrete miss. Candidate-independent protocol tests 5/5; staged structure-null test reserved after time-critical runs. Controller spec is ready but no predictive control code, DEV or merge before genuine 3b-1 clearance. About 12,430 s remained before final reserve at this evidence read.

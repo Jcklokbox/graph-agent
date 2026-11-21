@@ -1,26 +1,16 @@
-# STATE — AR-5
-Only active Markdown. Audit: `archive/BRIEF-CE.md`; run protocol: `archive/research/autonomous-runs.md`; frozen 3b.3 evidence: `development/results/spec333/`.
+# STATE — AR-5, reflection 1 (~30 min)
+Only active Markdown. Register/reflections `archive/research/runs/AR-5.md`; audit `archive/BRIEF-CE.md`; frozen prior SPEC-3b.3 in `development/results/spec333/`.
 
-## Contract
-- W=14,400 s, final ≥300 s reserved; sandbox monotonic T0 in `/tmp/ar5-t0`. 2 CPUs, immutable snapshots, keyed JSONL, one bounded wait per stage ≤180 s. Reflection/commit every ~1,800 s and at milestones; after compaction read this file and git log first.
-- PR #16 open at 399ddfe; 3b.3 freeze 5316b34416d7: A 9/10, B .823/.904/.977, h1 5/6; C 3.407, h2 1/5 with two REV, PREE +.0302 (FAIL). h1/h2 are exposed. No merge unless 3b-1 and factor-only 3b-2 pass.
+## Contract and clock
+- Branch `arena/b8e242cb-graph-agent`, PR #16 open, main base `3f932b7`. Merge only if 3b-1 and factor-only 3b-2 clear. Preserve prior journals; h1/h2 exposed, never re-use h2 for confirmation.
+- Monotonic T0 **1545.582119**; dispatch ≤**15645.582119**; finish ≤**15945.582119**; final ≥300 s reserved. Two pinned CPUs, immutable snapshots, atomic JSONL, one bounded wait per stage (≤180 s). Cadence next **5145.582119**; milestone commits too. After any compaction read this file + git log first.
 
-## First block (0–1,800 s)
-1. Lock signed mechanism predictions and new contrast families from biology and identified counterexamples, independent of candidate parameters. Preserve all frozen scores/logs.
-2. Profile N200 pre-commit C on one core; attribute costs by active regimes, pair work and cache/reset. Preregister bounded-degree discovery and no time-triggered predictor switch. Test sparse work bound and no-merge/dense cases.
-3. Run small paired A/h1/B/C screens on each isolated model change before spending on a judge. Retain the second core for diagnostics. Record counterexamples, update next block, commit.
+## Verified and in flight
+- D-39–53: bounded parent/group search and finite locality, no fixed-age process cutover; compare warm/fresh vs merged evidence; context-owned free outcomes and regime cue retrieval, revised role null and hazard survival. Exact ordered live-row gathers, native slot decisions and state-local memo. D-51 first freeze C **FAIL 2.522914**, untouched.
+- **D-53 `814b0333575c` / `f41e9c2`**: C **PASS 2.438522** (4.484223/1.838910); A **PASS 10/10, 0 REV**, 272/272, PREE .120169 [.077175,.163164], inhibition .985575, reinstatement .475673. 83 snapshot tests passed + 1 isolated external-cache skip (passes outside). D-53 playback exact vs D-51 on sticky/savings; cost proof bounded degree/state, finite runtime varies with live regimes.
+- Frozen judge running `ar-5-second-frozen-predictor-jud-f8ca7419`, `/tmp/ar5-gate2/driver.log`, state after A: h1/B pending; D-40 not read. Verified C/A copied to `development/results/ar5/gate2/` once. Driver verifies all required guards before D-40.
+- v20 archived (legacy predictive reads); candidate-neutral DEV protocol (`.8912708030`, paired 99% lower ≥−.02), `archive/research/ar5-controller-spec.md`. 3b-2 not executed.
 
-## Current checkpoint
-- D-39: exact ordered particle gather and bounded parent/group proposals. Explicit warm N200 C screen 2.315 (5.1341/2.2178), no C acceptance until final freeze; N25 seed-0 guards unchanged, PREE only +.0403. D-40 schedules locked before candidate predictions; no holdout readout.
-- Next: eliminate global process switch with evidence-local ownership; smoke T1 transfer and opportunity/background model independently. Record results under `development/results/ar5/`.
-
-## Milestone: D-45
-- No global multi-group age cutover. Group candidates now admitted by bounded lag evidence and committed by joint vs warm/fresh separate predictive odds; widths capped. PREE local credibility and gap survival changed independently.
-- N25 four-seed A screen 9/10 (+.111 PREE; sessions fail); D44 seed-0 T1 v1 .850, d3 .953. 11 focused tests. Reversal toy remains variable. New holdout reference-control check only; candidate still unseen.
-- Next: measure N200 B/C, complete h1 and sign screens, replace remaining global regime coupling if needed. Keep one active hypothesis change at a time; no 3b-2 without a complete frozen 3b-1.
-
-## Milestone: D-51 frozen judge
-- T0 1545.582119, first cadence 3345.58, last-dispatch deadline absolute monotonic 15645.58, hard finish 15945.58. Candidate context-role prior and cue routing restore ABC/PREE screens; provisional h1 5/6. D-51 exact sticky/savings parity max Δ=0; warmed C screen 2.254 (5.132/2.277).
-- Freeze via `development/research/ar5_lock.py` in `/tmp/ar5-gate1`; official C/A/h1/B then locked fresh holdout one pass. Keep source immutable during judge. Next: milestone and ~30m reflection; analyze guard misses or proceed to factor-only 3b-2 if verified.
-- Frozen `4039a50284b8` (`97b4e9e`) **C FAIL 2.522914**; other registered suites not dispatched; holdout still locked. `development/results/ar5/gate1/`. No retries for acceptance on this hash. Next D-52 exact per-ancestry traffic optimization; use failed freeze only for separately labelled exposed guard diagnosis.
-- D-53: per-ancestor live copies + same-input stage memo were bit-identical to D-51 on two paired streams; C screen 2.229 (4.753/2.132); snapshot 83 pass + 1 external-cache skip. Second official freeze `/tmp/ar5-gate2` with unchanged acceptance; D-40 remains conditional on exposed guards. First cadence at monotonic 3345.582119.
+## Next
+- Local reflection: new PREE and C clear on a real freeze; no generalization claim yet. Wait once per h1/B milestone, do no timed side work while both CPUs occupied. Copy remaining immutable gate journals and summarize.
+- Global/dynamic: if any guard fails, run causal probes and preserve locked holdout; if full 3b-1 passes, build bounded reward + scratch posterior two-step VOI, then exact fixtures and paired DEV. After guard work run matched independent/shared structure and dense-work probes. No language about acceptance until complete keys and required scores.
