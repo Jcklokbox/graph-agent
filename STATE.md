@@ -4,7 +4,7 @@
 During an authorized run, keep the original clock and 220+20 call budget. Use the ~30-minute cue to reflect in this file.
 
 <!-- managed-next -->
-- **Run AR-6 (active):** Localize the failed clean exploration proposal by current state and posterior decision margin
+- **Run AR-6 (active):** Test whether soft retention of the actual event atom makes subsequent useful choice possible
 <!-- managed-next -->
 
 - **3b-1 accepted:** D65 `6f619568dc90`, 740/740, cost 2.080340. `development/results/ar5/gate3/validation.json`.

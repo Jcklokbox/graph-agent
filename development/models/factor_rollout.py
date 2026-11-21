@@ -215,6 +215,9 @@ def provisional_values(f,x,uniforms,optimistic=True,*, root_explore=True, contin
     else:
         atoms0=atoms
     r,p=r[0],p[0]
+    root_updated=None
+    if hasattr(head,'refine_root') and (head.slots>=0).any():
+        r,p,atoms0,root_updated=head.refine_root(p,atoms0,rule,input0,seen_phase)
     incumbent=r.copy()
     pair_probe=optimistic and hasattr(head,'pair_context')
     bridge,base=head.bridge_table(rule) if optimistic and hasattr(head,'bridge_table') else (None,None)
@@ -227,6 +230,8 @@ def provisional_values(f,x,uniforms,optimistic=True,*, root_explore=True, contin
         if pair_probe:
             offer=head.pair_context(rule,input0,seen_phase)
             incumbent=np.maximum(incumbent,offer if group0 is None else np.where(group0==0,offer,0.))
+    if root_updated is not None:
+        incumbent=np.where(root_updated,r,incumbent)
     active=head.slots>=0; cols=head.slots[active]
     states=np.flatnonzero(np.any(trans[:,code,:]>0.,axis=0)) if getattr(head,'sparse_outcomes',False) else head.ci
     marks=(states[:,None]&head.binary[active])!=0

@@ -11,6 +11,21 @@ def log_marginal(count, prior):
         lgamma(float(np.sum(count))+len(count)*prior)-lgamma(len(count)*prior))
 
 
+def model_log_odds(whole, part, prior, log_odds):
+    outside=np.maximum(0.,whole-part)
+    return log_odds+log_marginal(part,prior)+log_marginal(outside,prior)-log_marginal(whole,prior)
+
+
+def mixed_atoms(p0, a0, part, amounts, centers, odds):
+    """Real-valued posterior predictive law with known representative amounts."""
+    k=len(centers); prior=1./k
+    lam=1./(1.+np.exp(-np.clip(odds,-30.,30.)))
+    p1=(part+prior)/(1.+part.sum()); a1=(amounts+prior*centers)/(part+prior)
+    p=(1.-lam)*p0+lam*p1
+    a=((1.-lam)*p0*a0+lam*p1*a1)/p
+    return p,a
+
+
 def posterior_option(q, reach, whole, part, amounts, centers, log_odds, *, whole_amounts=None):
     """Single future decision, with H0 pooled and H1 onset-specific.
 
@@ -21,8 +36,7 @@ def posterior_option(q, reach, whole, part, amounts, centers, log_odds, *, whole
     if np.ptp(reach) < 1e-12:
         return 0.
     k=len(centers); prior=1./k
-    outside=np.maximum(0.,whole-part)
-    odds=log_odds+log_marginal(part,prior)+log_marginal(outside,prior)-log_marginal(whole,prior)
+    odds=model_log_odds(whole,part,prior,log_odds)
     odds=float(np.clip(odds,-30,30)); lam=1./(1.+np.exp(-odds))
     p0=(whole+prior)/(1.+whole.sum()); p1=(part+prior)/(1.+part.sum())
     # H0 only uses the existing q and stays pooled; H1 shifts this single
@@ -82,3 +96,26 @@ class RepeatableInformation:
                 # available under all actions cannot by itself drive taking risk.
                 out=np.maximum(out,(reach-reach.min())*(horizon*freq*opt))
         return out
+
+
+class SoftEventInformation(RepeatableInformation):
+    """Use observed local evidence before a hard credited rule is admitted."""
+    scoped_pair_only=False
+
+    def refine_root(self, p, atoms, rule, x, phase):
+        base_p,base_atoms=p,atoms
+        p=p.copy(); atoms=atoms.copy()
+        best=np.full(self.C,-np.inf)
+        paired_required=self.scoped_pair_only
+        known=rule[1].any(1)
+        prior=1./self.B; log_odds=-np.log(len(self.anchors))
+        for counts, amounts, _, paired in self._information_features(x,phase):
+            if paired_required and not paired:
+                continue
+            for c in np.flatnonzero((counts.sum(1)>0.)&~known):
+                odds=model_log_odds(self.type_count[c],counts[c],prior,log_odds)
+                if odds<=best[c]:
+                    continue
+                best[c]=odds
+                p[c],atoms[c]=mixed_atoms(base_p[c],base_atoms[c],counts[c],amounts[c],self.center,odds)
+        return (p*atoms).sum(1),p,atoms,np.isfinite(best)
