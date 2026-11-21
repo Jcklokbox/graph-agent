@@ -4,7 +4,7 @@
 Retain original clock and 220+20 calls; ~30-minute cues are advisory.
 
 <!-- managed-next -->
-- **Run AR-6 (active):** Run and audit the single unchanged v58 DEV-20 against actual paired v12 without interim model selection
+- **Run AR-6 (active):** Measure signed branch credit with matched adverse exposure on already exposed cancellation tapes
 <!-- managed-next -->
 
 - **3b-1 accepted:** D65 `6f619568dc90`, 740/740, cost 2.080340. Immutable `development/results/ar5/gate3/validation.json`.
@@ -12,6 +12,6 @@ Retain original clock and 220+20 calls; ~30-minute cues are advisory.
 - **Local:** Matched anonymous reward exposure restored hard cancellation reuse; matched same-side adverse controls did not. Soft real-atom means let a single success matter, restoring clean discovery. Fixed replay retains all five erroneous cancelled-left entries.
 - **Global:** Nonadditive decision information preserved clean discovery, improved five noisy trajectories and held all nine matched guards. Binding exploration to the same action opportunity is preferable to paying twice. This is exposed evidence, not acceptance.
 - **Resolved:** v57 inherited action-conditioned sensory roles; parity vetoed it. v58 changes only attachment. It matches 23 exposed results, 640 exact canonical predictions, 10 pure plans and work 1.863 ≤2.50. Accepted 3b-1 evidence is unchanged.
-- **120-minute reflection:** efficacy sealed. Held behavior does not prove signed credit repaired or C2 transfer. Only a clean, unstarted stage boundary can continue under original AR reserves; if timing ends it, test matched local adverse exposure on exposed tapes only.
-- **Next falsifier:** Complete the one frozen fresh DEV-20 v58/v12 comparison (300 pairs, 99% lower bound ≥−.02); no partial pass. Only a completed pass justifies proceeding to blind T4 before C3–C5.
+- **Fresh gate INCOMPLETE:** frozen DEV-20 verified 456/600 rows (224/300 pairs), 57/76 stages. A shortened stage timed out; no retry, CI or acceptance. Efficacy is not inferred from the prefix.
+- **Next falsifier:** Same-tape real adverse arrivals into the known rewarded scope versus exact-tick opposite-side and neutral controls. Test signed fixed decision, parent evidence and preserved valid-cue entry. Exposed only; 3b-2 and T4 remain open.
 - [Evidence](docs/research/AR6.md) · [Recovery](docs/research/RECOVERY-AUDIT.md)
