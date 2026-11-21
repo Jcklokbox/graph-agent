@@ -4,7 +4,7 @@
 During an authorized run, keep the original clock and 220+20 call budget. Use the ~30-minute cue to reflect in this file.
 
 <!-- managed-next -->
-- **AR-6 has not started.** No live clock to resume.
+- **Run AR-6 (active):** Separate payoff discovery from reuse using paired real exposure and yoked adverse prefixes
 <!-- managed-next -->
 
 - **3b-1 accepted:** D65 `6f619568dc90`, 740/740, cost 2.080340. `development/results/ar5/gate3/validation.json`.
