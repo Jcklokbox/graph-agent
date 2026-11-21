@@ -267,7 +267,10 @@ def provisional_values(f,x,uniforms,optimistic=True):
         onset=(by>.5)&~(b>.5)
         phase=np.column_stack((onset,np.broadcast_to(tailphase,(len(by),len(tailphase)))))
         if splits:
-            m2,_,_,count2,group2=head.context_moment(splits,feature,phase,m2,p2,atoms)
+            m2,p2,atoms2,count2,group2=head.context_moment(splits,feature,phase,m2,p2,atoms)
+        else:
+            atoms2=atoms
+        epistemic=optimistic and getattr(head,'epistemic_bonus',False)
         cont=m2.copy()
         if optimistic:
             if getattr(head,'elapsed_only',False):
@@ -276,6 +279,24 @@ def provisional_values(f,x,uniforms,optimistic=True):
             if pair_probe:
                 cont=np.maximum(cont,prospective_pair if not splits else np.where(group2==0,prospective_pair,0.))
         c=np.tile(states,len(y));idx=np.arange(len(c)); motion=trans[:,c,:].transpose(1,0,2)
+        transition_bonus=getattr(head,'root_transition_bonus',0.)
+        if epistemic:
+            import os as _os
+            # One posterior sd of the successor outcome law, weighted by branch
+            # mass and the control transition. Zero once a law tightens; keeps a
+            # nonzero pull toward under-tested atoms (D-114). Not onset novelty.
+            a2d=np.asarray(atoms2)
+            if a2d.ndim==2:
+                a2d=a2d[None,:,:]
+            second=(p2*a2d*a2d).sum(-1)
+            sd2=np.sqrt(np.maximum(0.,second-m2*m2))
+            bm_tc=np.repeat(branch_mass,len(states))
+            trans_a=trans[a,code]
+            sd_a=float(np.dot(bm_tc*trans_a[c],sd2[idx,c]))
+            if _os.environ.get('AR6_DEBUG'):
+                print('      a=%d sd_a=%.4f base=%s' % (a, sd_a, np.round(scores, 4)), flush=True)
+        else:
+            sd_a=0.
         # Only reward type of the arrived state is updated by the real atom.
         # Atoms retain continuous representative utility (no Bernoulli cast).
         difference=atoms0[c]-m2[idx,c,None]
@@ -293,6 +314,7 @@ def provisional_values(f,x,uniforms,optimistic=True):
         correction=motion[idx,:,c,None]*delta[:,None,:]
         gain=branch_mass@(np.clip(q[:,:,None]+correction,0.,1.).max(1)*p[c]).sum(1).reshape(len(y),len(states))
         discount=getattr(head,'discount',1.)
+        root_bonus = transition_bonus/(2.+head.trans_total[a,code]) if transition_bonus else 0.
         if one_window:
             q0=np.einsum('baj,bj->ba',motion,m2)
             if motion_optimism:
@@ -301,13 +323,17 @@ def provisional_values(f,x,uniforms,optimistic=True):
             gain0=branch_mass@(np.clip(q0[:,:,None]+correction,0.,1.).max(1)*p[c]).sum(1).reshape(len(y),len(states))
             vals=np.stack((immediate[states]+discount*gain0,r[states]+discount*gain))
             means=vals@trans[a,code,states]
+            if epistemic:
+                means+=sd_a
             if motion_optimism:
                 peaks=vals[:,legal[states]].max(1) if legal[states].any() else vals.max(1)
                 means+=(peaks-means)/(2.+head.trans_total[a,code])
-            scores[a]=means.max()
+            scores[a]=means.max()+root_bonus
         else:
             values=immediate[states]+discount*gain
-            scores[a]=trans[a,code,states]@values
+            scores[a]=trans[a,code,states]@values+root_bonus
+            if epistemic:
+                scores[a]+=sd_a
             if motion_optimism:
                 peak=values[legal[states]].max() if legal[states].any() else values.max()
                 scores[a]+=(peak-scores[a])/(2.+head.trans_total[a,code])
