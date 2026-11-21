@@ -101,3 +101,17 @@ D-51 frozen judge `4039a50284b8`, repository `97b4e9e`: **C failed 2.522914**, d
 ## D-52 — per-ancestor live rows, before implementation
 
 The in-place resampler uses the largest live bank across the whole particle population for every move. Recipient and ancestor both have identical prior rows beyond `max(used_src,used_dst)`. Stop there; use scalar contiguous assignments to avoid temporary slice-copy buffers. Expected same full trajectory, lower traffic especially with several poorly mixed run lengths, and lower C in widths where the max/median live gap increases. Reject any loss of byte parity. Also evaluate unambiguous background of timing variation (clock source and candidate costs); do not infer stable linear latency from a single screen.
+
+D-52 full forecast replay max |Δp|=0 on both paired streams. D-53 exact state-local memo (pre-reg): C always calls `predict(x,a)` before `learn(x,a,y)`. If roles and actual input/action match, the regime prior, local/emission tensors, baseline, weight matrix and marginal screen forecast already exist. Reuse them; recompute on role revision and on learn-without-predict. Hypothetical reads never seed this cache. No component or state advancement removed. Count wins in CPU time; require bit-identical paired playbacks.
+
+D-52 warmed timing: 4.8054/2.2336=2.1514. Process-only diagnostic over J=6/12/18/21, 600 transitions: 2.309/6.010/9.305/9.956 CPU seconds; active-regime maxima 4/6/7/6. Bank footprints ≈37.8/75.6/113.3/132.2 MB and source-edge count plateaus at 12 per channel. Finite-pair runtime depends on active-regime count and cache traffic; record both arithmetic upper bound and measured finite-width curve. No absolute constant-throughput claim.
+
+3b-2 (if cleared): use actual two-step `E[r1]+γE[max_a′ E[r2|posterior(x′,r1),a′]]`. An epistemic term can measure improvement from tentative updating over frozen latent-state-conditioned action values, but must not add the same information twice: the branch max already includes learning about future observations. A posterior knowledge-gradient implementation must subtract the frozen-update control on the same branch draws. Use exact small-state enumeration and use bounded parallel draws only if calibration on that fixture and runtime justify it. Selection and continuation use no v12 tables, including event bonuses, learned reward map, normalization/timing state or fallbacks.
+
+### Milestone: D-53 second freeze (~25 min)
+
+Local: D-52 and D-53 preserve both paired forecast playbacks bit-for-bit, reduce the live-row copy and recomputation bottlenecks. D-53 C screen 4.7531/2.1323=2.2291. Full snapshot test discovery: 84 run, 83 passed and one skipped (external DEV reference; passed outside snapshot). Stage-local prior/cache representation is unchanged when stepping without a prior read or when current observation changes the tonic scope.
+
+Global: D-51 marginal timing miss was real, not eligible for repeat selection. D-53 improves actual work while retaining forecasting semantics; prior gates don't transfer. Candidate D-40 still unopened; no 3b-2 execution.
+
+Re-plan: second official immutable C/A/h1/B gate, then D-40 if unlocked. At ~30 min reflect with judge progress and verify reserve, next move depends on the first complete failing requirement. Evidence paths `development/results/ar5/`; temp driver in `/tmp/ar5-gate2`.

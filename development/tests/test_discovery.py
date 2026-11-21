@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 from models.discovery import NeighborBank
-from models.kernels import copy_ancestors, systematic_ancestry
+from models.kernels import copy_ancestor_rows, copy_ancestors, systematic_ancestry
 from models.factor import FactorModel
 from models.decompose import Decomposer
 
@@ -92,3 +92,15 @@ class DiscoveryTests(unittest.TestCase):
         f._reset_pos(j,p)
         for k, v in expected.items():
             np.testing.assert_allclose(getattr(f,k),v,rtol=2e-7,atol=1e-9)
+
+    def test_resample_clears_per_particle_unused_tail(self):
+        rng = np.random.default_rng(66)
+        N, K, W = 70, 7, 29
+        for _ in range(40):
+            used = rng.integers(1,K+1,N)
+            bank = rng.normal(size=(N,K,W))
+            bank[np.arange(K)[None,:] >= used[:,None]] = 0.
+            idx = np.sort(rng.integers(N,size=N))
+            expected = bank[idx].copy()
+            copy_ancestor_rows(bank,idx,used)
+            np.testing.assert_array_equal(bank,expected)

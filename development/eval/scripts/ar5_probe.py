@@ -11,14 +11,14 @@ from eval.phenomena import run_group
 from eval.predictive import run_one
 from harness.journal import append
 from models.factor import CANONICAL, make_factor
-from models.kernels import copy_ancestors, systematic_ancestry
+from models.kernels import copy_ancestor_rows, systematic_ancestry
 
 
 def warm():
     """Fixed kernel signatures, independent of candidate and world timing."""
     idx = systematic_ancestry(np.array([.9, .1]), .31)
     for dtype in (np.float32, np.float64):
-        copy_ancestors(np.zeros((2, 2, 13), dtype), idx, 2)
+        copy_ancestor_rows(np.zeros((2, 2, 13), dtype), idx, np.array([1,2]))
     m = make_factor(CANONICAL, 5, 2, 4)
     m._reset_pos(0, 0)
     from models.kernels import binary_dependency_scores

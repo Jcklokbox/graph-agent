@@ -18,7 +18,7 @@ import numpy as np
 
 from models.discovery import NeighborBank
 from models.latent_cause import H_GRID
-from models.kernels import (choose_slots, copy_ancestors, factor_gaussian, factor_read, factor_update,
+from models.kernels import (choose_slots, copy_ancestor_rows, factor_gaussian, factor_read, factor_update,
                             reset_factor_slot, systematic_ancestry)
 
 C_REG = 1.           # concentration: regime cell -> pooled cell
@@ -332,20 +332,22 @@ class FactorModel:
         if self.proc is not None:
             pp = (self.proc.peek_all(x, a) if hypothetical else self.proc.predict(x, a))[self.ch]
         mem = self._members(b, a, hist, kk)
-        prior = self._cue_prior(self._regime_prior(self._signature(b), kk), b, kk)
+        place = self._signature(b)
+        prior = self._cue_prior(self._regime_prior(place, kk), b, kk)
         out = np.full(self.n, .5)
         w = np.exp(self.logw - self.logw.max())[:, None] * prior
-        local, _ = self._conditional(mem, kk, self._signature(b), not b[~self.slow].any())
+        local, background = self._conditional(mem, kk, place, not b[~self.slow].any())
         pj = local if pp is None else self.expert * local + (1. - self.expert) * pp
         activity = self._activity(pj, w, b, ~self.slow)
         w_eval = w if activity is None else w * activity[1]
-        out[self.ch] = np.einsum("nk,nkj->j", w_eval, pj) / w.sum()
+        q = np.einsum("nk,nkj->j", w_eval, pj) / w.sum()
+        out[self.ch] = q
         if self.slow.any():
             js = np.flatnonzero(self.slow)
             c = self.slow_counts[js, b[js].astype(int)]
             out[np.asarray(self.ch)[js]] = (c[:, 1] + .5) / (c.sum(1) + 1.)
         if not hypothetical:
-            self._memo = key, out, mem, pp
+            self._memo = key, out, mem, pp, prior, w, local, background, q
         return out
 
     def learn(self, x, a, y):
@@ -362,8 +364,10 @@ class FactorModel:
             for j, pos in zip(*np.nonzero(stale)):
                 self._slot_src[j, pos] = -1
                 self._reset_pos(j, len(self.own_lags) + self.A + pos)
-        if self._memo is not None and key == self._memo[0] and self._memo[2] is not None and np.array_equal(roles, self.slow):
-            _, _, mem, pp = self._memo
+        cached = (self._memo is not None and key == self._memo[0]
+                  and np.array_equal(roles, self.slow))
+        if cached:
+            _, _, mem, pp, prior, w, pz, base, q = self._memo
         else:
             pp = self.proc.predict(x, a)[self.ch] if self.proc is not None else None
             mem = self._members(b, a, self.hist, kk)
@@ -381,15 +385,16 @@ class FactorModel:
             self.t += 1
             return
         fast = ~self.slow
-        prior = self._cue_prior(self._regime_prior(place, kk), b, kk)
-        w = np.exp(self.logw - self.logw.max())[:, None] * prior
         quiet = not b[fast].any()
-        pz, base = self._conditional(mem, kk, place, quiet)
-        pj = pz if pp is None else self.expert * pz + (1. - self.expert) * pp
-        activity = self._activity(pj, w, b, fast)
-        w_eval = w if activity is None else w * activity[1]
-        raw = np.einsum("nk,nkj->j", w, pj) / w.sum()
-        self._q = raw if activity is None else np.einsum("nk,nkj->j", w_eval, pj) / w.sum()
+        if not cached:
+            prior = self._cue_prior(self._regime_prior(place, kk), b, kk)
+            w = np.exp(self.logw - self.logw.max())[:, None] * prior
+            pz, base = self._conditional(mem, kk, place, quiet)
+            pj = pz if pp is None else self.expert * pz + (1. - self.expert) * pp
+            activity = self._activity(pj, w, b, fast)
+            w_eval = w if activity is None else w * activity[1]
+            q = np.einsum("nk,nkj->j", w_eval, pj) / w.sum()
+        self._q = q
         if pp is not None:
             # Prequential family evidence is shared, not restarted with a regime.
             pred_local = np.einsum("nk,nkj->j", w, pz) / w.sum()
@@ -547,14 +552,15 @@ class FactorModel:
         if 1. / (w ** 2).sum() >= self.N / 2:
             return
         idx = systematic_ancestry(w, self.rng.random())
-        live = int(self.used.max())
-        # An unused row has never been scored; resetting a parent slot preserves
-        # its initial counts, evidence and covariance. Every ancestor beyond the
-        # previous maximum therefore has identical contents.
+        # Every row outside a particle's own live prefix is in its prior state.
+        # Copying the union of ancestor and destination prefixes both keeps all
+        # used data and clears any destination regimes the ancestor never saw.
         for bank in (self.q1, self.q0, self.ev, self._E, self.mu, self.Sg,
                      self.mz, self.rate1, self.rate0, self.cue):
-            copy_ancestors(bank.reshape(self.N, self.K, -1), idx, live)
+            copy_ancestor_rows(bank.reshape(self.N, self.K, -1), idx, self.used)
+        for _, post, occupancy in self.places.values():
+            copy_ancestor_rows(post.reshape(self.N, self.K, 1), idx, self.used)
+            copy_ancestor_rows(occupancy.reshape(self.N, self.K, 1), idx, self.used)
         for nm in ("hz", "used", "z"):
             setattr(self, nm, getattr(self, nm)[idx])
-        self.places = OrderedDict((p, (t, z[idx], n[idx])) for p, (t, z, n) in self.places.items())
         self.logw = np.zeros(self.N)

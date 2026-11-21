@@ -323,3 +323,23 @@ def choose_slots(cev, sources, source_slots, lag_slots, own_lag, slow, cond, mar
             update[j, 1] = sources[j, wi]
             update[j, 2] = wl
     return update
+
+
+@njit(cache=True)
+def copy_ancestor_rows(bank, idx, used):
+    """As copy_ancestors, but each move only touches its known non-prior rows."""
+    width = bank.shape[2]
+    for d in range(len(idx)):
+        s = idx[d]
+        if s > d:
+            live = max(used[d], used[s])
+            for j in range(live):
+                for p in range(width):
+                    bank[d, j, p] = bank[s, j, p]
+    for d in range(len(idx)-1,-1,-1):
+        s = idx[d]
+        if s < d:
+            live = max(used[d], used[s])
+            for j in range(live):
+                for p in range(width):
+                    bank[d, j, p] = bank[s, j, p]
