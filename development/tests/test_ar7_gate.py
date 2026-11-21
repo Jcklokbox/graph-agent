@@ -1,4 +1,6 @@
 """Protocol tests on synthetic records; no fresh environments are opened."""
+from contextlib import redirect_stderr
+from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -6,11 +8,11 @@ import unittest
 from eval.paired import episode_key, normalized_payoff
 from harness.journal import append, load_strict
 from harness.snap import program_digest
-from research.ar7_gate import BATCH, SEEDS, VARIANTS_LOCKED, cal_packs, packs, score, stage_key
+from research.ar7_gate import BATCH, SEEDS, VARIANTS_LOCKED, main, packs, score, stage_key
 from research.spent_cohorts import AR6_DEV20
 
 
-class FreshGateTests(unittest.TestCase):
+class AR7AuditTests(unittest.TestCase):
     def setup(self, delta):
         c=dict(tree='test',models=['v12','v60'],model='v60',caps={'v12':180,'v60':130},cpus=[0,1]);r={};s={}
         for m in c['models']:
@@ -30,9 +32,16 @@ class FreshGateTests(unittest.TestCase):
         for m in ('v12','v60'):
             p=packs(m);self.assertEqual(len(p),30);self.assertTrue(all(len(b)==BATCH for b in p))
             self.assertEqual({(v,j) for b in p for v,j,_,_ in b},target)
-            self.assertEqual({tuple(v for v,*_ in b) for b in p},
-                             {tuple(v for v,*_ in b) for b in cal_packs(m)})
-            self.assertTrue(all(j in range(16) for b in cal_packs(m) for _,j,_,_ in b))
+
+    def test_cli_cannot_reopen_the_completed_cohort(self):
+        with TemporaryDirectory() as tmp:
+            for action in ('lock', 'run'):
+                with self.subTest(action=action), redirect_stderr(StringIO()) as stderr:
+                    with self.assertRaises(SystemExit) as exc:
+                        main([action, tmp])
+                    self.assertEqual(exc.exception.code, 2)
+                    self.assertIn('invalid choice', stderr.getvalue())
+            self.assertEqual(list(Path(tmp).iterdir()), [])
 
     def test_verdict_requires_every_episode_in_a_successful_stage(self):
         c,r,s=self.setup(0.);self.assertEqual(score(c,r,s)['status'],'PASS')

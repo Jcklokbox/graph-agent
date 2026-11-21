@@ -38,4 +38,8 @@ commit is missing. Historical seeds and partially completed gates remain spent.
 The AR-6 paired runner is retired; its block IDs remain in
 [`spent_cohorts.py`](../development/research/spent_cohorts.py), and its original
 runner and incomplete evidence remain at the pre-cleanup revision above. The
-AR-7 audit preserves its registered stage program and does not open a new draw.
+AR-7 command accepts only `audit`: it reconstructs the registered stage
+program and recalculates the verdict without starting workers or writing files.
+The `lock` and `run` commands and AR-7-specific calibration scripts were
+retired. Restore the frozen v60 source revision above to inspect how the
+original run was executed, not to reuse its cohort as independent evidence.
