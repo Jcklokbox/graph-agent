@@ -4,7 +4,7 @@
 During an authorized run, keep the original clock and 220+20 call budget. Use the ~30-minute cue to reflect in this file.
 
 <!-- managed-next -->
-- **Run AR-6 (active):** Separate relevant causal scope from double-counted shift in the acquisition calculation
+- **Run AR-6 (active):** Attribute the remaining noisy regret to payoff law versus supplementary or inherited optimism
 <!-- managed-next -->
 
 - **3b-1 accepted:** D65 `6f619568dc90`, 740/740, cost 2.080340. `development/results/ar5/gate3/validation.json`.

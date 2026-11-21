@@ -41,3 +41,7 @@ v52/v53 both recover clean seed 6 .955 and 13 .947 (both v50 zero). Noisy seed 6
 ### Candidate-independent registration prepared (no run)
 
 Fresh DEV-20: 20 hashed seed blocks × 15 unchanged DEV variants, actual matched raw v12 and candidate, 600 model episodes / 300 pairs, two declared workers, regular 8-row stages capped at 165 s, two-sided t(19) 99% critical conservatively rounded to 2.861; lower paired bound ≥−.02, as before. Fixed seed domain detached from DEV‑16 and held-out streams. No candidate rows executed. This assesses policy noninferiority on known units with fresh randomness, not blind T4. Use only after a single candidate wins the exposed gate plus isolation, exact fixtures, scaling and predictor parity.
+
+### AR6-06 (46/46 exposed episodes, `b20f007e685b`)
+
+Both variants rescue clean seeds 6/7/8/12 and retain 13; v54 clean .895–1 across selected seeds. The arithmetic recentering in v55 produced no guard gains and worsened clean seed 13 .947→.895; v54 remains the behavioral comparator. Noisy cancellation still spills utility (e.g. seed 6 .636, seed 12 .727); possible added exploration, inherited optimistic continuation, or mislearned signed forecast. AR6-07 attributes deviations at the same learned state by removing only added test value, then all optimism. If most adverse movements persist despite either removal, address actual reward/motion law rather than adding exploration switches.
