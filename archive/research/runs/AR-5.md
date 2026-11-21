@@ -131,3 +131,13 @@ D-53 frozen h1 **5/6**, 160/160, inhibitor-alone recovered; overexpectation stil
 ### Milestone: all D-53 exposed 3b-1 guards passed
 
 T1 d2 **.921171** (24/24) and d3 **.959979** (18/18). Combined with C 2.439, A 10/10, h1 5/6 and v1 .809077, this unlocks the D-40 once on immutable `814b0333575c`. Do not inspect incomplete holdout journals or tune this tree. Local interpretation: positive hidden-state/transfer throughput and conditioning results on existing batteries. Global remaining risk: source-conditioned revival could still fail credit attribution in fresh compound/context crossings. Next: wait for the one-shot verdict, then either launch factor-only 3b-2 or diagnose with separately constructed development controls. No merge yet.
+
+### Milestone: D-40 falsified D-53; no 3b-1 closure
+
+Frozen D-53 completed 812/812 across 45 stages; max stage 82.648 s. Exposed guards passed, D-40 completed 288/288. Crossover +.10180, omission history +.65063, return +.68619; **background credit −.12235 [−.16486,−.07984]** and **inhibitor credit −.56301 [−.62796,−.49805]**, both REV. Direct +.79444 and summation +.53683 controls establish that these are failures of credit transfer, not absence of initial cue learning. Do not retest D-40 for acceptance; now exposed.
+
+Local hypothesis: place owns the quiet baseline but noisy-OR does not fully distinguish background from a cue-triggered change of regime. Aggregate latent responsibility then learns cue tables in the regimes selected by the stressed outcome. Signed response can be predicted by a configural or regime-retrieval difference without carrying the negative coefficient that should govern later compound learning. Need to distinguish these before editing model equations.
+
+Global: good classic battery fit and new sensory mediation/return are insufficient without perturbations on shared signed prediction error. Predictor remains active milestone; controller and merge blocked. Keep D-53 the known-good exposed reference.
+
+Re-plan: D-54 audit new development diagnostics, not a repeat of the lock; decompose learned weights, pre-update local/background forecast, and cue routing at held compound predictions. Develop a conditionally calibrated signed residual member that can drive credit without task semantics; screen against past wins and exposure-matched causal controls. For any later confirmation, independently register a distinct test before using its candidate outputs, and disclose design dependence on mechanism now exposed.

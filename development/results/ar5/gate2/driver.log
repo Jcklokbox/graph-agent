@@ -1,0 +1,97 @@
+START C 0 2 166
+{"tree": "814b0333575c", "suite": "C", "start": 0, "stop": 2, "new": 2}
+SUITE C PASS 2.438521950361911
+START A 0 24 166
+{"tree": "814b0333575c", "suite": "A", "start": 0, "stop": 24, "new": 24}
+START A 24 48 166
+{"tree": "814b0333575c", "suite": "A", "start": 24, "stop": 48, "new": 24}
+START A 48 72 166
+{"tree": "814b0333575c", "suite": "A", "start": 48, "stop": 72, "new": 24}
+START A 72 96 166
+{"tree": "814b0333575c", "suite": "A", "start": 72, "stop": 96, "new": 24}
+START A 96 120 166
+{"tree": "814b0333575c", "suite": "A", "start": 96, "stop": 120, "new": 24}
+START A 120 144 166
+{"tree": "814b0333575c", "suite": "A", "start": 120, "stop": 144, "new": 24}
+START A 144 168 166
+{"tree": "814b0333575c", "suite": "A", "start": 144, "stop": 168, "new": 24}
+START A 168 192 166
+{"tree": "814b0333575c", "suite": "A", "start": 168, "stop": 192, "new": 24}
+START A 192 216 166
+{"tree": "814b0333575c", "suite": "A", "start": 192, "stop": 216, "new": 24}
+START A 216 240 166
+{"tree": "814b0333575c", "suite": "A", "start": 216, "stop": 240, "new": 24}
+START A 240 264 166
+{"tree": "814b0333575c", "suite": "A", "start": 240, "stop": 264, "new": 24}
+START A 264 272 166
+{"tree": "814b0333575c", "suite": "A", "start": 264, "stop": 272, "new": 8}
+SUITE A PASS ['blocking', 'cond-inhibition', 'contingency', 'pree', 'reinstatement', 'renewal-ABA', 'renewal-ABC', 'savings', 'spont-recovery-sessions', 'spontaneous-recovery']
+START h1 0 24 166
+{"tree": "814b0333575c", "suite": "h1", "start": 0, "stop": 24, "new": 24}
+START h1 24 48 166
+{"tree": "814b0333575c", "suite": "h1", "start": 24, "stop": 48, "new": 24}
+START h1 48 72 166
+{"tree": "814b0333575c", "suite": "h1", "start": 48, "stop": 72, "new": 24}
+START h1 72 96 166
+{"tree": "814b0333575c", "suite": "h1", "start": 72, "stop": 96, "new": 24}
+START h1 96 120 166
+{"tree": "814b0333575c", "suite": "h1", "start": 96, "stop": 120, "new": 24}
+START h1 120 144 166
+{"tree": "814b0333575c", "suite": "h1", "start": 120, "stop": 144, "new": 24}
+START h1 144 160 166
+{"tree": "814b0333575c", "suite": "h1", "start": 144, "stop": 160, "new": 16}
+SUITE h1 PASS ['inhibitor-alone', 'latent-inhibition', 'negative-patterning', 'overshadowing', 'renewal-AAB']
+START v1 0 8 166
+{"tree": "814b0333575c", "suite": "v1", "start": 0, "stop": 8, "new": 8}
+START v1 8 16 166
+{"tree": "814b0333575c", "suite": "v1", "start": 8, "stop": 16, "new": 8}
+START v1 16 24 166
+{"tree": "814b0333575c", "suite": "v1", "start": 16, "stop": 24, "new": 8}
+START v1 24 32 166
+{"tree": "814b0333575c", "suite": "v1", "start": 24, "stop": 32, "new": 8}
+START v1 32 40 166
+{"tree": "814b0333575c", "suite": "v1", "start": 32, "stop": 40, "new": 8}
+START v1 40 48 166
+{"tree": "814b0333575c", "suite": "v1", "start": 40, "stop": 48, "new": 8}
+SUITE v1 PASS 0.8090767622173476
+START d2 0 7 166
+{"tree": "814b0333575c", "suite": "d2", "start": 0, "stop": 7, "new": 7}
+START d2 7 14 166
+{"tree": "814b0333575c", "suite": "d2", "start": 7, "stop": 14, "new": 7}
+START d2 14 21 166
+{"tree": "814b0333575c", "suite": "d2", "start": 14, "stop": 21, "new": 7}
+START d2 21 24 166
+{"tree": "814b0333575c", "suite": "d2", "start": 21, "stop": 24, "new": 3}
+SUITE d2 PASS 0.9211710322541801
+START d3 0 8 166
+{"tree": "814b0333575c", "suite": "d3", "start": 0, "stop": 8, "new": 8}
+START d3 8 16 166
+{"tree": "814b0333575c", "suite": "d3", "start": 8, "stop": 16, "new": 8}
+START d3 16 18 166
+{"tree": "814b0333575c", "suite": "d3", "start": 16, "stop": 18, "new": 2}
+SUITE d3 PASS 0.9599786393466037
+START holdout 0 24 166
+{"tree": "814b0333575c", "suite": "holdout", "start": 0, "stop": 24, "new": 24}
+START holdout 24 48 166
+{"tree": "814b0333575c", "suite": "holdout", "start": 24, "stop": 48, "new": 24}
+START holdout 48 72 166
+{"tree": "814b0333575c", "suite": "holdout", "start": 48, "stop": 72, "new": 24}
+START holdout 72 96 166
+{"tree": "814b0333575c", "suite": "holdout", "start": 72, "stop": 96, "new": 24}
+START holdout 96 120 166
+{"tree": "814b0333575c", "suite": "holdout", "start": 96, "stop": 120, "new": 24}
+START holdout 120 144 166
+{"tree": "814b0333575c", "suite": "holdout", "start": 120, "stop": 144, "new": 24}
+START holdout 144 168 166
+{"tree": "814b0333575c", "suite": "holdout", "start": 144, "stop": 168, "new": 24}
+START holdout 168 192 166
+{"tree": "814b0333575c", "suite": "holdout", "start": 168, "stop": 192, "new": 24}
+START holdout 192 216 166
+{"tree": "814b0333575c", "suite": "holdout", "start": 192, "stop": 216, "new": 24}
+START holdout 216 240 166
+{"tree": "814b0333575c", "suite": "holdout", "start": 216, "stop": 240, "new": 24}
+START holdout 240 264 166
+{"tree": "814b0333575c", "suite": "holdout", "start": 240, "stop": 264, "new": 24}
+START holdout 264 288 166
+{"tree": "814b0333575c", "suite": "holdout", "start": 264, "stop": 288, "new": 24}
+SUITE holdout FAIL ['associate-crossover', 'omission-by-history', 'return-specificity']
