@@ -67,3 +67,21 @@ class HoldoutProtocolTests(unittest.TestCase):
         self.assertAlmostEqual(q_idle,.675); self.assertEqual(noinfo,0.)
         m, ep, obs = dirichlet_mean_moments(4, 1.8, .81)
         self.assertAlmostEqual(m,.46); self.assertAlmostEqual(ep*6,obs)
+
+    def test_new_registry_distinct_and_unopened_before_credit(self):
+        import os
+        from unittest.mock import patch
+        from research.ar5_holdout_next import SEEDS
+        from research.ar5_judge import NEXT, run_batch
+        manifest={'tree':'fresh','seeds':list(SEEDS),'predictor_development_closed':True,
+                  'holdout_suite':NEXT}
+        self.assertFalse(set(SEEDS).intersection(ho.SEEDS))
+        self.assertEqual(len(plan(NEXT)), 192); self.assertEqual(len(plan('credit')), 24)
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ,PG_TREE='fresh'):
+            with self.assertRaisesRegex(RuntimeError,'not authorized'):
+                run_batch(Path(td),manifest,'holdout',0,1,1)
+            with patch('research.ar5_judge.report',side_effect=lambda p,t,s:
+                       {'status':'FAIL' if s=='credit' else 'PASS'}):
+                with self.assertRaisesRegex(RuntimeError,'locked by credit'):
+                    run_batch(Path(td),manifest,NEXT,0,1,1)
+            self.assertFalse((Path(td)/(NEXT+'.jsonl')).exists())

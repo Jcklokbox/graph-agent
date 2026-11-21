@@ -106,7 +106,7 @@ def hmm_step(y, a, prior, b, tr, em, h_b, h_a, h_y, ix, age, ntr, non, ntot):
 
 
 @njit(cache=True)
-def factor_read(q1, q0, weights, mu, v, center, cells, pg, kk, fast, used):
+def factor_read(q1, q0, weights, mu, v, center, cells, pg, kk, fast, used, deficit):
     """Read all live regimes; sufficient statistics are contiguous by member."""
     n = q1.shape[0]
     J, S = cells.shape
@@ -120,7 +120,8 @@ def factor_read(q1, q0, weights, mu, v, center, cells, pg, kk, fast, used):
                 for p in range(v.shape[1]):
                     add += mu[i, z, j, p] * v[j, p]
                 w = weights[i, z, j, S]
-                num = w * np.float32(max(.01, min(.99, add)))
+                pa = np.float32(max(.01, min(.99, add)))
+                num = w * pa
                 den = w
                 for s in range(S):
                     c = cells[j, s]
@@ -129,12 +130,14 @@ def factor_read(q1, q0, weights, mu, v, center, cells, pg, kk, fast, used):
                     w = weights[i, z, j, s]
                     num += w * p
                     den += w
-                out[i, z, j] = num / den
+                q = num / den
+                rho = deficit[j]
+                out[i, z, j] = q if rho == 0. else (1. - rho) * q + rho * pa
     return out
 
 
 @njit(cache=True)
-def factor_update(q1, q0, ev, weights, mu, v, center, cells, pg, sampled, y, fast, base, credit):
+def factor_update(q1, q0, ev, weights, mu, v, center, cells, pg, sampled, y, fast, base, credit, deficit):
     """Score then count one observed transition in each sampled regime."""
     J, S = cells.shape
     for i in range(q1.shape[0]):
@@ -158,12 +161,20 @@ def factor_update(q1, q0, ev, weights, mu, v, center, cells, pg, sampled, y, fas
                 prob = (a + pg[j, s]) / (a + b + np.float32(1.))
                 prob = bg + (np.float32(1.) - bg) * prob
                 prob = min(np.float32(1. - 1e-6), max(np.float32(1e-6), prob))
-                ev[i, z, j, s] += np.log(prob if sign else np.float32(1.) - prob)
+                table_like = prob if sign else np.float32(1.) - prob
+                rho = np.float32(deficit[j])
+                if rho > 0.:
+                    add_like = pred if sign else np.float32(1.) - pred
+                    prob_like = (np.float32(1.) - rho) * table_like + rho * add_like
+                    count = wt * (np.float32(1.) - rho) * table_like / max(np.float32(1e-12), prob_like)
+                else:
+                    prob_like, count = table_like, wt
+                ev[i, z, j, s] += np.log(prob_like)
                 peak = max(peak, ev[i, z, j, s])
                 if sign:
-                    q1[i, z, j, c] += wt
+                    q1[i, z, j, c] += count
                 else:
-                    q0[i, z, j, c] += wt
+                    q0[i, z, j, c] += count
             for s in range(S + 1):
                 weights[i, z, j, s] = np.exp(ev[i, z, j, s] - peak)
 

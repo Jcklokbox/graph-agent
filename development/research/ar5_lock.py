@@ -15,12 +15,16 @@ import time
 
 from harness.journal import append
 from harness.snap import snapshot, tree_hash
-from research.ar5_holdout import SEEDS
-from research.ar5_judge import evidence, key, plan, report
+from research.ar5_holdout_next import SEEDS
+from research.ar5_judge import GUARDS, NEXT, evidence, key, plan, report
 
 WORK = {'C': (2, 1), 'A': (24, 2), 'h1': (24, 2),
-        'v1': (8, 2), 'd2': (7, 2), 'd3': (8, 2), 'holdout': (24, 2)}
-SUITES = ('C', 'A', 'h1', 'v1', 'd2', 'd3', 'holdout')
+        'v1': (8, 2), 'd2': (7, 2), 'd3': (8, 2), 'holdout': (24, 2),
+        'credit': (12, 2), NEXT: (16, 2)}
+SUITES = (*GUARDS, 'holdout')  # historical frozen evidence
+NEXT_SUITES = (*GUARDS, 'credit', NEXT)
+NEXT_SHA = '53577bc71a55c426d6357fd2a435f3373f75a93ce8dd052618d3b58803432f15'
+CREDIT_SHA = 'd71868f8264a3d18753593d3d6cb146b6cef4b8820392cb266bcef806a6c74b6'
 
 
 def lock(path, t0, commit):
@@ -29,11 +33,14 @@ def lock(path, t0, commit):
     cores = sorted(os.sched_getaffinity(0))[:2]
     if len(cores) != 2:
         raise ValueError('exactly the planned two available CPUs are needed')
+    hold_sha = hashlib.sha256((Path(snap)/'research/ar5_holdout_next.py').read_bytes()).hexdigest()
+    credit_sha = hashlib.sha256((Path(snap)/'eval/scripts/ar5_credit_probe.py').read_bytes()).hexdigest()
+    if hold_sha != NEXT_SHA or credit_sha != CREDIT_SHA:
+        raise ValueError('registered D-61/D-62 schedule code changed')
     path.mkdir(parents=True, exist_ok=False)
-    hold_sha = hashlib.sha256((Path(snap)/'research/ar5_holdout.py').read_bytes()).hexdigest()
     manifest = dict(tree=tree, snap=snap, commit=commit, t0=t0, hard=t0+14400.,
                     dispatch_deadline=t0+14100., cpus=cores, seeds=list(SEEDS), holdout_sha256=hold_sha,
-                    python=platform.python_version(), host=platform.platform(),
+                    holdout_suite=NEXT, credit_sha256=credit_sha, python=platform.python_version(), host=platform.platform(),
                     dependencies={pkg:version(pkg) for pkg in ('numpy','numba','llvmlite')},
                     predictor_development_closed=True, start=time.monotonic())
     (path/'freeze.json').write_text(json.dumps(manifest, indent=2)+'\n')
@@ -45,9 +52,19 @@ def run(path, suite_list, prefix):
     tree, snap = f['tree'], f['snap']
     if tree_hash(snap) != tree:
         raise ValueError('snapshot changed')
-    wanted = hashlib.sha256((Path(snap)/'research/ar5_holdout.py').read_bytes()).hexdigest()
-    if f['holdout_sha256'] != wanted:
+    held = f.get('holdout_suite','holdout')
+    allowed = NEXT_SUITES if held == NEXT else SUITES
+    suite_list = allowed if suite_list is None else tuple(suite_list)
+    if not set(suite_list) <= set(allowed):
+        raise ValueError('dispatch cannot cross the registered holdout')
+    name = 'ar5_holdout_next.py' if held == NEXT else 'ar5_holdout.py'
+    wanted = hashlib.sha256((Path(snap)/'research'/name).read_bytes()).hexdigest()
+    if f['holdout_sha256'] != wanted or (held == NEXT and wanted != NEXT_SHA):
         raise ValueError('held-out schedule bytes fail freeze check')
+    if held == NEXT:
+        credit_sha = hashlib.sha256((Path(snap)/'eval/scripts/ar5_credit_probe.py').read_bytes()).hexdigest()
+        if credit_sha != CREDIT_SHA or f.get('credit_sha256') != credit_sha:
+            raise ValueError('credit control bytes fail freeze check')
     runtime = {pkg:version(pkg) for pkg in f['dependencies']}
     if runtime != f['dependencies'] or platform.python_version() != f['python']:
         raise ValueError('dependency/interpreter mismatch')
@@ -55,7 +72,7 @@ def run(path, suite_list, prefix):
                NUMBA_NUM_THREADS='1', NUMBA_CACHE_DIR=prefix, PYTHONPATH=os.pathsep.join(
                    [snap, os.environ.get('PYTHONPATH','/tmp/graph-agent-deps')]))
     for suite in suite_list:
-        if suite == 'holdout' and any(report(path,tree,g)['status'] != 'PASS' for g in SUITES[:-1]):
+        if suite == held and any(report(path,tree,g)['status'] != 'PASS' for g in allowed[:-1]):
             print('LOCKED holdout: predictor guard not passed', flush=True); return 2
         steps, workers = WORK[suite]
         tasks = plan(suite)
@@ -92,7 +109,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('command', choices=['lock','run']); p.add_argument('root',type=Path)
     p.add_argument('--t0',type=float); p.add_argument('--commit')
-    p.add_argument('--suites',nargs='+', choices=SUITES,default=SUITES)
+    p.add_argument('--suites',nargs='+', choices=WORK)
     p.add_argument('--cache',default='/tmp/ar5-cache')
     a=p.parse_args(); root=a.root.resolve()
     if a.command=='lock':

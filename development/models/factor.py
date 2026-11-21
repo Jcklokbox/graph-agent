@@ -29,6 +29,21 @@ F32 = np.float32
 CANONICAL = "factor-L4-P-C"    # M_factor: the one configuration used by every suite (SPEC-3b.2)
 
 
+def tonic_log_odds(tonic_ll, phasic_ll):
+    """Marginal role odds under a shared, latent dwell-rate mixture.
+
+    Before each channel's own role likelihood, only the other channels are
+    evidence about the lifetime grid; each integrates an independent binary
+    role prior with odds 1:J. The constant null factor cancels.
+    """
+    lr = tonic_ll - phasic_ll[:, None] - np.log(len(phasic_ll))
+    others = np.logaddexp(0., lr)
+    # Joint role-on numerator has factors L_T/L_F, role-off replaces that
+    # channel's mixture by one. Work is linear in channels times grid size.
+    rest = others.sum(0) - others
+    return np.logaddexp.reduce(rest + lr, axis=1) - np.logaddexp.reduce(rest, axis=1)
+
+
 def make_factor(name, n, actions, value, seed=0):
     """One configuration; only the dev particle count may differ."""
     match = re.fullmatch(rf"{CANONICAL}(?:-N([1-9][0-9]*))?", name)
@@ -188,15 +203,34 @@ class FactorModel:
         p[:, i2] = (n1[:, i2] + C_GLOB * prior) / tot[:, i2]
         return p
 
+    def _support_deficit(self, cells, U):
+        """Compare local joint occupancy to its represented current-cue marginal."""
+        if not self.slow.any():
+            return self._zero
+        current = np.zeros((self.J, self.m), bool)
+        current[:, :len(self.own_lags)] = np.asarray(self.own_lags) == 0
+        current[:, len(self.own_lags) + self.A:] = ((self._slot_src >= 0)
+                                                    & (np.asarray(self.lags)[self._slot_li] == 0))
+        active = current & (U > .5)
+        ij = self._pair_pos
+        n = self.g1[np.arange(self.J)[:, None], cells] + self.g0[np.arange(self.J)[:, None], cells]
+        lo = np.maximum(active[:, ij[:, 0]] * n[:, self._sa], active[:, ij[:, 1]] * n[:, self._sb])
+        hi = n[:, 1 + self.m:]
+        den = lo * (1. + hi)
+        delta = np.divide(lo-hi, den, out=np.zeros_like(hi), where=den > 0.)
+        delta *= current[:, ij[:, 0]] & current[:, ij[:, 1]]
+        return np.maximum(0., delta.max(1)) if delta.shape[1] else self._zero
+
     def _members(self, b, a, hist, kk):
         U = self._keys(b, a, hist)
         cells = self._cells(U)
         pg = self._pooled(cells).astype(F32)
         v = np.concatenate([U, np.ones((self.J, 1))], 1)
         center = np.einsum("jd,jd->j", self.shared_mu, v)
+        deficit = self._support_deficit(cells, U)
         q = factor_read(self.q1, self.q0, self._E, self.mu, v, center, cells, pg,
-                        kk, ~self.slow, self.used)
-        return dict(cells=cells, pg=pg, v=v, center=center, q=q)
+                        kk, ~self.slow, self.used, deficit)
+        return dict(cells=cells, pg=pg, v=v, center=center, q=q, deficit=deficit)
 
     def _signature(self, b):
         return tuple(np.flatnonzero(self.slow & (b > .5)).tolist())
@@ -204,10 +238,9 @@ class FactorModel:
     def _observe_place(self, b):
         """Compare a long-dwell copy process to a fitted Bernoulli continuation.
 
-        Conditional on an on observation, a tonic channel inherits the regime
-        lifetime grid; a phasic channel has a uniform-Beta continuation rate.
-        Marginal likelihood and sparse prior odds 1:J determine the MAP view;
-        a transient run is not an irreversible commitment.
+        A prior on the common tonic dwell rate shares evidence between
+        channels, while each phasic channel has its own uniform-Beta
+        continuation rate. Role assignments are MAP and can be revised.
         """
         now = b > .5
         idx = np.flatnonzero(self.last_bits)
@@ -219,10 +252,7 @@ class FactorModel:
             self._phasic_log[idx] += np.log((ct[np.arange(len(idx)), on.astype(int)] + 1.)
                                            / (ct.sum(1) + 2.))
             self._on_counts[idx, on.astype(int)] += 1.
-            z = self._role_log[idx] - self._phasic_log[idx, None]
-            mx = z.max(1)
-            odds = mx + np.log(np.exp(z - mx[:, None]).mean(1)) - np.log(self.J)
-            self.slow[idx] = odds > 0.
+            self.slow = tonic_log_odds(self._role_log, self._phasic_log) > 0.
         self.last_bits = now
         return self._signature(b)
 
@@ -331,12 +361,13 @@ class FactorModel:
         pp = None
         if self.proc is not None:
             pp = (self.proc.peek_all(x, a) if hypothetical else self.proc.predict(x, a))[self.ch]
-        mem = self._members(b, a, hist, kk)
+        quiet = not b[~self.slow].any()
+        mem = None if quiet and self.slow.any() else self._members(b, a, hist, kk)
         place = self._signature(b)
         prior = self._cue_prior(self._regime_prior(place, kk), b, kk)
         out = np.full(self.n, .5)
         w = np.exp(self.logw - self.logw.max())[:, None] * prior
-        local, background = self._conditional(mem, kk, place, not b[~self.slow].any())
+        local, background = self._conditional(mem, kk, place, quiet)
         pj = local if pp is None else self.expert * local + (1. - self.expert) * pp
         activity = self._activity(pj, w, b, ~self.slow)
         w_eval = w if activity is None else w * activity[1]
@@ -370,7 +401,6 @@ class FactorModel:
             _, _, mem, pp, prior, w, pz, base, q = self._memo
         else:
             pp = self.proc.predict(x, a)[self.ch] if self.proc is not None else None
-            mem = self._members(b, a, self.hist, kk)
         if self.proc is not None:
             # A cached prediction belongs to the most recent actual predict call.
             self.proc.learn(x, a, y)
@@ -387,6 +417,7 @@ class FactorModel:
         fast = ~self.slow
         quiet = not b[fast].any()
         if not cached:
+            mem = None if quiet and self.slow.any() else self._members(b, a, hist_before, kk)
             prior = self._cue_prior(self._regime_prior(place, kk), b, kk)
             w = np.exp(self.logw - self.logw.max())[:, None] * prior
             pz, base = self._conditional(mem, kk, place, quiet)
@@ -462,7 +493,7 @@ class FactorModel:
             obs = pz[ar, zt]
             credit = np.where(yb[None, :], np.maximum(0., obs - bs) / np.maximum(1e-12, obs), 1.)
             factor_update(self.q1, self.q0, self.ev, self._E, self.mu, mem["v"],
-                          mem["center"], cells, mem["pg"], zt, yb, fast, bs, credit)
+                          mem["center"], cells, mem["pg"], zt, yb, fast, bs, credit, mem["deficit"])
             factor_gaussian(self.mu, self.Sg, self.shared_mu, self.shared_cov,
                             mem["v"], mem["center"], zt, yb, fast, self.noise, credit)
             pg = np.clip(self._pooled(cells), 1e-6, 1. - 1e-6)

@@ -104,3 +104,28 @@ class DiscoveryTests(unittest.TestCase):
             expected = bank[idx].copy()
             copy_ancestor_rows(bank,idx,used)
             np.testing.assert_array_equal(bank,expected)
+
+
+class WholeVectorNormalization(unittest.TestCase):
+    def test_normalize_once_before_group_gathers(self):
+        from models.decompose import Decomposer
+
+        class CountedVector:
+            def __init__(self, n):
+                self.value = np.zeros(n)
+                self.conversions = 0
+
+            def __array__(self, dtype=None, copy=None):
+                self.conversions += 1
+                a = self.value.astype(dtype, copy=False)
+                return a.copy() if copy else a
+
+        for n in (7, 19, 31):
+            d = Decomposer(n, 2, n-1, windows=True)
+            x, y = CountedVector(n), CountedVector(n)
+            d.predict(x, 0)
+            d.learn(x, 0, y)
+            self.assertEqual(x.conversions, 1)
+            self.assertEqual(y.conversions, 1)
+            d.peek_all(y, 0)
+            self.assertEqual(y.conversions, 2)

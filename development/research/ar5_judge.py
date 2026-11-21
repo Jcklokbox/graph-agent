@@ -26,6 +26,8 @@ from research.ar5_holdout import ROWS, SEEDS, FLOOR
 
 T1 = {'v1': (2000, .80), 'd2': (4000, .89), 'd3': (4000, .95)}
 T2 = {'A': 'v1', 'h1': 'h1'}
+GUARDS = ('C','A','h1','v1','d2','d3')
+NEXT = 'holdout-next'
 T975 = {5: 2.570582, 15: 2.131450, 23: 2.068659}
 
 
@@ -39,6 +41,12 @@ def plan(suite):
                 for row, p in SETS[T2[suite]][0].items() for g in p.groups]
     if suite == 'holdout':
         return [(seed, f'{row}|{g}') for seed in SEEDS for row, p in ROWS.items() for g in p.groups]
+    if suite == NEXT:
+        from research.ar5_holdout_next import SEEDS as new, ROWS as tests
+        return [(seed, f'{row}|{g}') for seed in new for row, p in tests.items() for g in p.groups]
+    if suite == 'credit':
+        return [(seed,f'{row}|{group}') for seed in range(74700,74706)
+                for row in ('signed','background') for group in (0,1)]
     raise ValueError(suite)
 
 
@@ -66,6 +74,14 @@ def episode(tree, suite, task):
     elif suite in T2:
         row, group = slug.split('|')
         out = run_group(CANONICAL, row, group, seed, T2[suite])[-1]
+    elif suite == NEXT:
+        from research.ar5_next_reference import episode as next_episode
+        row, group = slug.split('|')
+        out = next_episode(CANONICAL,row,group,seed)
+    elif suite == 'credit':
+        from eval.scripts.ar5_credit_probe import episode as controlled_episode
+        row, group = slug.split('|')
+        out = controlled_episode(row,bool(int(group)),seed,200,True)['4']
     else:
         from research.ar5_screen import episode as holdout_episode
         row, group = slug.split('|')
@@ -98,6 +114,16 @@ def report(root, tree, suite):
                         for f in ('ll','oracle','null','gap','gc')} for w in worlds}
         return dict(status='PASS' if ci['mean'] >= T1[suite][1] else 'FAIL', **ci,
                     threshold=T1[suite][1], by_world=by_world, tuples=len(recs))
+    if suite == NEXT:
+        from research.ar5_next_reference import next_verdict
+        ans = next_verdict([(seed,*slug.split('|'),m) for (seed,slug),m in got.items()])
+        return dict(**ans,tuples=len(recs))
+    if suite == 'credit':
+        from research.ar5_credit_report import estimates_for
+        s,b = ([{bool(i):got[seed,f'{row}|{i}'] for i in (0,1)} for seed in range(74700,74706)]
+               for row in ('signed','background'))
+        estimates, ok = estimates_for(s,b)
+        return dict(status='PASS' if ok else 'FAIL',estimates=estimates,tuples=len(recs))
     rows, floor = (ROWS, FLOOR) if suite == 'holdout' else (SETS[T2[suite]][0], SETS[T2[suite]][2])
     seeds = SEEDS if suite == 'holdout' else range(16)
     out = {}
@@ -133,10 +159,17 @@ def run_batch(root, freeze, suite, start, stop, workers):
     tree = os.environ['PG_TREE']
     if tree != freeze['tree'] or not freeze.get('predictor_development_closed'):
         raise ValueError('judge requires closed development and matching snapshot')
-    if freeze['seeds'] != list(SEEDS):
+    held = freeze.get('holdout_suite','holdout')
+    if held == NEXT:
+        from research.ar5_holdout_next import SEEDS as fixed_seeds
+    else:
+        fixed_seeds = SEEDS
+    if freeze['seeds'] != list(fixed_seeds):
         raise ValueError('holdout seed manifest mismatch')
-    if suite == 'holdout':
-        for guard in ('C','A','v1','d2','d3','h1'):
+    if suite in ('holdout',NEXT):
+        if suite != held:
+            raise RuntimeError('holdout registry not authorized by freeze')
+        for guard in GUARDS + (('credit',) if suite == NEXT else ()):
             if report(root, tree, guard)['status'] != 'PASS':
                 raise RuntimeError(f'holdout locked by {guard}')
     tasks = plan(suite)
@@ -161,7 +194,7 @@ def run_batch(root, freeze, suite, start, stop, workers):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('command', choices=['plan','report','batch'])
-    p.add_argument('suite', choices=['C','A','h1','holdout',*T1])
+    p.add_argument('suite', choices=[*GUARDS,'credit','holdout',NEXT])
     p.add_argument('root',type=Path); p.add_argument('start',type=int,nargs='?',default=0)
     p.add_argument('stop',type=int,nargs='?'); p.add_argument('--workers',type=int,choices=[1,2],default=1)
     a=p.parse_args()

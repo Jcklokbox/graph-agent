@@ -251,6 +251,8 @@ class Decomposer:
 
     # ------------------------------------------------------------------ interface
     def predict(self, x, a):
+        # A group's gather must not convert a full-width Python sequence.
+        x = np.asarray(x, dtype=float)
         out = np.full(self.n, .5)
         for g in self.groups:
             out[g.chans] = g.predict(x, a)
@@ -269,6 +271,7 @@ class Decomposer:
         return out
 
     def learn(self, x, a, y):
+        y = np.asarray(y, dtype=float)
         self.t += 1
         scores = {tuple(g.chans): g.learn(a, y) for g in self.groups}
         done = []
@@ -517,6 +520,7 @@ class Decomposer:
     def peek_all(self, x, a):
         """Predictive marginals of every channel after a hypothetical observation x (not
         learned); the value channel stays .5."""
+        x = np.asarray(x, dtype=float)
         out = np.full(self.n, .5)
         for g in self.groups:
             if g.started:
