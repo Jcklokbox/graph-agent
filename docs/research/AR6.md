@@ -44,7 +44,7 @@ Fresh DEV-20: 20 hashed seed blocks × 15 unchanged DEV variants, actual matched
 
 ### AR6-06 (46/46 exposed episodes, `b20f007e685b`)
 
-Both variants rescue clean seeds 6/7/8/12 and retain 13; v54 clean .895–1 across selected seeds. The arithmetic recentering in v55 produced no guard gains and worsened clean seed 13 .947→.895; v54 remains the behavioral comparator. Noisy cancellation still spills utility (e.g. seed 6 .636, seed 12 .727); possible added exploration, inherited optimistic continuation, or mislearned signed forecast. AR6-07 attributes deviations at the same learned state by removing only added test value, then all optimism. If most adverse movements persist despite either removal, address actual reward/motion law rather than adding exploration switches.
+Both variants rescue clean seeds 6/7/8/12 and retain 13; v54 clean .938–1 across selected seeds. The arithmetic recentering in v55 produced no guard gains and worsened clean seed 13 .947→.895; v54 remains the behavioral comparator. Noisy cancellation still spills utility (e.g. seed 6 .636, seed 12 .727); possible added exploration, inherited optimistic continuation, or mislearned signed forecast. AR6-07 attributes deviations at the same learned state by removing only added test value, then all optimism. If most adverse movements persist despite either removal, address actual reward/motion law rather than adding exploration switches.
 
 ### AR6-07 (5/5 exposed noisy traces, `95b50f374f52`)
 
