@@ -112,3 +112,25 @@ dist-delay3-noise2 0.947/0.955, dist-noise3-p4 0.951/0.953, aut-fooddelay3-noise
 Per-cell episode counts are 8 seeds x 1 episode = 8 per cell (canc and canc-noise3 also carry the
 11-seed x 3-arm controlled probe above). Two cells move down by 0.014 (aut-half, aut-noise4-sticky),
 one by 0.008 (dist-delay3-noise2), offset by gains of 0.260 and 0.144 in the target cells.
+
+## Freeze
+
+Frozen candidate **AR6-N-1**, one coherent change in the unified `M_factor` + controller object:
+
+- `development/agents/v60.py` (`CellRoomProvision`): counts provisional payoff per
+  (outcome control state, observed configuration of the payoff law's own screened parent channels)
+  and scales it by the Jeffreys width `sqrt(m(1-m)/(2+n))` of that cell's realized payoff
+  (`0.5` while the cell is untried). The marginal statistic and its onset gate are inherited
+  unchanged from `v48`; `configural_upper`/parent-count terms are deliberately absent.
+- `development/models/factor_rollout.py`: the root provisional term additionally takes
+  `max(incumbent, head.cell_room(b))` when the head offers it; the interior tree keeps its
+  `phase` factor and the root gate keeps the `F-1` shape from the accepted 3b-1 protocol.
+
+Freeze commit `59c4070fd4fc6456f8226b98fe22c3d5b41c2e40` (the immediately following `1001904`
+adds only a `.venv` ignore entry and no model bytes). Evidence: `development/arena6/results/`
+(`summary.json` = all 15 exposed cells, RNG-matched `v48` boards beside each `v60` board, and the
+three-arm controlled probe).
+
+Not qualified: no formal DEV-16 block run, no held-out or T4 stream, no unseen seed, and the
+DEV-16 3b-2 bar was not re-evaluated. Qualification needs the registered protocol on an
+authorized run.

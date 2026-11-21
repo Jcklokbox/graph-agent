@@ -15,7 +15,13 @@ During an authorized run, keep the original clock and 220+20 call budget. Use th
 ## AR-6 alt-N — notes
 
 Diagnosis, rejected mechanisms and the frozen fix: [docs/research/AR6-ALT-N.md](docs/research/AR6-ALT-N.md).
-Short form: `v48` fails `canc` by *absent-payoff discovery*, not reuse (scripted exposure reuses
-34-41/32-42 later opportunities, yoked control does not); the provisional optimism is an
-onset-frequency statistic over control states, so it rewards staying in the state that carries the
-onset. Fix `v60`: per-(state, parent-configuration) Jeffreys room of the realized payoff.
+Short form: `v48` fails `canc` by *absent-payoff discovery*, not reuse (scripted exposure lifts canc
++.036 over free and +.061 over a matched yoke; one payoff is then reused at 34-41/32-42 later
+opportunities); the provisional optimism is an onset-frequency statistic over control states, so its
+headroom is monotone in the state mean. Fix `v60`: per-(state, payoff-parent-configuration) Jeffreys
+room of the realized payoff, marginal term and onset gate unchanged.
+**Frozen 3b-2 candidate:** `v60` = `development/agents/v60.py` + rollout `cell_room` hook,
+commit `59c4070` (`1001904` adds only a `.venv` ignore). Gates: 116/116 tests, 15/15 isolation,
+predictor parity |ΔP|=0.0, scaling 2.091 ≤ 2.50. Exposed DEV seeds 0-7: canc .958 (v48 .698),
+canc-noise3 .601 (.457), other 13 cells within ±.014 — `development/arena6/results/summary.json`.
+No formal gate row, held-out stream or unseen seed was used.
