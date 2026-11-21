@@ -88,3 +88,34 @@ regressions (aut*, dist-noise2-sticky, aut-serial300 vs v48), freeze v52 as D-11
 publish; else replan. Also standing: work continues on branch arena/c9b53ad1-graph-agent
 (no ar6-alt-N branch was cut; earlier deviation persists). ./ar counter reads 3/240;
 ledger drift to be reconciled at publish time with --used.
+
+<!-- AR-6 ALT-10 (ar6-alt-N) DEV-16 result, 2026-11-21T11:50Z -->
+## AR-6 alt-10 DEV-16 outcome: v52 clears the 3b-2 bar with margin (paired +0.0465, 99% CI [+0.0186,+0.0744])
+
+Local paired DEV-16 (240 episodes; env 100+s, brain s 0..15; same seeds/scoring as the
+v48 gate; reconstruction of the v48 block effects verified bitwise against its
+validation.json before trusting the comparison):
+- v52 candidate 0.938 (v48 0.888, v12 0.891). Every variant wins 16/16 vs stay except
+  canc-noise3 15/16 (0.828; v48 0.571/0.638-flip). canc 0.951 (v48 0.638), dist 0.936,
+  dist-delay3 0.940, aut-serial300 0.764 (v48 0.786), dist-noise2-sticky 0.947
+  (v48 0.851), aut-fooddelay2 0.939 (v48 0.863), aut-fooddelay3-noise1 0.992.
+- Guarded regressions vs v48: aut-serial300 (-0.022), dist (-0.019), dist-delay3 (-0.012),
+  aut-noise4-sticky (-0.006) - all sub-noise, none flips a win row; aut-serial300/dist/
+  dist-delay3 remain its weakest rows vs v12 (-0.129/-0.055/-0.052). Accepted: DEV is the
+  selection split, and no healthy candidate was available without staying pinned; more
+  knob-turning risks DEV overfit for <0.02 mean movement.
+- 3b-2 bar (lower 99% CI bound >= -0.02): PASS, lower bound +0.0186, i.e. v52 is
+  significantly ABOVE the frozen v12 reference (v48 was -0.0033 [-0.0434,+0.0368], FAIL).
+  v52 vs v48 paired +0.0498 [+0.0175,+0.0821].
+
+Recorded in development/results/ar6/dev16_v52.json and dev16_v52_validation.json
+(comparison protocol verified by exact reconstruction of the v48 gate numbers).
+This is a local paired comparison with the same seeds and scoring as the dispatched
+240-pair gate, not a fresh dispatched qualification; the held-out sets remain untouched.
+Candidate lineage: v50 D-114 (epistemic atoms) -> v51 D-115 (control-transition counts)
+-> v52 D-116 (both; v48's ScopedSignedReward otherwise unchanged). Passive 3b-1 predictor
+untouched; no flags leak to the learner at run time; reward channel untouched.
+
+Next: content-addressed freeze of v52 once the checkpoint is published; if a dispatched
+gate is required for formal qualification, that is the remaining step. Do NOT spend
+held-out rows. Only the DEV split was used for selection.
