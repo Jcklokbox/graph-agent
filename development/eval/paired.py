@@ -1,6 +1,5 @@
 """Episode identities, plans and raw normalization for paired DEV evidence."""
 import math
-import os
 
 from envs.tasks import SPLITS
 from eval import benchmark
@@ -16,11 +15,10 @@ def schedule(names, seeds):
             for seed in seeds for name in names]
 
 
-def run_episode(job):
+def run_episode(job, *, tree):
     model, name, seed, env_seed, brain_seed = job
-    benchmark.AGENT.update(name=model, module=None)
-    key = episode_key(os.environ['PG_TREE'], model, name, seed)
-    return dict(k=list(key), m=benchmark.brain_run(name, env_seed, brain_seed))
+    key = episode_key(tree, model, name, seed)
+    return dict(k=list(key), m=benchmark.brain_run(name, env_seed, brain_seed, model))
 
 
 def normalized_payoff(metrics):

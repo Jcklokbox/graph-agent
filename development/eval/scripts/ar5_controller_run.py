@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import os
+from functools import partial
 from pathlib import Path
 from multiprocessing import get_context
 
@@ -24,11 +25,12 @@ def run(out, model, names, seeds, start=None, stop=None, workers=1):
             append(out,r)
             m=r['m']; norm=(m['brain']-m['stay'])/(m['oracle']-m['stay'])
             print(r['k'][1:],round(norm,5),round(m['sec'],3),flush=True)
+    execute = partial(run_episode, tree=tree)
     if workers==1:
-        emit(map(run_episode,tasks))
+        emit(map(execute,tasks))
     elif tasks:
         with get_context('fork').Pool(workers) as pool:
-            emit(pool.imap_unordered(run_episode,tasks,chunksize=1))
+            emit(pool.imap_unordered(execute,tasks,chunksize=1))
 
 
 def main():

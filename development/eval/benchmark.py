@@ -19,34 +19,34 @@ Episodes run in a process pool (PG_PROCS processes, default: all CPUs).
 from __future__ import annotations
 
 import json
-import os
 import sys
 import time
+from contextlib import contextmanager
 
 import numpy as np
 
 import agents
 from envs.tasks import SPLITS, VARIANTS, blind_gate_oracle
+from eval.parallel import pmap
 
-BRAIN_KW: dict = {}
 VALUE_INDEX = 11
-AGENT = {"name": "v11", "module": None}
 
 
-def agent_module():
-    if AGENT["module"] is None:
-        AGENT["module"] = agents.load(AGENT["name"])
-    return AGENT["module"]
-
-
-def pmap(fn, jobs):
-    import multiprocessing as mp
-    jobs = list(jobs)
-    procs = int(os.environ.get("PG_PROCS", os.cpu_count() or 1))
-    if procs <= 1 or len(jobs) <= 1:
-        return [fn(*job) for job in jobs]
-    with mp.get_context("fork").Pool(min(procs, len(jobs))) as pool:
-        return pool.starmap(fn, jobs, chunksize=1)
+@contextmanager
+def _module_overrides(module, overrides):
+    """Scope legacy --set attributes to one benchmark run (fork workers inherit them)."""
+    missing = object()
+    before = {key: vars(module).get(key, missing) for key in overrides}
+    try:
+        for key, value in overrides.items():
+            setattr(module, key, value)
+        yield
+    finally:
+        for key, value in before.items():
+            if value is missing:
+                vars(module).pop(key, None)
+            else:
+                setattr(module, key, value)
 
 
 def _window(name, n):
@@ -91,11 +91,11 @@ def _oracle_return(name, env_seed):
     return float(np.mean(R[lo:hi]))
 
 
-def brain_run(name, env_seed, brain_seed):
+def brain_run(name, env_seed, brain_seed, agent, settings=None):
     v = VARIANTS[name]
     env = v.make(env_seed)
-    b = agents.agent_class(agent_module())(v.n_inputs, v.n_actions, VALUE_INDEX,
-                                           seed=brain_seed, **BRAIN_KW)
+    b = agents.agent_class(agents.load(agent))(v.n_inputs, v.n_actions, VALUE_INDEX,
+                                             seed=brain_seed, **(settings or {}))
     obs = env.reset()
     R, S = [], []
     t0 = time.time()
@@ -111,14 +111,19 @@ def brain_run(name, env_seed, brain_seed):
                 late_shocks=float(np.mean(S[lo:hi])), sec=time.time() - t0)
 
 
-def run(split, names=None, verbose=True, n_seeds=None, out=None):
+def run(split, names=None, verbose=True, n_seeds=None, out=None, *,
+        agent="v11", settings=None, module_sets=None):
+    settings = {} if settings is None else settings
+    module_sets = {} if module_sets is None else module_sets
     all_names, seeds, eb, bb = SPLITS[split]
     names = names or all_names
     if n_seeds is not None:
         seeds = range(n_seeds)
     jobs = [(nm, eb + s, bb + s) for nm in names for s in seeds]
     jobs.sort(key=lambda j: -VARIANTS[j[0]].steps * VARIANTS[j[0]].n_inputs ** 2)  # longest first
-    res = dict(zip(jobs, pmap(brain_run, jobs)))
+    with _module_overrides(agents.load(agent), module_sets):
+        metrics = pmap(brain_run, [(*job, agent, settings) for job in jobs])
+    res = dict(zip(jobs, metrics))
     rows = {}
     for nm in names:
         rs = [res[(nm, eb + s, bb + s)] for s in seeds]
@@ -139,27 +144,21 @@ def run(split, names=None, verbose=True, n_seeds=None, out=None):
               + (f" | variants only {np.mean(tr):.3f}" if tr else ""))
     if out:
         with open(out, "w") as f:
-            json.dump(dict(split=split, agent=AGENT["name"], settings=BRAIN_KW,
-                           module_sets=SETS, variants=rows), f, indent=1)
+            json.dump(dict(split=split, agent=agent, settings=settings,
+                           module_sets=module_sets, variants=rows), f, indent=1)
         if verbose:
             print("per-seed results ->", out)
     return rows
 
 
-SETS: dict = {}
-
-
 def main(argv):
-    if "--kw" in argv:
-        BRAIN_KW.update(json.loads(argv[argv.index("--kw") + 1]))
-    if "--agent" in argv:
-        AGENT["name"] = argv[argv.index("--agent") + 1]
-    mod = agent_module()
+    settings = json.loads(argv[argv.index("--kw") + 1]) if "--kw" in argv else {}
+    agent = argv[argv.index("--agent") + 1] if "--agent" in argv else "v11"
+    module_sets = {}
     for i, a in enumerate(argv):
         if a == "--set":
             k, v = argv[i + 1].split("=", 1)
-            SETS[k] = json.loads(v)
-            setattr(mod, k, SETS[k])
+            module_sets[k] = json.loads(v)
     split = next((a[2:] for a in argv if a[2:] in SPLITS and a.startswith("--")), "dev")
     only = [a for a in argv if a in VARIANTS]
     n_seeds = int(argv[argv.index("--seeds") + 1]) if "--seeds" in argv else None
@@ -169,8 +168,9 @@ def main(argv):
             sys.exit("--seeds is a DEV option; held-out splits use all their seeds")
         if n_seeds < len(SPLITS[split][1]):
             print(f"SCREENING ONLY: first {n_seeds} of {len(SPLITS[split][1])} seeds")
-    print("split:", split, "agent:", AGENT["name"], "settings:", BRAIN_KW, SETS)
-    run(split, only or None, n_seeds=n_seeds, out=out)
+    print("split:", split, "agent:", agent, "settings:", settings, module_sets)
+    run(split, only or None, n_seeds=n_seeds, out=out,
+        agent=agent, settings=settings, module_sets=module_sets)
 
 
 if __name__ == "__main__":

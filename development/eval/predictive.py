@@ -33,7 +33,7 @@ import numpy as np
 
 import agents
 from envs.family import Filter, WorldEnv, WORLD_SETS
-from eval.benchmark import pmap
+from eval.parallel import pmap
 from eval.stats import interval
 
 EPS = 1e-4

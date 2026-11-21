@@ -16,7 +16,7 @@ import numpy as np
 
 import agents
 from envs.phenomena import CUES, HOME, N_ACT, SETS, US, VALUE
-from eval.benchmark import pmap
+from eval.parallel import pmap
 from eval.stats import interval
 
 
