@@ -1,7 +1,7 @@
 # Active checkpoint
 
 **English. If compaction just occurred: `./ar resume`, then [active index](docs/INDEX.md).**
-During an authorized run, honor the original clock, 220+20 call budget and 30-minute reflection.
+During an authorized run, keep the original clock and 220+20 call budget. Use the ~30-minute cue to reflect in this file.
 
 <!-- managed-next -->
 - **AR-6 has not started.** No live clock to resume.
