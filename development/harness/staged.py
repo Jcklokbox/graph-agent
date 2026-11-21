@@ -18,7 +18,10 @@ import time
 from harness import journal
 
 STAGES = ((0,), tuple(range(4)), tuple(range(16)))
-C_S = (-3.7328, -3.7328)    # per-row Bonferroni floor (t_15, beta/20): beta_FWER <= .02 over 10 rows (harness/fwer.py)
+# Per-row Bonferroni floor (t_15, beta/20): beta_FWER <= .02 over 10 rows.
+# The calibration script named in sigma.json is in Git history:
+# bd77ce0dbc1708c67e3eb1a3f4791679a82a7c47:development/harness/fwer.py
+C_S = (-3.7328, -3.7328)
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
