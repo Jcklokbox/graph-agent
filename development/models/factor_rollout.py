@@ -194,11 +194,17 @@ def event_values(f,x,uniforms,optimistic=True):
 def provisional_values(f,x,uniforms,optimistic=True,*, root_explore=True, continuation_explore=True):
     """Enumerate the control state; sample only residual sensory observations.
 
-    Atom probabilities in the inner tree add the observed first atom to the
-    corresponding real-reward sufficient statistic. The likelihood parents of
+    The inner tree adds the observed first atom to the corresponding
+    real-reward sufficient statistic. The likelihood parents of
     that atom, and the transition factor, remain frozen during this lookahead.
     """
     head=f.reward; b=f._bits(x); input0=head.input(b,f.hist)[1:]
+    seen_phase=head.phase(b,f.hist)
+    constant_values=getattr(head,'constant_context_action_values',None)
+    if constant_values is not None:
+        values=constant_values(b,input0,seen_phase)
+        if values is not None:
+            return values
     information=optimistic and hasattr(head,'discovery_value') and (head.slots>=0).any()
     if information and head.information_mode=='replace':
         root_explore=continuation_explore=False
@@ -207,7 +213,6 @@ def provisional_values(f,x,uniforms,optimistic=True,*, root_explore=True, contin
     rule=head.rule(); atoms=rule[3]; trans=head.all_transitions();code=int(head.code(b))
     r,p,_,_=head.likelihood(rule,input0[None,:])
     splits=head.signed_rules(rule) if hasattr(head,'signed_rules') else []
-    seen_phase=head.phase(b,f.hist)
     group0=None
     if splits:
         r,p,outcome,_,group0=head.context_moment(splits,input0[None,:],seen_phase[None,:],r,p,atoms)
@@ -232,7 +237,7 @@ def provisional_values(f,x,uniforms,optimistic=True,*, root_explore=True, contin
                   and bridge is None and not one_window)
     q_fixed=np.zeros(f.A) if shared_fixed else None
     if optimistic:
-        bound,_=head.provisional(rule)
+        bound=head.provisional(rule)
     if optimistic and root_explore:
         incumbent=np.maximum(r,(bound*seen_phase).max(1))
         if pair_probe:
@@ -254,28 +259,9 @@ def provisional_values(f,x,uniforms,optimistic=True,*, root_explore=True, contin
     if getattr(head,'factored_projection',False):
         known=rule[0][rule[1]]
         relevant=np.unique(np.r_[known[known<f.J],np.array([m for _,m,l,_,_,_ in splits if l==0],dtype=int)])
-    if relevant is not None and len(relevant)==0 and bridge is None:
-        laws=[None]*f.A
-    else:
-        laws=factor_current(f,x)
-    for a,law in enumerate(laws):
-        immediate=incumbent
-        if law is None:
-            y=np.zeros((1,f.J)); branch_mass=np.ones(1)
-        else:
-            w,mix,slow_p,_=law
-            if bridge is not None:
-                activity=f._activity(mix,w,b,~f.slow)
-                ww=w if activity is None else w*activity[1]
-                forecast=np.einsum('nk,nkj->j',ww,mix)/w.sum();forecast[f.slow]=slow_p
-                evidence=np.clip((forecast-base)/(1.-base),0.,1.)
-                immediate=np.maximum(incumbent,r+np.max(bridge*evidence,axis=1))
-            if relevant is not None and len(relevant)<=3:
-                parts,branch_mass=finite_marginal(w,mix,f.slow,slow_p,quiet,relevant)
-                y=np.zeros((len(parts),f.J));y[:,relevant]=parts
-            else:
-                y=conditional_draws(w,mix,f.slow,slow_p,quiet,sensory)
-                branch_mass=np.full(len(y),1./len(y))
+    legal=head.control_mass>0. if motion_optimism else None
+
+    def continuation_tables(y):
         # Branch index is (residual sensory draw, controlled outcome).
         by=np.repeat(y,len(states),axis=0)
         by[:,cols]=np.tile(marks,(len(y),1))
@@ -304,22 +290,66 @@ def provisional_values(f,x,uniforms,optimistic=True,*, root_explore=True, contin
             delta*=same[:,None]
         q=np.einsum('baj,bj->ba',motion,cont)
         if motion_optimism:
-            legal=head.control_mass>0.
             peak=np.max(np.where(legal,cont,-np.inf),axis=1) if legal.any() else cont.max(1)
             q+=(peak[:,None]-q)/(2.+head.trans_total[:,c].T)
         correction=motion[idx,:,c,None]*delta[:,None,:]
-        gain=branch_mass@(np.clip(q[:,:,None]+correction,0.,1.).max(1)*p[c]).sum(1).reshape(len(y),len(states))
-        discount=getattr(head,'discount',1.)
-        if shared_fixed:
-            q0=np.einsum('baj,bj->ba',motion,m2.copy())
-            fixed_gain=branch_mass@(np.clip(q0[:,:,None]+correction,0.,1.).max(1)*p[c]).sum(1).reshape(len(y),len(states))
-            q_fixed[a]=trans[a,code,states]@(r[states]+discount*fixed_gain)
-        if one_window:
+        # Preserve the original contraction order: probabilities of the
+        # reward atoms are reduced before probabilities of sensory patterns.
+        def atom_mean(values):
+            return (np.clip((values[:,:,None]+correction).max(1),0.,1.)*p[c]).sum(1).reshape(len(y),len(states))
+
+        gain = atom_mean(q)
+        fixed_gain = None
+        if shared_fixed or one_window:
             q0=np.einsum('baj,bj->ba',motion,m2)
-            if motion_optimism:
+            if one_window and motion_optimism:
                 peak0=np.max(np.where(legal,m2,-np.inf),axis=1) if legal.any() else m2.max(1)
                 q0+=(peak0[:,None]-q0)/(2.+head.trans_total[:,c].T)
-            gain0=branch_mass@(np.clip(q0[:,:,None]+correction,0.,1.).max(1)*p[c]).sum(1).reshape(len(y),len(states))
+            fixed_gain = atom_mean(q0)
+        return gain, fixed_gain
+
+    discount=getattr(head,'discount',1.)
+    # Exact patterns are the same for all first actions. Only the mass of
+    # each pattern and the arrival probabilities can depend on that action.
+    exact_patterns = relevant is not None and len(relevant) <= 3
+    common = None
+    if exact_patterns and len(relevant)==0 and bridge is None:
+        laws=[None]*f.A
+    else:
+        laws=factor_current(f,x)
+    for a,law in enumerate(laws):
+        immediate=incumbent
+        if law is None:
+            branch_mass=np.ones(1)
+            if common is None:
+                y=np.zeros((1,f.J))
+        else:
+            w,mix,slow_p,_=law
+            if bridge is not None:
+                activity=f._activity(mix,w,b,~f.slow)
+                ww=w if activity is None else w*activity[1]
+                forecast=np.einsum('nk,nkj->j',ww,mix)/w.sum();forecast[f.slow]=slow_p
+                evidence=np.clip((forecast-base)/(1.-base),0.,1.)
+                immediate=np.maximum(incumbent,r+np.max(bridge*evidence,axis=1))
+            if exact_patterns:
+                parts,branch_mass=finite_marginal(w,mix,f.slow,slow_p,quiet,relevant)
+                if common is None:
+                    y=np.zeros((len(parts),f.J));y[:,relevant]=parts
+            else:
+                y=conditional_draws(w,mix,f.slow,slow_p,quiet,sensory)
+                branch_mass=np.full(len(y),1./len(y))
+        if common is None:
+            tables = continuation_tables(y)
+            if exact_patterns:
+                common = tables
+        else:
+            tables = common
+        gain = branch_mass @ tables[0]
+        if shared_fixed:
+            fixed_gain = branch_mass @ tables[1]
+            q_fixed[a]=trans[a,code,states]@(r[states]+discount*fixed_gain)
+        if one_window:
+            gain0 = branch_mass @ tables[1]
             vals=np.stack((immediate[states]+discount*gain0,r[states]+discount*gain))
             means=vals@trans[a,code,states]
             if motion_optimism:

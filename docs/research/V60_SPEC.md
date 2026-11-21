@@ -149,9 +149,9 @@ at zero.
 `pooled[J,2,2]`, `by_action[J,A,2,2]`, and predictive log-ratios `[J]`;
 `Tcount[A,C,C]`, row totals `[A,C]`, arrival counts `M[C]`, recent rows of
 shape `Tcount`; reward bin counts `n[C,B]`, sums `s_r[C,B]`, feature-on
-counts `on[C,B,F]`, feature log-ratios `e[C,F]`. Onset counts, amount sums
-and squared-amount sums `[C,F]`, lifetime feature presence `[F]`, current
-onset occurrence and past-on totals `[J]`, lifetime update count `total=0`.
+counts `on[C,B,F]`, feature log-ratios `e[C,F]`. Onset counts and amount sums
+`[C,F]`, lifetime feature presence `[F]`, current onset occurrence and
+past-on totals `[J]`, lifetime update count `total=0`.
 Reward mode has separate two scores (recent, archive), `age=0`, `switches=0`,
 archive absent. Real replay is a deque of cap `W=2CA`. Context baseline
 counts `[J]` and total zero; anchor exposure `[k_anchor]`, on counts and
@@ -283,6 +283,10 @@ for a zero denominator. If there are no such pairs or no slow bits, `rho=0`.
 Compute the mean of all `p_s` and `p_add` with stored weights `Ew`, then
 replace it by `(1−rho)*mean+rho*p_add` when `rho>0`. The read visits only
 regimes `z<min(kk,used[i]+1)` and fast channels; other outputs are `.5`.
+For `z=used[i]<kk`, every particle reads the same pristine table counts,
+weights and local coefficients. Evaluate this row once per action and reuse
+its output. Particle-specific rates, regime priors and place conditioning
+are applied afterwards; occupied regimes are still read separately.
 
 ### 4.2 Places, regime prior, and background
 
@@ -417,7 +421,7 @@ screen or lifetime presence/onset/past-on counts.
 ### 5.2 Recording and switching modes
 
 Mode banks are exactly `Tcount`, row totals, `M`, `n`, `s_r`, `on`, `e`,
-onset counts, onset amount sums and onset squared-amount sums. For row
+onset counts and onset amount sums. For row
 `(b,a,r,b',X,O)`, let `i=c(b)`, `c=c(b')`, evaluate the *same current* base
 above, and compute pre-record probabilities of `c` under the current row,
 the recent row, and the archived row (use current if there is no archive).
@@ -442,8 +446,8 @@ e[c,f] += log(B(X_f,bin_on)/B(X_f,pooled_on)).
 ```
 
 Finally increment the bin count and `M[c]` by 1, bin amount by `r`, bin
-feature-on counts by `X`, onset counts by `O`, onset amount sums by `r*O`,
-and onset squared-amount sums by `r*r*O` at arrival `c`.
+feature-on counts by `X`, onset counts by `O`, and onset amount sums by
+`r*O` at arrival `c`.
 
 ### 5.3 Anchor and context update
 
@@ -643,9 +647,33 @@ Start `option=0`. There is no additional refinement of `q` inside this scan.
 
 ## 7. Action values
 
-Given `x,U`, let `b=bits(x)`, `origin=c(b)`, and `T` be §5.1. Compute the
-root `X,O`, and use §§6.1–6.2 and then root refinement from §6.4 to obtain
-root mean `m0[c]`, probabilities `p0[c,k]`, representatives `u0[c,k]`, group
+Given `x,U`, compute `b=bits(x)` and the root `X,O`.
+
+**Constant context, action-dependent reward.** Consider this partition only
+if `A≥2`, no controlled slot is live, and `O` is all zero. Each replay row
+must have arrival bits equal to `b`, features equal to the root `X`, and
+all-zero onsets. There must be at least two rows for each action. For each
+action `a` count and sum its replay rewards by bin. Let `n_a` be its bin
+counts. Choose the action partition only if
+`sum_a ell(n_a) > ell(sum_a n_a)`, with `ell` as in §5.4. Both candidates
+score exactly the same rows.
+
+When the action partition wins, use §6.1 on each action's bins to obtain
+`P_a[k]`, `U_a[k]` and mean `m_a=sum_k P_a[k]*U_a[k]`. Set
+`N_a=sum_k n_a[k]`. Return early from this query with
+
+```text
+next_a[k] = m_a + (U_a[k]−m_a)/(2+N_a)
+Q[a] = m_a + sum_k P_a[k]*clip(max(next_a[k], max_{j≠a} m_j),0,1).
+```
+
+This is the one-context, two-step case: the atom updates only its action
+partition. There is no extra exploration bonus or hypothetical transition
+update. Real prediction, learning, and RNG calls in §1 do not change.
+
+Otherwise let `origin=c(b)` and `T` be §5.1. Use §§6.1–6.2 and then root
+refinement from §6.4 to obtain root mean `m0[c]`, probabilities `p0[c,k]`,
+representatives `u0[c,k]`, group
 IDs `g0[c]`, and refined-arrival mask. Optimistic immediate `I[c]` is the
 maximum of `m0[c]`, §6.3 single onset offer, and its paired offer at group
 ID 0. For refined arrivals force `I[c]=m0[c]`. Even where `I` differs, use
@@ -654,7 +682,13 @@ ID 0. For refined arrivals force `I[c]=m0[c]`. Even where `I` differs, use
 Let `states` be ascending codes `c` reached with `T[a,origin,c]>0` under at
 least one action; let `witnessed[c]=(M[c]>0)`. Relevant sensory coordinates
 are the sorted unique union of lag-0 credited features and lag-0 moderators
-of any signed rule. For each action:
+of any signed rule. With at most three such coordinates, the ordered branch
+support is the same for every first action. The implementation builds the
+conditional continuation tables in steps 1–4 once per query, up through
+reduction over reward bins. The branch masses and arrival row stay specific
+to each action, and their contractions retain the order below. With sampled
+branches, build the continuation tables separately. The following equations
+describe the result for each action:
 
 1. If no relevant coordinate, use one zero sensory vector and mass 1. If
    one to three, use §4.4 restricted patterns and masses for that action.
@@ -683,7 +717,7 @@ v_fixed[j] = T[j,c,:] @ m2
 v_opt[j]   = T[j,c,:] @ cont
 peak       = max(cont[d] at witnessed d), or max(cont) if none witnessed
 v_opt[j]  += (peak−v_opt[j])/(2+row_total[j,c])
-branch_value(kind,k) = max_j clip(v_kind[j]+T[j,c,c]*Delta[k],0,1).
+branch_value(kind,k) = clip(max_j (v_kind[j]+T[j,c,c]*Delta[k]),0,1).
 ```
 
    For each `c`, `future_kind[c]` is the sum over `beta,k` of

@@ -1,13 +1,13 @@
 # v60: from observation to action and back
 
-This is a specification of **v60's default implementation** as read at
-`88318f8d95bd7868d5927fb0d5e8869b2827bc92`, not a proposed replacement or a
-proof that its rules are optimal. The equations describe the computations,
-not an instruction to reorder reductions for bitwise reproduction.
-Read the sections in order to follow one transition; use the final section to
-locate places where the rules interact or where a premise should be tested.
-[Architecture](ARCHITECTURE.md) is the shorter map; [evidence](../EVIDENCE.md)
-identifies the historical freeze and the scope of the accepted result.
+This is an explanatory map of **v60's current default implementation**,
+not a proposed replacement or a proof that its rules are optimal. For
+operation order and numerical conformance, use the standalone
+[specification](V60_SPEC.md). Read the sections in order to follow one
+transition; use the final section to locate places where the rules interact
+or where a premise should be tested. [Architecture](ARCHITECTURE.md) is the
+shorter map; [evidence](../EVIDENCE.md) identifies the historical freeze and
+the scope of the accepted result.
 
 **Labels:** **Exact** means an identity or finite calculation for the stated
 model, not exact inference about the environment. **Approximation** means a
@@ -409,9 +409,9 @@ status. The action score is not an expected reward under one posterior.
 For an eligible onset without a credited parent, the onset forecast is the
 smoothed local mean `m=(sum+.5)/(count+1)` plus
 `(1−m) × onset_intensity × (1−feature_prevalence)/sqrt(count+1)`.
-Controls and arrivals with a credited feature are masked. The provision
-also computes a variance `(sum_of_squares+1/3)/(count+1) − m²` floored at
-zero; this rollout uses the **upper forecast**, not the variance.
+Controls and arrivals with a credited feature are masked. The rollout
+uses only this upper forecast; the active and archived onset statistics
+are counts and sums of observed amounts, not second moments.
 
 The paired offer `pair_context` can refine a known law, but in v60 requires
 the same credited anchor/lag. For the best association-supported moderator,
@@ -488,6 +488,21 @@ reward structure, and no exploration RNG inside the query.
 
 ### 5.1 Root laws and branches
 
+An action may change reward without changing any observed bit. With no live
+controlled slot, v60 now tests an action partition on the existing replay
+if all rows match the current arrival bits and input features, all onsets
+are zero, and every action was tried at least twice. Its comparison uses the
+same Dirichlet marginal as the contextual selector: one histogram per
+action versus one pooled histogram on those exact rows. If the split wins,
+this is a one-context rollout: each action has its own reward mean, and
+the simulated first atom changes only that action's mean before choosing
+the next action. Otherwise use the arrival-based calculation below.
+
+The restriction is deliberate: evidence collected at differing arrivals
+or lag contexts is not taken as evidence of a direct action reward. This
+is not a general causal test, and the replay does not track an untried
+action indefinitely. See the [scope and checks](V60_PATTERNS.md#action-reward-with-an-unchanged-context).
+
 1. For every possible arrival `c`, evaluate the root's reward law using its
    present and lagged features: unary likelihood → any contextual or joint
    override → any soft root refinement. Denote its mean `m0[c]`, bin mass
@@ -546,11 +561,13 @@ toward the best `cont` at a witnessed destination (or the maximum of all if
 no destination is witnessed), with fraction `1/(2+N[a',c,:].sum())`. Witnessed here means positive
 arrival mass anywhere in the active mode, not just in that transition row. Write
 `Vβ,c(a')` for the result. For the first bin `k`, add the mean correction
-weighted by `T[a',c,c]`. Then **clip to `[0,1]` and maximize over the second
-action inside the expectation over the observed first bin and branch**:
+weighted by `T[a',c,c]`. Then **maximize over the second action and clip
+the maximum to `[0,1]`, inside the expectation over the observed first bin
+and branch**. Clipping is monotone, so this gives the same result as
+clipping every action before taking the maximum:
 
 ```text
-G[c] = Σ_β ωβ Σ_k p0[c,k] max_a' clip(Vβ,c(a') + T[a',c,c] Δ[c,k], 0, 1).
+G[c] = Σ_β ωβ Σ_k p0[c,k] clip(max_a' (Vβ,c(a') + T[a',c,c] Δ[c,k]), 0, 1).
 Q_optimistic[a] = Σ_c T[a,s,c] (I[c] + G[c]).
 ```
 
