@@ -1,0 +1,42 @@
+{
+  "batch": 8,
+  "commit": "64d606bb48d1cee8632002d6a6488fd590fa0821",
+  "cpus": [
+    0,
+    1
+  ],
+  "deadline_epoch": 1795263431.3598228,
+  "deps": {
+    "llvmlite": "0.50.0",
+    "numba": "0.68.1",
+    "numpy": "2.4.6"
+  },
+  "dispatch_epoch": 1795260134.7088776,
+  "episode_bound": 31.5,
+  "model": "v50",
+  "pairs": 240,
+  "python": "3.11.2",
+  "reference_sha256": "f34b36b38386bd88ebdeca104d90fbcc49b0cab715e91aa71227c73f32ce7370",
+  "schedule_sha256": "e4ad6b93fffb92e956ad41520c31be13d8c4bd0e2f8cb1c92aee2e0523ffcdea",
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "snap": "/tmp/gsnap/203b3a938778",
+  "steps": 177600,
+  "tree": "203b3a938778"
+}
