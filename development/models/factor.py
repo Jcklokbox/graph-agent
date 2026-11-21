@@ -18,8 +18,8 @@ import numpy as np
 
 from models.discovery import NeighborBank
 from models.latent_cause import H_GRID
-from models.kernels import (copy_ancestors, factor_gaussian, factor_read, factor_update,
-                            systematic_ancestry)
+from models.kernels import (choose_slots, copy_ancestors, factor_gaussian, factor_read, factor_update,
+                            reset_factor_slot, systematic_ancestry)
 
 C_REG = 1.           # concentration: regime cell -> pooled cell
 C_GLOB = 1.          # concentration: pooled cell -> sub-configurations
@@ -60,6 +60,12 @@ class FactorModel:
         single = {s[0]: i for i, s in enumerate(self.sets) if len(s) == 1}
         pairs = [s for s in self.sets if len(s) == 2]
         self._pair_pos = np.asarray(pairs, dtype=int).reshape(-1, 2)
+        by_set = {parents: i for i, parents in enumerate(self.sets)}
+        self._reset_map = []
+        for p in range(self.m):
+            items = [(i, by_set[tuple(q for q in parents if q != p)])
+                     for i, parents in enumerate(self.sets) if p in parents]
+            self._reset_map.append(tuple(np.array([it[k] for it in items], int) for k in (0, 1)))
         self._sa = np.array([single[s[0]] for s in pairs], int)
         self._sb = np.array([single[s[1]] for s in pairs], int)
         self.M = self.S + 1                                       # + additive
@@ -81,6 +87,7 @@ class FactorModel:
         self.shared_cov = np.broadcast_to(np.eye(d) * s0, (J, d, d)).copy()
         self.rate1 = np.zeros((N, K, J))
         self.rate0 = np.zeros_like(self.rate1)
+        self.cue = np.zeros_like(self.rate1)
         self.expert = np.full(J, .5)
         self._expert_logodds = np.zeros(J)
         # regime factor
@@ -105,7 +112,12 @@ class FactorModel:
         self.logw = np.zeros(N)
         self.started = False
         # slots and screening (deterministic: outside the particles)
-        self.slots = [[None] * k for _ in range(J)]              # (channel position, lag)
+        self._slot_src = np.full((J, k), -1, int)
+        self._slot_li = np.zeros((J, k), int)
+        self._own_flags = np.array([d in self.own_lags for d in self.lags])
+        # Own lags can include a delay outside the discovery grid.
+        self._key_lags = tuple(dict.fromkeys(self.lags + self.own_lags))
+        self._own_li = [self._key_lags.index(d) for d in self.own_lags]
         L = len(self.lags)
         # Retained parent slots plus a separate, bounded exploration bank.
         self.discovery = NeighborBank(J, 2 * k + 2, seed + 103)
@@ -120,9 +132,15 @@ class FactorModel:
             self.f1 = np.zeros((J, width, L, 2, 2, 2))
             self.f0 = np.zeros((J, 2, 2))
         self.hist = []                           # past observations (bits), newest last
+        self._zero = np.zeros(J)
         self.t = 0
         self._memo = None
         self.births = 0
+
+    @property
+    def slots(self):
+        return [[(int(i), self.lags[l]) if i >= 0 else None for i,l in zip(src,lag)]
+                for src,lag in zip(self._slot_src,self._slot_li)]
 
     # ------------------------------------------------------------------ keys
     def _bits(self, x):
@@ -133,18 +151,16 @@ class FactorModel:
             return b
         if len(hist) >= d:
             return hist[-d]
-        return np.zeros(self.J)
+        return self._zero
 
     def _keys(self, b, a, hist):
         U = np.zeros((self.J, self.m))
-        for p, d in enumerate(self.own_lags):
-            U[:, p] = self._lag(b, d, hist)
-        U[:, len(self.own_lags) + a] = 1.
-        base = len(self.own_lags) + self.A
-        for j in range(self.J):
-            for s, sl in enumerate(self.slots[j]):
-                if sl is not None:
-                    U[j, base + s] = self._lag(b, sl[1], hist)[sl[0]]
+        lagged = np.asarray([self._lag(b, d, hist) for d in self._key_lags])
+        own = len(self.own_lags)
+        U[:, :own] = lagged[self._own_li].T
+        U[:, own + a] = 1.
+        idx = np.maximum(0, self._slot_src)
+        U[:, own+self.A:] = lagged[self._slot_li, idx] * ((self._slot_src >= 0) & ~self.slow[idx])
         return U
 
     def _cells(self, U):
@@ -189,7 +205,7 @@ class FactorModel:
         """Compare a long-dwell copy process to a fitted Bernoulli continuation.
 
         Conditional on an on observation, a tonic channel inherits the regime
-        lifetime grid; a phasic channel has a Jeffreys-Beta continuation rate.
+        lifetime grid; a phasic channel has a uniform-Beta continuation rate.
         Marginal likelihood and sparse prior odds 1:J determine the MAP view;
         a transient run is not an irreversible commitment.
         """
@@ -200,8 +216,8 @@ class FactorModel:
             grid = np.asarray(H_GRID)[None, :]
             self._role_log[idx] += np.log(np.where(on[:, None], 1. - grid, grid))
             ct = self._on_counts[idx]
-            self._phasic_log[idx] += np.log((ct[np.arange(len(idx)), on.astype(int)] + .5)
-                                           / (ct.sum(1) + 1.))
+            self._phasic_log[idx] += np.log((ct[np.arange(len(idx)), on.astype(int)] + 1.)
+                                           / (ct.sum(1) + 2.))
             self._on_counts[idx, on.astype(int)] += 1.
             z = self._role_log[idx] - self._phasic_log[idx, None]
             mx = z.max(1)
@@ -231,6 +247,23 @@ class FactorModel:
         dr *= (1. - retain[:, None])
         dr += retain[:, None] * post[:, :kk]
         return dr
+
+    def _cue_prior(self, prior, b, kk):
+        """Input-driven transition, not an extra observation likelihood.
+
+        A cue is a sampled token from currently available non-tonic marks.
+        Scores marginalize which token was used, then normalize the row once.
+        """
+        active = (b > .5) & ~self.slow
+        if not self.slow.any() or not active.any():
+            return prior
+        counts = self.cue[:, :kk, :]
+        pooled = counts.sum(axis=1) + .5
+        pooled /= pooled.sum(axis=1, keepdims=True)
+        contained = (counts[:, :, active].sum(axis=2) + pooled[:, None, active].sum(axis=2))
+        pcue = contained / (counts.sum(axis=2) + 1.)
+        routed = prior * pcue
+        return routed / routed.sum(axis=1, keepdims=True)
 
     def _conditional(self, mem, kk, place, quiet=False):
         """Place background followed by (if observable) cue-excess emission.
@@ -265,9 +298,12 @@ class FactorModel:
         """
         if not fast.any() or np.any(b[fast]):
             return None
-        idle = np.prod(1. - pj[..., fast], axis=2)
-        background = (w * idle).sum() / w.sum()
-        return background, (1. - background) / np.maximum(1. - idle, 1e-12)
+        log_idle = np.log1p(-pj[..., fast]).sum(axis=2)
+        with np.errstate(divide="ignore"):
+            a = np.log(w) + log_idle
+        peak = a.max()
+        background = peak + np.log(np.exp(a - peak).sum()) - np.log(w.sum())
+        return background, -np.expm1(min(0., background)) / np.maximum(-np.expm1(log_idle), 1e-300)
 
     # --------------------------------------------------------------- introspection
     def trace(self):
@@ -296,7 +332,7 @@ class FactorModel:
         if self.proc is not None:
             pp = (self.proc.peek_all(x, a) if hypothetical else self.proc.predict(x, a))[self.ch]
         mem = self._members(b, a, hist, kk)
-        prior = self._regime_prior(self._signature(b), kk)
+        prior = self._cue_prior(self._regime_prior(self._signature(b), kk), b, kk)
         out = np.full(self.n, .5)
         w = np.exp(self.logw - self.logw.max())[:, None] * prior
         local, _ = self._conditional(mem, kk, self._signature(b), not b[~self.slow].any())
@@ -318,8 +354,15 @@ class FactorModel:
         yb = bn > .5
         kk = min(self.K, int(self.used.max()) + 1)
         key = (b.tobytes(), a)
+        roles = self.slow.copy()
         place = self._observe_place(b)
-        if self._memo is not None and key == self._memo[0] and self._memo[2] is not None:
+        changed = self.slow & ~roles
+        if changed.any():
+            stale = (self._slot_src >= 0) & changed[np.maximum(0,self._slot_src)]
+            for j, pos in zip(*np.nonzero(stale)):
+                self._slot_src[j, pos] = -1
+                self._reset_pos(j, len(self.own_lags) + self.A + pos)
+        if self._memo is not None and key == self._memo[0] and self._memo[2] is not None and np.array_equal(roles, self.slow):
             _, _, mem, pp = self._memo
         else:
             pp = self.proc.predict(x, a)[self.ch] if self.proc is not None else None
@@ -338,7 +381,7 @@ class FactorModel:
             self.t += 1
             return
         fast = ~self.slow
-        prior = self._regime_prior(place, kk)
+        prior = self._cue_prior(self._regime_prior(place, kk), b, kk)
         w = np.exp(self.logw - self.logw.max())[:, None] * prior
         quiet = not b[fast].any()
         pz, base = self._conditional(mem, kk, place, quiet)
@@ -359,13 +402,19 @@ class FactorModel:
         # The process expert is updated on the same stream, but does not explain away
         # a change point in the local model.
         ll = self._activity(pz, w, b, fast)
-        lik = np.prod(np.where(yb[fast], pz[..., fast], 1. - pz[..., fast]), axis=2)
-        if ll is not None:
-            lik = lik * ll[1] if yb[fast].any() else ll[0]
-        joint = prior * lik
-        tot = joint.sum(1)
-        self.logw += np.log(tot)
-        filtered = joint / tot[:, None]
+        if ll is not None and not yb[fast].any():
+            # The common clock observation cancels from every particle update.
+            filtered = prior.copy()
+        else:
+            py = np.where(yb[fast], pz[..., fast], 1. - pz[..., fast])
+            with np.errstate(divide="ignore"):
+                joint = np.log(prior) + np.log(py).sum(axis=2)
+                if ll is not None:
+                    joint += np.log(ll[1])
+            mid = joint.max(axis=1)
+            zq = np.exp(joint - mid[:, None]); denom = zq.sum(axis=1)
+            self.logw += mid + np.log(denom)
+            filtered = zq / denom[:, None]
         cdf = np.cumsum(filtered, axis=1)
         zt = np.minimum((cdf < self.rng.random(N)[:, None]).sum(1), kk - 1)
         self.mz[ar, zt] += (zt != self.z) | (self.used <= zt)
@@ -390,6 +439,8 @@ class FactorModel:
             counts += post
             self.places[place] = (self.t, post, counts)
         scoped = self.slow.any()
+        if scoped and not quiet:
+            self.cue[ar, zt] += (b > .5) & fast
         if quiet or not scoped:
             self.rate1[ar, zt] += yb & fast
             self.rate0[ar, zt] += ~yb & fast
@@ -457,70 +508,38 @@ class FactorModel:
             self.f0[J, xo, xn] += 1.
 
     def _reslot(self):
-        if not self.discovery.width:
+        if not self.discovery.width or not self.k:
             return
         base = len(self.own_lags) + self.A
-        L = len(self.lags)
-        for j, sources in enumerate(self.discovery.source):
-            scores = self.cev[j]
-            e = scores.copy()
-            row = {i: q for q, i in enumerate(sources)}
-            if j in row:
-                for li, d in enumerate(self.lags):
-                    if d in self.own_lags:
-                        e[row[j], li] = -np.inf
-            if self.cond:
-                e[self.slow[sources]] = -np.inf
-            sl = self.slots[j]
-            vals = []
-            for slot in sl:
-                if slot is None:
-                    vals.append(-np.inf)
-                    continue
-                i, d = slot
-                li = self.lags.index(d)
-                q = row[i]
-                vals.append(scores[q, li])
-                if self.cond:
-                    e[q] = -np.inf
-                else:
-                    e[q, li] = -np.inf
-            bi, bl = divmod(int(np.argmax(e)), L)
-            margin = .25 if self.cond else SWAP
-            p = int(np.argmin(vals))
-            if e[bi, bl] > margin and e[bi, bl] > vals[p] + margin:
-                sl[p] = (int(sources[bi]), self.lags[bl])
-                self._reset_pos(j, base + p)
+        change = choose_slots(self.cev, self.discovery.source, self._slot_src, self._slot_li,
+                              self._own_flags, self.slow, self.cond, .25 if self.cond else SWAP)
+        for j in np.flatnonzero(change[:,0] >= 0):
+            pos, src, lag = change[j]
+            self._slot_src[j, pos] = src
+            self._slot_li[j, pos] = lag
+            self._reset_pos(j, base + pos)
         # A traversal is the exposure budget, not a time-dependent model switch.
-        # Keep each challenger for one traversal interval before recycling a column.
         if not self.discovery.complete and self.t % self.J == 0:
-            pinned = np.array([[slot[0] if slot else -1 for slot in row] for row in self.slots])
-            rr, cc = self.discovery.rotate(pinned)
+            rr, cc = self.discovery.rotate(self._slot_src)
             for table in (self.ct, self.cx, self.cr, self.cxr, self.cev):
                 table[rr, cc] = 0.
             if not self.cond:
                 self.f1[rr, cc] = 0.
 
     def _reset_pos(self, j, pos):
-        for i, s in enumerate(self.sets):
-            if pos in s:
-                sub = self.sets.index(tuple(c for c in s if c != pos))
-                for t in (self.q1, self.q0):
-                    t[:, :, j, self.off[i]:self.off[i + 1]] = 0.
-                self.g1[j, self.off[i]:self.off[i + 1]] = 0.
-                self.g0[j, self.off[i]:self.off[i + 1]] = 0.
-                self.ev[:, :, j, i] = self.ev[:, :, j, sub]
-                self.evg[j, i] = self.evg[j, sub]
-        ev = self.ev[:, :, j]
-        self._E[:, :, j] = np.exp(ev - ev.max(-1, keepdims=True))
+        affected, parents = self._reset_map[pos]
+        for m, sub in zip(affected, parents):
+            self.g1[j, self.off[m]:self.off[m + 1]] = 0.
+            self.g0[j, self.off[m]:self.off[m + 1]] = 0.
+            self.evg[j, m] = self.evg[j, sub]
         self.shared_mu[j, pos] = 0.
         self.shared_cov[j, pos, :] = 0.
         self.shared_cov[j, :, pos] = 0.
         self.shared_cov[j, pos, pos] = self.s0
-        self.mu[:, :, j, pos] = 0.
-        self.Sg[:, :, j, pos, :] = 0.
-        self.Sg[:, :, j, :, pos] = 0.
-        self.Sg[:, :, j, pos, pos] = self.s0
+        reset_factor_slot(self.q1, self.q0, self.ev, self.mu, self.Sg,
+                          j, pos, self.off, affected, parents, int(self.used.max()), self.s0)
+        ev = self.ev[:, :, j]
+        self._E[:, :, j] = np.exp(ev - ev.max(-1, keepdims=True))
 
     def _resample(self):
         w = np.exp(self.logw - self.logw.max())
@@ -533,7 +552,7 @@ class FactorModel:
         # its initial counts, evidence and covariance. Every ancestor beyond the
         # previous maximum therefore has identical contents.
         for bank in (self.q1, self.q0, self.ev, self._E, self.mu, self.Sg,
-                     self.mz, self.rate1, self.rate0):
+                     self.mz, self.rate1, self.rate0, self.cue):
             copy_ancestors(bank.reshape(self.N, self.K, -1), idx, live)
         for nm in ("hz", "used", "z"):
             setattr(self, nm, getattr(self, nm)[idx])

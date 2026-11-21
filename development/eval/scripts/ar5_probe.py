@@ -20,6 +20,9 @@ def warm():
     for dtype in (np.float32, np.float64):
         copy_ancestors(np.zeros((2, 2, 13), dtype), idx, 2)
     m = make_factor(CANONICAL, 5, 2, 4)
+    m._reset_pos(0, 0)
+    from models.kernels import binary_dependency_scores
+    binary_dependency_scores(np.zeros((4, 1, 2, 1)))
     x = [0., 0., 1., 0., 0.]
     for k in range(8):
         y = [float(k % 2), 0., 1., 0., 0.]; m.predict(x, 0); m.learn(x, 0, y); x = y

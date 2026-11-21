@@ -263,3 +263,63 @@ def binary_dependency_scores(moments):
                 l1 += lgamma(y - both + .5) + lgamma(n - x - y + both + .5) - lgamma(n - x + 1.)
                 best[j, p] = max(best[j, p], l1 - l0 - norm)
     return best
+
+
+@njit(cache=True)
+def reset_factor_slot(q1, q0, ev, mu, cov, j, pos, off, affected, parent, live, s0):
+    """Erase one replaced parent's statistics; other factor members are intact."""
+    for i in range(q1.shape[0]):
+        for r in range(live):
+            for k in range(len(affected)):
+                m, sub = affected[k], parent[k]
+                for c in range(off[m], off[m + 1]):
+                    q1[i, r, j, c] = 0.
+                    q0[i, r, j, c] = 0.
+                ev[i, r, j, m] = ev[i, r, j, sub]
+            mu[i, r, j, pos] = 0.
+            for u in range(mu.shape[-1]):
+                cov[i, r, j, pos, u] = 0.
+                cov[i, r, j, u, pos] = 0.
+            cov[i, r, j, pos, pos] = s0
+
+
+@njit(cache=True)
+def choose_slots(cev, sources, source_slots, lag_slots, own_lag, slow, cond, margin):
+    """Scan fixed-width local proposals, preserving row-major first ties."""
+    jn, width, nl = cev.shape
+    ks = source_slots.shape[1]
+    update = np.full((jn, 3), -1, np.int64)
+    for j in range(jn):
+        best = -np.inf
+        worst = np.inf
+        wi, wl, wp = 0, 0, 0
+        for p in range(ks):
+            u = source_slots[j, p]
+            old = -np.inf
+            if u >= 0:
+                for i in range(width):
+                    if sources[j, i] == u:
+                        old = cev[j, i, lag_slots[j, p]]
+                        break
+            if old < worst:
+                worst, wp = old, p
+        for i in range(width):
+            u = sources[j, i]
+            if cond and slow[u]:
+                continue
+            for l in range(nl):
+                if own_lag[l] and u == j:
+                    continue
+                admitted = True
+                for p in range(ks):
+                    if u == source_slots[j, p] and (cond or l == lag_slots[j, p]):
+                        admitted = False
+                        break
+                v = cev[j, i, l]
+                if admitted and v > best:
+                    best, wi, wl = v, i, l
+        if best > margin and best > worst + margin:
+            update[j, 0] = wp
+            update[j, 1] = sources[j, wi]
+            update[j, 2] = wl
+    return update
