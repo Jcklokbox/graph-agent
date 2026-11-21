@@ -1,19 +1,16 @@
 # Active checkpoint
 
 **English. After compaction: `./ar resume`; read [active index](docs/INDEX.md).**
-Retain original clock and 220+20 calls; ~30-minute cues are advisory.
+Preserve original clock and reserve. No run without authorization.
 
 <!-- managed-next -->
-- **Run AR-6 (active):** Validate streaming evidence against direct marginal likelihood on actual replay, then hand off
+- **Run AR-6 (active):** Audit final artifacts within reserve; await authorization for the joint signed model and fresh qualification
 <!-- managed-next -->
 
-- **3b-1 accepted:** D65 `6f619568dc90`, 740/740, cost 2.080340. Immutable `development/results/ar5/gate3/validation.json`.
-- **3b-2 open:** v48 D112 failed; frozen fresh v58 DEV-20 **INCOMPLETE**, 456/600 verified rows, 224/300 pairs, 57/76 stages. Timeout, no retry, CI or efficacy claim. T4 not opened.
-- **Local:** Actual reward restores reuse. Distinct learned lateral codes expose a same-side adverse effect (8/8); seed15 loses valid choice through a lagged outcome alias.
-- **Global:** v57 failed predictor parity. v58/v59 pass 640 predictions, 10 pure plans and registered work (1.863/1.823). Active-width cost is workload-dependent; no C2 transfer claim.
-- **Resolved:** opposite-side intervention was aliased at coarse state resolution before actuator evidence. Conditional credit requires both reached outcomes and distinguishable represented states.
-- **Resolved:** longer spacing removes the lagged outcome alias in both seed15 tapes and preserves cancellation. Noisy seed6 loses valid entry, so timing is a causal contrast, not a general fix.
-- **150-minute reflection:** joint evidence prefers the current compound; its projected decision restores both signs on seed15. v59 matches 23 exposed records and cuts active CPU 28–34%.
-- **Resolved:** with four positives fixed, one local adverse contact changes fixed signs (4/4); joint admission at one occurs only on both seed15 forms. No admission in 24 controls. Do not impose a universal four-adverse rule.
-- **Next falsifier:** verify bounded scoring/eviction math against full recomputation; test proposed joint model only after fresh authorization.
-- [Evidence](docs/research/AR6.md) · [Recovery](docs/research/RECOVERY-AUDIT.md)
+- **3b-1 accepted:** D65 `6f619568dc90`, 740/740, cost 2.080340; immutable `development/results/ar5/gate3/validation.json`.
+- **3b-2 open:** v48 failed DEV-16. v58 frozen DEV-20 **INCOMPLETE**: 456/600 verified, 224/300 pairs; v58 stage timeout, no retry, CI or inference. T4 not opened.
+- **Local:** Actual payoff restored reuse; action scope first aliased opposed sides. After dwell separates them, same-side adverse contact matters. Common-support joint likelihood defeats the lagged outcome alias and restores both fixed signs on exposed seed15. Not yet deployed.
+- **Global:** v57 changed sensory inference and was vetoed; v58/v59 give 640 exact predictions each, pure planning and registered work 1.863/1.823. v59 holds 23 exposed outcomes and saves 28–34% active CPU, not broad scaling or formal transfer.
+- **Resolved:** With four positives, one actual same-side adverse contact may suffice. Evidence admission is separate from behavior. Streaming update/eviction agrees with direct evidence.
+- **Next authorized falsifier:** bounded joint family selection before hard unary admission, with common actual support and held serial/delayed/distal guards. Only then new funded fresh qualification; no reuse of the incomplete cohort. T4 gates further C2 and C3–C5 claims.
+- [Evidence and handoff](docs/research/AR6.md) · [Recovery](docs/research/RECOVERY-AUDIT.md)
