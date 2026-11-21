@@ -1,13 +1,12 @@
-# Architecture and experimental meaning
+# Current architecture
 
-| Topic | Exact English source (read relevant section only) |
+| Component | Implementation |
 | --- | --- |
-| Factor construction, emitters and discovery | [Factor design](../../archive/research/factor-design.md), [slice 3 design/forks](../../archive/research/slice3-plan.md), [architecture synthesis](../../archive/research/architecture-synthesis.md) |
-| Derivation; implementation-equation discrepancies | [First principles](../../archive/research/first-principles-derivation.md), [math core](../../archive/research/mathematical-core.md), [algorithmic core](../../archive/research/algorithmic-core.md), [equation audit](../../archive/research/implementation-equation-audit.md) |
-| Biological grounding and falsifiers | [Biological core](../../archive/research/biological-core.md), [mechanisms](../../archive/research/mechanism-landscape.md), [minimal discriminating experiments](../../archive/research/minimal-discriminating-experiments.md), [measurement](../../archive/research/ar5-test-review.md) |
-| Chief engineer BRIEF-CE | [Original English audit](../../archive/BRIEF-CE.md): 3b.3 gate, D32 confounds, 3b-1 and 3b-2 plans, evidence/limits. It is a historical plan, not current authority. |
-| Bounded joint reward and rollout | [Controller spec](../../archive/research/ar5-controller-spec.md), `development/models/factor{,_reward,_projection,_rollout,_context_reward,_regime_reward}.py` |
+| Accepted controller | [v60](../../development/agents/v60.py) attaches the bounded joint reward member to the canonical factor model. Its inherited controller classes are live dependencies, not independent baselines. |
+| Sensory inference | [Factor model](../../development/models/factor.py) and [discovery](../../development/models/discovery.py) learn local dependencies, latent process state and predictive emissions. |
+| Action-conditioned reward | [Reward members](../../development/models/factor_reward.py), [context](../../development/models/factor_context_reward.py), [regimes](../../development/models/factor_regime_reward.py), and [joint selection](../../development/models/factor_joint_reward.py). The joint selector compares pooled, unary and compound partitions on the same bounded real transition window. |
+| Planning | [Sensory projection](../../development/models/factor_projection.py), [two-step rollout](../../development/models/factor_rollout.py), and [information value](../../development/models/factor_information.py). Hypothetical updates never alter live counts or RNG. |
+| Benchmarks and orchestration | [Environments](../../development/envs/), [evaluation](../../development/eval/), [harness](../../development/harness/). [v12](../../development/agents/v12.py) is a comparator, not a v60 dependency. |
 
-**v12 → v18 (historical, not current architecture).** v11 discounted Beta cells use contexts from none to attended, exact and delay windows; split BF, change points, control and two-step Bayesian optimism. v12 uses calibrated context-tree weighting instead of double counting, and VOI rather than bonus×sd. v18 adds per-channel 200-particle sticky CRP with learned hazard, same-bit and one-hot action, four screened slots, size≤2 parent subsets + additive linear member; pairwise KT screening used O(J²) counters and replaced weakest slot at log 3 margin. Mix weights ∝ exp(−discounted loss), γ=.995. Only v12 reads value and performs depth‑1 rollout; depth 0 reads the mixture. Local emitter scaling was linear; total discovery/control wasn't. v15 used decomposition instead, not both capacities in one agent.
-
-**Current factor design.** Learn place from persistent marks and regime/history separately; do not overlap phasic ownership by default. Scoped predictive evidence, bounded parent fan-in and exact gather keep work local. Reward atoms retain their measured magnitudes: prior-seeded mean `(λm₀+Σr)/(λ+n)` and `Var(E[R])=(E[R²]−m²)/(λ+n+1)`. Bounded imagined payoff: `Q₂(a)=E[r₁|b,a]+γE_{x′,r₁}[max_{a′} E[r₂|b′,x′,a′]]`; assimilate x′ using the previous action before choosing a′. Quiet mixture selects zero atom once, else sample first success with mass `pᵢ∏_{j<i}(1−pⱼ)/(1−∏ⱼ(1−pⱼ))`; bounded projection preserves common latent, not arbitrary independent marginals. No claim of full Bayes search or unique latent identification. See the linked spec for all qualifiers.
+The acceptance result is scoped to [the tested suites](AR7.md). T4 on blind
+combinations is still open; see the [roadmap](ROADMAP.md).

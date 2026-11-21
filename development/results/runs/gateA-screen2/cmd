@@ -1,3 +1,0 @@
-tree 98008dfd0fd6
-cpu 0
-python3 -m harness.staged t2 --agents factor-L4-P-C-N25 --set v1 --stages 0:0-3:0-15 --screen --procs 1 --journal /home/user/graph-agent/development/results/runs/gateA-screen/j.jsonl

@@ -1,7 +1,7 @@
 """Sequential paired screen on DEV: stop as soon as the answer is known.
 
 A candidate is compared with the cached per-seed results of the reference
-(default results/dev16_v11.json) on the same environment/brain seeds, so the
+(default eval/data/dev16_v11.json) on the same environment/brain seeds, so the
 reference is never re-run. Episodes are scheduled so that every variant gets
 the same wall-clock time (cheap variants accumulate seeds first), and after
 every finished episode the stopping rules are checked:
@@ -22,7 +22,7 @@ every episode. Progress is printed every `--every` seconds.
 
     python -m eval.screen --agent v12 --budget-min 30 --out results/scr_v12.json
     python -m eval.screen --agent v11 --kw '{"explore": 0}' aut dist dist-noise2
-    python -m eval.screen --replay results/dev16_v12c.json   # rules on a finished run
+    python -m eval.screen --replay results/dev16_v12.json    # rules on a finished run
     python -m eval.screen --agent v12 --resume results/scr_v12.json ...  # keep episodes
 
 Always read the printed plan first: it is the expected time to resolve +-delta
@@ -35,6 +35,7 @@ import os
 import sys
 import time
 from math import sqrt
+from pathlib import Path
 
 import numpy as np
 
@@ -42,6 +43,7 @@ from envs.tasks import SPLITS, VARIANTS
 from eval import benchmark
 
 Z99 = 2.5758
+DEFAULT_BASE = Path(__file__).with_name("data") / "dev16_v11.json"
 
 
 def t995(df: int) -> float:
@@ -178,7 +180,7 @@ class Screen:
 
 def replay(path, scr, procs):
     """Re-run the stopping rules on a finished run with its recorded episode times."""
-    cand = json.load(open(path))["variants"]
+    cand = json.loads(Path(path).read_text())["variants"]
     free = [0.] * procs
     pending = []                      # (finish time, nm, s)
     while True:
@@ -246,7 +248,8 @@ def live(scr, procs, budget_s, every, out, meta):
 
 def main(argv):
     opt = lambda k, d=None: argv[argv.index(k) + 1] if k in argv else d
-    base = json.load(open(opt("--base", "results/dev16_v11.json")))
+    base_path = Path(opt("--base", DEFAULT_BASE))
+    base = json.loads(base_path.read_text())
     names = [a for a in argv if a in VARIANTS] or [n for n in SPLITS["dev"][0]]
     procs = int(os.environ.get("PG_PROCS", os.cpu_count() or 1))
     scr = Screen(base, names, float(opt("--delta", .045)), int(opt("--max-seeds", 16)),
@@ -268,12 +271,12 @@ def main(argv):
     if need > budget / 60:
         print(f"WARNING: budget {budget / 60:.0f} min < plan; expect BUDGET unless the effect is "
               f"large - raise --delta, restrict variants, or do not run", flush=True)
-    print(f"screen: agent {benchmark.AGENT['name']} kw {benchmark.BRAIN_KW} vs {opt('--base', 'results/dev16_v11.json')}"
+    print(f"screen: agent {benchmark.AGENT['name']} kw {benchmark.BRAIN_KW} vs {base_path}"
           f" | {len(names)} variants, <= {scr.max_seeds} seeds, delta {scr.delta}, budget {budget / 60:.0f} min",
           flush=True)
     live(scr, procs, budget, float(opt("--every", 120)), opt("--out"),
          dict(split="dev", agent=benchmark.AGENT["name"], settings=benchmark.BRAIN_KW,
-              base=opt("--base", "results/dev16_v11.json")))
+              base=str(base_path)))
 
 
 if __name__ == "__main__":

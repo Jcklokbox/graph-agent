@@ -4,14 +4,12 @@ import os
 import tempfile
 import unittest
 
-from eval.screen import Screen, replay
-
-BASE = os.path.join(os.path.dirname(__file__), "data", "dev16_v11.json")  # copy of results/dev16_v11.json (snapshot-safe)
+from eval.screen import DEFAULT_BASE, Screen, replay
 
 
 class ScreenRules(unittest.TestCase):
     def _replay(self, shift):
-        base = json.load(open(BASE))
+        base = json.loads(DEFAULT_BASE.read_text())
         cand = copy.deepcopy(base)
         for v in cand["variants"].values():
             for r in v["raw"]:

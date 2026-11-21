@@ -1,6 +1,0 @@
-test_paired_v12_reference_self_comparison_uses_all_seed_blocks (tests.test_ar5_protocol.HoldoutProtocolTests.test_paired_v12_reference_self_comparison_uses_all_seed_blocks) ... ok
-
-----------------------------------------------------------------------
-Ran 1 test in 0.003s
-
-OK

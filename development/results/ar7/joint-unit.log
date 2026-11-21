@@ -1,7 +1,0 @@
-test_common_support_and_real_amplitudes (tests.test_factor_joint_reward.JointRewardTests.test_common_support_and_real_amplitudes) ... ok
-test_never_admit_unwitnessed_partition (tests.test_factor_joint_reward.JointRewardTests.test_never_admit_unwitnessed_partition) ... ok
-
-----------------------------------------------------------------------
-Ran 2 tests in 5.756s
-
-OK

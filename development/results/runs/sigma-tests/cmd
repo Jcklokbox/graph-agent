@@ -1,3 +1,0 @@
-tree d6e5108716d4
-cpu 0,1
-sh -c 'python3 -m unittest discover -s "$PG_SNAP/tests" -t "$PG_SNAP" 2>&1 | tail -15'

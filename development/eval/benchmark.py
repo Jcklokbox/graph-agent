@@ -10,7 +10,6 @@ after the first phase (adaptation is part of the task). Run from development/:
     python -m eval.benchmark --held6                   # a held-out split (used once)
     python -m eval.benchmark --dev aut dist            # selected variants
     python -m eval.benchmark --agent v11               # agents/v11.py (default)
-    python -m eval.benchmark --agent ../archive/development/posterior_graph_v10.py
     python -m eval.benchmark --dev --kw '{"explore": 1.5}'
     python -m eval.benchmark --dev --set NAME=json     # set an agent module attribute
     python -m eval.benchmark --dev --out results/x.json  # per-seed results (eval.stats)

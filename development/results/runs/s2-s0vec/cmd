@@ -1,3 +1,0 @@
-tree 1a4c5e92edaa
-cpu 0,1
-python3 -m harness.staged t2 --agents factor-L4-P-C --set v1 --stages 0 --procs 2 --journal j.jsonl
