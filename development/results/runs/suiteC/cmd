@@ -1,3 +1,0 @@
-tree 98008dfd0fd6
-cpu 1
-python3 -m eval.predictive --set dscale --worlds s-2x3,s-4x3 --agents factor-L4-P-C --seeds 1 --steps 600 --out c.json

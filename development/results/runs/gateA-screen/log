@@ -1,3 +1,0 @@
-stage S0 seeds=0..0 new=17 37s dup=0 bad=0
-PARTIAL stage S1: 47/51 done 94s; rerun the same command to resume
-PARTIAL at S1: 4 tasks left (exit 3; rerun to resume)

@@ -6,15 +6,11 @@
 
 - **Formulate before measuring.** State the mechanism, its observable prediction, the strongest competing explanation, and what result would change your mind. Use a matched control or a minimal anonymous fixture. Trace the shortest causal chain before spending compute on a powered comparison.
 - **Treat falsification as information.** If a prediction reverses, the latent variables compete for the same evidence, or a test cannot distinguish selection effects from learning, rethink the formulation. Check the mathematics, experimental intervention, and code path before adding a patch. Keep negative results and say what remains unidentified. Do not change an exposed acceptance rule to rescue a candidate.
-- **Choose the next experiment, not the next queue item.** Replan from evidence and remaining resources. Prefer the micro-probe that distinguishes the plausible explanations; reserve full frozen comparisons for decisions that require them. A mechanism witness is not an agent qualification, and a spent holdout is not fresh. Use [L-1–L-10](research/LAWS.md) and the [roadmap](research/ROADMAP.md) to decide whether a local win generalizes, preserves bounded work, and advances 3b‑2 rather than merely raising a score.
+- **Choose the next experiment, not the next queue item.** Replan from evidence and remaining resources. Prefer the micro-probe that distinguishes the plausible explanations; reserve full frozen comparisons for decisions that require them. A mechanism witness is not an agent qualification, and a spent holdout is not fresh. Use [L-1–L-10](research/LAWS.md) and the [roadmap](research/ROADMAP.md) to decide whether a local win generalizes, preserves bounded work, and advances the roadmap rather than merely raising a score.
 
 ## Reflect in `STATE.md`
 
 Around each **30-minute** stdout cue, or at a major scientific turning point, write a concise research note directly into `STATE.md`, outside its managed checkpoint block. The cue does not stop a wait or gate dispatch. Note the causal finding and alternatives; what it implies for the biology, architecture, scaling, and roadmap; what question you resolved with logic, derivation, or a targeted probe; and the next falsifiable step. If the question is unresolved, say which observation would distinguish the explanations. No fixed headings or CLI form are required. Keep the latest note easy to recover and put longer evidence in its linked record.
-
-## Next authorized run: first decision only
-
-On frozen `v48`, reproduce the exposed `canc` / `canc-noise3` split (D113 seed 6 in both, clean seed 0 positive; D97 is a separate early-positive/poor-reuse witness). Freeze paired anonymous fixtures with the same exogenous seed, cue timing, and action labels. One arm acts freely to test discovery; another gets a real payoff via a scripted action prefix and then acts freely to test reuse. Yoke an adverse/null prefix by opportunity count and timing. Feed only ordinary observations and actions to the learner; no teacher flags, injected credit, or scripted actions in qualification. Measure first payoff and interventions reached separately from choice and regret after exposure. If matched exposure rescues performance, probe discovery next; if it does not, probe credit and its use in planning. Do not tune on unseen formal rows.
 
 ## Operational guardrails
 

@@ -1,6 +1,6 @@
 # Empirical laws L-1–L-10 and decision heuristics
 
-Evidence from AR-1–AR-4, not universal theorems. AR-5 adds counterexamples, not a new acceptance rule. `L-*` are English names for the ten laws in the historical meta-analysis; exact source provenance is in `docs/source-map.json`.
+Evidence from AR-1–AR-4, not universal theorems. AR-5 adds counterexamples, not a new acceptance rule. `L-*` are English names for the ten laws in the historical meta-analysis; the original analysis is recoverable from Git history.
 
 | Law | Evidence / scope | Action |
 | --- | --- | --- |

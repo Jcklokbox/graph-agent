@@ -1,6 +1,6 @@
 # Roadmap: one coherent adaptive learner
 
-Anonymous online binary observations + value interface; infer structure and act without task labels. **C0** association/timing → **C1** hidden state → **C2** independent processes/objects → **C3** latent types/instances → **C4** hierarchy → **C5** learning from other agents. Slices 0–3 address C0–C2 only. `FHP`: process k has state s_k, action-dependent P(s′_k | s_k,a), disjoint emissions P(x_j | s_k); benchmark exact joint filter ≤5,000 states. Cost should grow with Σ local support, not a product of state spaces. No claims yet for continuous, relational, appearing/disappearing, or social worlds. See [goal](../../archive/research/goal.md) for exact historical scope.
+Anonymous online binary observations + value interface; infer structure and act without task labels. **C0** association/timing → **C1** hidden state → **C2** independent processes/objects → **C3** latent types/instances → **C4** hierarchy → **C5** learning from other agents. Slices 0–3 address C0–C2 only. `FHP`: process k has state s_k, action-dependent P(s′_k | s_k,a), disjoint emissions P(x_j | s_k); benchmark exact joint filter ≤5,000 states. Cost should grow with Σ local support, not a product of state spaces. No claims yet for continuous, relational, appearing/disappearing, or social worlds.
 
 | Tier | Quantity and reference | Use |
 | --- | --- | --- |

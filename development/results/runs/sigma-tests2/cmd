@@ -1,3 +1,0 @@
-tree b1b57de15746
-cpu 0,1
-sh -c 'cd "$PG_SNAP" && python3 -m unittest discover -s tests 2>&1 | grep -E "^(ERROR|FAIL|Ran|OK)"'

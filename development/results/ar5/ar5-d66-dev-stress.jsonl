@@ -1,4 +1,0 @@
-{"k":["ded1893d64c6",0,"v21|DEV|aut-serial300"],"m":{"brain":0.5,"late_shocks":0.0,"oracle":0.6116666666666667,"sec":19.594799280166626,"shocks":0.034666666666666665,"stay":0.5}}
-{"k":["ded1893d64c6",0,"v21|DEV|aut-noise4-sticky"],"m":{"brain":0.6075,"late_shocks":0.0,"oracle":0.6075,"sec":8.475178956985474,"shocks":0.08,"stay":0.5}}
-{"k":["ded1893d64c6",0,"v21|DEV|dist-noise2-sticky"],"m":{"brain":0.5,"late_shocks":0.0,"oracle":0.5740000000000001,"sec":6.249248504638672,"shocks":0.0,"stay":0.5}}
-{"k":["ded1893d64c6",0,"v21|DEV|aut-fooddelay3-noise1"],"m":{"brain":0.53,"late_shocks":0.0,"oracle":0.5775,"sec":7.184494256973267,"shocks":0.11833333333333333,"stay":0.5}}

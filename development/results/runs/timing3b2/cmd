@@ -1,3 +1,0 @@
-tree 98008dfd0fd6
-cpu 1
-python3 -m harness.timing

@@ -1,3 +1,0 @@
-{"k":["621c56d67713",1,"v49|DEV|dist-noise3-p4"],"m":{"brain":0.57,"late_shocks":0.0,"oracle":0.5717500000000001,"sec":61.17298936843872,"shocks":0.01,"stay":0.5}}
-{"k":["621c56d67713",1,"v49|DEV|aut-fooddelay3-noise1"],"m":{"brain":0.575,"late_shocks":0.0,"oracle":0.575,"sec":19.517810344696045,"shocks":0.05333333333333334,"stay":0.5}}
-{"k":["621c56d67713",1,"v49|DEV|aut-serial300"],"m":{"brain":0.5966666666666667,"late_shocks":0.0225,"oracle":0.6116666666666667,"sec":35.234896421432495,"shocks":0.034,"stay":0.5}}

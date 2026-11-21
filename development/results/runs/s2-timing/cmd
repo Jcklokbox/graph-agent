@@ -1,3 +1,0 @@
-tree 256a76d252c1
-cpu 0
-sh -c 'python3 -m harness.timing; python3 -m harness.repro'

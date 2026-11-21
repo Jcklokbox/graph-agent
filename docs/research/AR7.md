@@ -34,9 +34,9 @@ likelihood, not the prior streaming identity inserted into the production path.
 - v60 selected before fresh payoff, conditional on D65 tape parity, D111
   controller isolation, N200 full-step scale and complete funding. v59 is
   the exposed incumbent; the separately fetched replica is not a finalist.
-- The trusted D65 and spent DEV-20 journals are unchanged. T4 not opened.
+- The D65 and spent DEV-20 journals were unchanged during AR-7. T4 was not opened.
 
-See [compute and preregistration](AR7-COMPUTE.md) and
+See the frozen program, stage timings, and
 [raw receipts](../../development/results/ar7/).
 
 ## Frozen qualification

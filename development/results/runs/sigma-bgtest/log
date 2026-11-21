@@ -1,4 +1,0 @@
-stage S0 seeds=0..0 new=1 16s dup=0 bad=0
-stage S1 seeds=0..3 new=3 36s dup=0 bad=0
-  factor-L4-P-C    savings                  n=4 +0.216 [+0.056,+0.377] yes
-FINAL factor-L4-P-C=1/1

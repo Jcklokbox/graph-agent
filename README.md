@@ -1,13 +1,17 @@
 # Graph Agent
 
-Start with [STATE.md](STATE.md) for the current research verdict and next decision.
-After compaction run `./ar resume`; use the [active English index](docs/INDEX.md).
+Graph Agent learns predictive structure and selects actions from anonymous
+observations and bounded rewards. The accepted controller is `v60`; `v12`
+remains the benchmark comparator.
 
-- `development/` — runnable models, benchmarks, tests, and keyed evidence.
-- [Archive index](archive/README.md) — historical sources; open only the relevant section.
+- [Current state](STATE.md) and [documentation index](docs/INDEX.md)
+- [Architecture](docs/research/ARCHITECTURE.md) and [roadmap](docs/research/ROADMAP.md)
+- [Acceptance report](docs/research/AR7.md) and [evidence replay](docs/EVIDENCE.md)
 
-Quick suite (from `development/`, after installing `requirements.txt`):
+Run the test suite from `development/` in a Python environment with the pinned
+requirements installed:
 
 ```sh
-OPENBLAS_NUM_THREADS=1 python -m unittest discover -s tests
+python -m pip install -r requirements.txt
+OPENBLAS_NUM_THREADS=1 NUMBA_NUM_THREADS=1 python -m unittest discover -s tests
 ```
