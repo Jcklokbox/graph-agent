@@ -4,7 +4,7 @@
 Preserve original clock and reserve. No run without authorization.
 
 <!-- managed-next -->
-- **Run AR-7 (active):** v60 frozen; launch the fully funded 20×15 paired gate on the exact preflight tree. Do not read interim scores or revise the model.
+- **Run AR-7 (active):** Fresh gate active (ar7-04-dev20-v60). Preserve the exact frozen tree and full watchdogs; inspect only stage progress, not candidate or reference payoffs.
 <!-- managed-next -->
 
 - **3b-1 accepted:** D65 `6f619568dc90`, 740/740, cost 2.080340; immutable `development/results/ar5/gate3/validation.json`.

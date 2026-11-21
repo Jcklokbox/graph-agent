@@ -61,3 +61,5 @@ supersedes the proxy 11,580 s / latest start 1795265408. At exact freeze the
 latest gate start is **2026-11-21T13:46:38+00:00** (`1795268798.582`); gate deadline
 `1795276988.582`. The immutable freeze was published before any fresh
 episode. No independent fresh reference cache, no shortened or retried stage.
+
+AR7-04 was dispatched on the registered tree at `2026-11-21T11:48:29.491+00:00` UTC. No interim payoff comparisons are used.
