@@ -28,10 +28,9 @@ bound at least -0.02. There is no intermediate score or retry.
 
 The provisional 8-row packing is superseded by 30 full ten-row stages per
 model. Greedy stage balancing, and largest-first queue order within a stage,
-use only per-cell wall times from the spent AR-6 stage receipts. Run three
-full production-shaped stages per model on exposed DEV-16 seeds on the final
-immutable tree; calibrate two of the highest predicted cost schedules and one
-representative schedule. Register the per-model watchdog at no less than
+use only per-cell wall times from the spent AR-6 stage receipts. Run every distinct full production stage shape (six per model) on exposed
+DEV-16 seeds on the final immutable tree. Ranking only by summed duration
+would use three near-duplicates and miss the v12 two-serial-job stages. Register the per-model watchdog at no less than
 1.25 times its largest measured stage. Fund all 60 complete watchdogs, four
 seconds per stage of termination and ledger allowance, 30 seconds of launch
 allowance, and the separate 600-second audit reserve. The wall estimate is

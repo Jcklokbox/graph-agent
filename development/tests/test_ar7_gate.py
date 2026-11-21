@@ -21,6 +21,8 @@ class FreshGateTests(unittest.TestCase):
         for m in ('v12','v60'):
             p=packs(m);self.assertEqual(len(p),30);self.assertTrue(all(len(b)==BATCH for b in p))
             self.assertEqual({(v,j) for b in p for v,j,_,_ in b},target)
+            self.assertEqual({tuple(v for v,*_ in b) for b in p},
+                             {tuple(v for v,*_ in b) for b in cal_packs(m)})
             self.assertTrue(all(j in range(16) for b in cal_packs(m) for _,j,_,_ in b))
 
     def test_verdict_requires_every_episode_in_a_successful_stage(self):

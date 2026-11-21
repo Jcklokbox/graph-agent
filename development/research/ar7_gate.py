@@ -30,7 +30,7 @@ WEIGHTS = {
 }
 
 
-def packs(model, seeds=SEEDS, *, calibration=False):
+def packs(model, seeds=SEEDS):
     rows = schedule(VARIANTS_LOCKED, seeds)
     if len(rows) % BATCH or len(set(seeds)) != len(seeds):
         raise ValueError('unaligned or repeated program')
@@ -39,28 +39,17 @@ def packs(model, seeds=SEEDS, *, calibration=False):
     for j in sorted(rows, key=lambda j: -w[j[0]]):
         i = min((i for i,b in enumerate(bins) if len(b)<BATCH), key=lambda i:(weights[i],i))
         bins[i].append(j); weights[i] += w[j[0]]
-    # Calibrate production shapes (largest predicted cost + representative),
-    # with no fresh seed clock or payoff until the lock is published.
-    if calibration:
-        if len(seeds)!=N or len(bins)!=30:raise ValueError('production-shaped calibration required')
-        for j in (0,1,2):
-            pick=max(range(j,len(bins)),key=lambda i:weights[i]) if j<2 else len(bins)//2
-            bins[j],bins[pick]=bins[pick],bins[j];weights[j],weights[pick]=weights[pick],weights[j]
-        bins=bins[:3]
     return bins
 
 
-CAL_SEEDS = (6,13,2,15,7,12,8,0,1,3,4,5,9,10,11,14,16,17,18,19)
+EXPOSED = (6,13,2,15,7,12,8,0,1,3,4,5,9,10,11,14)
 
 
 def cal_packs(model):
-    # Map shapes to just the already-exposed DEV16 block IDs. Unique within
-    # each stage, rotating by slot; never environment-test beyond that cohort.
-    seeds=CAL_SEEDS
-    blocks=packs(model,seeds,calibration=True)
-    exposed=seeds[:16]
-    return [[schedule((v,),(exposed[(stage*5+i)%16],))[0]
-             for i,(v,*_) in enumerate(block)] for stage,block in enumerate(blocks)]
+    # Benchmark every distinct production stage shape with only DEV16 seeds.
+    shapes=dict.fromkeys(tuple(v for v, *_ in b) for b in packs(model))
+    return [[schedule((v,),(EXPOSED[(stage*5+i)%len(EXPOSED)],))[0]
+             for i,v in enumerate(shape)] for stage,shape in enumerate(shapes)]
 
 
 def stage_key(tree, model, index):
@@ -82,9 +71,9 @@ def calibration(path, model, tree):
     ts=cfg['stages']
     if cfg['program_sha256']!=digest(cal_packs(model)):
         raise ValueError('non-production-shape calibration')
-    if not isinstance(ts,list) or len(ts)!=3 or any(t['episodes']!=BATCH or t['exit']!=0
+    if not isinstance(ts,list) or len(ts)!=len(cal_packs(model)) or any(t['episodes']!=BATCH or t['exit']!=0
             or not math.isfinite(t['seconds']) or t['seconds']<=0 for t in ts):
-        raise ValueError('need three successful full measured stages')
+        raise ValueError('need successful full measured stages for every production shape')
     return cfg, math.ceil(1.25*max(t['seconds'] for t in ts)) + 1
 
 

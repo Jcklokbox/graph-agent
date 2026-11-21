@@ -4,7 +4,7 @@
 Preserve original clock and reserve. No run without authorization.
 
 <!-- managed-next -->
-- **Run AR-7 (active):** Compare 1 and 2 pinned workers on warmed identical exposed packs
+- **Run AR-7 (active):** Finish outcome-independent worker timing; then validate the deployed joint head and exposed guards before exact finalist timing.
 <!-- managed-next -->
 
 - **3b-1 accepted:** D65 `6f619568dc90`, 740/740, cost 2.080340; immutable `development/results/ar5/gate3/validation.json`.
@@ -14,3 +14,4 @@ Preserve original clock and reserve. No run without authorization.
 - **Resolved:** With four positives, one actual same-side adverse contact may suffice. Evidence admission is separate from behavior. Streaming update/eviction agrees with direct evidence.
 - **Next authorized falsifier:** bounded joint family selection before hard unary admission, with common actual support and held serial/delayed/distal guards. Only then new funded fresh qualification; no reuse of the incomplete cohort. T4 gates further C2 and C3–C5 claims.
 - [Evidence and handoff](docs/research/AR6.md) · [Recovery](docs/research/RECOVERY-AUDIT.md)
+- **AR-7 compute revision:** 2 workers win on both warmed packs (v59 124.06→59.27 s; v12 258.33→136.16 s), despite guest topology. 30×10 each, time all six shapes/model; exact start cutoff pending. No fresh episodes.
