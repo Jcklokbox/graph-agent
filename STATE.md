@@ -12,5 +12,6 @@ Retain original clock and 220+20 calls; ~30-minute cues are advisory.
 - **Local:** Matched anonymous reward exposure restored hard cancellation reuse; matched same-side adverse controls did not. Soft real-atom means let a single success matter, restoring clean discovery. Fixed replay retains all five erroneous cancelled-left entries.
 - **Global:** Nonadditive decision information preserved clean discovery, improved five noisy trajectories and held all nine matched guards. Binding exploration to the same action opportunity is preferable to paying twice. This is exposed evidence, not acceptance.
 - **Resolved:** v57 inherited action-conditioned sensory roles; parity vetoed it. v58 changes only attachment. It matches 23 exposed results, 640 exact canonical predictions, 10 pure plans and work 1.863 ≤2.50. Accepted 3b-1 evidence is unchanged.
+- **60-minute reflection:** no interim efficacy read. Fresh actual v12 timing makes the initial watchdog likely short; no post-hoc statistical change or retry of a failed stage. Preserve immutable evidence.
 - **Next falsifier:** Complete the one frozen fresh DEV-20 v58/v12 comparison (300 pairs, 99% lower bound ≥−.02); no partial pass. Only a completed pass justifies proceeding to blind T4 before C3–C5.
 - [Evidence](docs/research/AR6.md) · [Recovery](docs/research/RECOVERY-AUDIT.md)
