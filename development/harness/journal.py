@@ -36,3 +36,11 @@ def load(path):
             else:
                 recs[k] = r
     return recs, dup, bad
+
+
+def load_strict(path):
+    """Load a qualification journal, rejecting malformed rows or duplicate keys."""
+    rows, dup, bad = load(path)
+    if dup or bad:
+        raise ValueError(f'corrupt or duplicate journal: {os.path.basename(path)}')
+    return rows

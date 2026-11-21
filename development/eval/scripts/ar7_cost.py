@@ -6,8 +6,10 @@ import subprocess
 import sys
 import time
 
-from research.ar7_gate import (BATCH, cal_packs, dependencies, digest, key,
-                               _read, write_json)
+from eval.paired import episode_key
+from harness.journal import load_strict
+from harness.snap import dependencies, program_digest
+from research.ar7_gate import BATCH, cal_packs, write_json
 
 
 def main():
@@ -21,12 +23,14 @@ def main():
         t=time.monotonic()
         status=subprocess.run(['timeout','-k','2','300','taskset','-c',cpu,sys.executable,
              '-m','eval.scripts.ar7_stage',str(rows),a.model,str(plan),str(a.workers)],cwd=dest).returncode
-        r=dict(seconds=time.monotonic()-t,episodes=len(_read(rows)),exit=status)
-        if status or _read(rows).keys()!={key(tree,a.model,v,s) for v,s,_,_ in b} or r['episodes']!=BATCH:
+        seconds=time.monotonic()-t
+        records=load_strict(rows)
+        r=dict(seconds=seconds,episodes=len(records),exit=status)
+        if status or records.keys()!={episode_key(tree,a.model,v,s) for v,s,_,_ in b} or r['episodes']!=BATCH:
             raise ValueError(f'invalid stage {i}: {r}')
         times.append(r);print(a.model,i,r,flush=True)
     write_json(dest/'timings.json',dict(model=a.model,tree=tree,cpus=cpus,workers=a.workers,
-               deps=dependencies(),program_sha256=digest(program),stages=times))
+               deps=dependencies(),program_sha256=program_digest(program),stages=times))
 
 
 if __name__=='__main__':main()
