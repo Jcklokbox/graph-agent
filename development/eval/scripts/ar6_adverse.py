@@ -6,10 +6,11 @@ import os
 from pathlib import Path
 
 import numpy as np
-from agents import agent_class,load
+from agents.factor_controller import FactorController
 from envs.tasks import SPLITS,VARIANTS
 from harness.beacon import cli
 from harness.journal import append
+from models.factor_event_reward import SignedSelection
 from models.factor_rollout import provisional_values
 
 
@@ -43,7 +44,9 @@ def build(v,seed,n,calibration=0,period=5):
 
 def run(v,seed,arm,table,period=5,diagnose=None):
     _,_,eb,bb=SPLITS['dev'];env=timed_env(v,eb+seed,period);x=env.reset()
-    agent=agent_class(load('v58'))(v.n_inputs,v.n_actions,11,seed=bb+seed);f=agent.factor;h=f.reward
+    agent=FactorController(v.n_inputs,v.n_actions,11,seed=bb+seed,draws=5,
+                           posterior=False,event=True,event_reward_factory=SignedSelection)
+    f=agent.factor;h=f.reward
     pos,neg,probe,cal=table;wp=dict(probe);moves=dict(cal)
     for t in pos:moves.update({t:0,t+1:2})
     if arm in ('same','opposite'):

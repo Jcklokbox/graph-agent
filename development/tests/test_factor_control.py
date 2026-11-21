@@ -109,7 +109,7 @@ for name in sys.argv[1:]:
         self.assertAlmostEqual(mass[1]/1e-30,1.,places=13)
 
     def test_projected_control_tree_matches_explicit_atom_assimilation(self):
-        from agents.v33 import DwellEventReward
+        from models.factor_event_reward import DwellEventReward
         from models.factor_rollout import provisional_values
         f=FactorModel(3,2,2,0,N=2,lags=(0,),own_lags=(0,))
         h=f.reward=DwellEventReward(f.J,f.A,f.D)
@@ -137,7 +137,7 @@ for name in sys.argv[1:]:
 
 
     def test_action_correlation_alone_does_not_make_a_pulse_actuator(self):
-        from agents.v33 import DwellEventReward
+        from models.factor_event_reward import DwellEventReward
         h=DwellEventReward(6,3,2)
         rng=np.random.default_rng(841)
         # The pulse predicts an action under the collected policy, but cannot
@@ -170,7 +170,7 @@ for name in sys.argv[1:]:
         self.assertEqual(h.archive_mode['type_count'][1,15],240.)
 
     def test_signed_context_uses_observed_real_reward_atoms(self):
-        from agents.v44 import SparseSignedReward
+        from models.factor_event_reward import SparseSignedReward
         h=SparseSignedReward(4,2,1); h.slots[0]=0
         h.anchors[0]=1;h.context_t=80;h.context_x[2]=11
         h.anchor_n[0]=20;h.pair_on[0,2]=10.;h.assoc[0,2]=15.

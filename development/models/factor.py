@@ -160,10 +160,13 @@ class FactorModel:
         self.reward_optimistic = False
         self.reward_event = False
 
-    def attach_reward(self, diagonal=False, successor=False, action_roles=False, hybrid=False, controlled=False, phase=False, exception=False, optimistic=False, event=False):
+    def attach_reward(self, diagonal=False, successor=False, action_roles=False, hybrid=False, controlled=False, phase=False, exception=False, optimistic=False, event=False, *, event_reward_factory=None):
         from models.factor_reward import BoundedReward, CausalReward, DiagonalReward, EventReward, ExceptionReward, HybridReward, OptimisticReward, OutcomeReward, PhaseReward
         if self.reward is not None:
             raise RuntimeError('reward member already attached')
+        if event_reward_factory is not None and not event:
+            raise ValueError('a custom event reward requires event planning')
+        event_reward = EventReward if event_reward_factory is None else event_reward_factory
         cls = DiagonalReward if diagonal else BoundedReward
         phase = phase or exception or optimistic or event
         self.reward_successor = successor or hybrid or controlled or phase
@@ -172,7 +175,7 @@ class FactorModel:
         self.reward_phase = phase
         self.reward_optimistic = optimistic
         self.reward_event = event
-        self.reward = (EventReward(self.J,self.A,self.D) if event else
+        self.reward = (event_reward(self.J,self.A,self.D) if event else
                        OptimisticReward(self.J,self.A,self.D) if optimistic else
                        ExceptionReward(self.J,self.A,self.D) if exception else
                        PhaseReward(self.J,self.A,self.D) if phase else

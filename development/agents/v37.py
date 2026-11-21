@@ -1,7 +1,7 @@
 """Factor-only mode-aware event controller (D-92)."""
 from __future__ import annotations
 import numpy as np
-from agents.v36 import ModeEventReward
+from models.factor_event_reward import ModeEventReward
 from models.factor import CANONICAL, make_factor
 
 
@@ -14,8 +14,7 @@ class Agent:
 
     def __init__(self,n_inputs,n_actions,value_index,seed=0,*,draws=5):
         self.factor=make_factor(CANONICAL,n_inputs,n_actions,value_index,seed)
-        self.factor.attach_reward(action_roles=True,event=True)
-        self.factor.reward=self.reward_type(self.factor.J,self.factor.A,self.factor.D)
+        self.factor.attach_reward(action_roles=True, event=True, event_reward_factory=self.reward_type)
         self.draws=draws
         self.pending=None
         self.rng=np.random.default_rng(np.random.SeedSequence([seed,541]))

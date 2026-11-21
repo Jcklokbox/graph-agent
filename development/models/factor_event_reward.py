@@ -1,10 +1,37 @@
-"""AR6-08: reward evidence selects a moderator within an earned parent."""
+"""Controlled event reward with sparse signed refinements and decision information."""
 import numpy as np
 
-from agents.v54 import Agent as Controller, ScopedEventInformation
+from models.factor_context_reward import SignedContextualOpportunities
+from models.factor_information import SoftEventInformation
+from models.factor_regime_reward import RecurrentRegimes
+from models.factor_reward import ProvisionalEventReward
 
 
-class SignedSelection(ScopedEventInformation):
+class DwellEventReward(ProvisionalEventReward):
+    """Require witnessed action-sensitive dwell and project reward parents."""
+
+    factored_projection = True
+    elapsed_only = True
+    controlled_dwell = True
+
+
+class ModeEventReward(RecurrentRegimes, DwellEventReward):
+    motion_optimism = True
+
+
+class SparseSignedReward(SignedContextualOpportunities, ModeEventReward):
+    P = 1
+    sparse_outcomes = True
+
+
+class SignedSelection(SoftEventInformation, SparseSignedReward):
+    """Select a supported moderator within an admitted local payoff parent."""
+
+    context_requires_parent = True
+    scoped_pair_only = True
+    restrict_info_parent = True
+    intrinsic_opportunity = True
+
     def signed_rules(self,rule):
         result=[]
         allowed=np.ones(self.J,bool);allowed[self.slots[self.slots>=0]]=False
@@ -27,7 +54,3 @@ class SignedSelection(ScopedEventInformation):
                     support=good[:,m]&(best==m)
                     result.append((j,int(m),l,support,gain[:,m],d))
         return result
-
-
-class Agent(Controller):
-    reward_class=SignedSelection
