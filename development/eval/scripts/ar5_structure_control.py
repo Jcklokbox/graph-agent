@@ -47,4 +47,8 @@ def main():
             print(seed,c,{k:v for k,v in m.items() if k!='groups'},flush=True)
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    from harness.beacon import cli
+
+    with cli():
+        main()

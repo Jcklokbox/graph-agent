@@ -50,4 +50,8 @@ def main():
     a=p.parse_args(); run(a.out,a.model,a.variants,a.seed,a.start,a.stop,a.workers)
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    from harness.beacon import cli
+
+    with cli():
+        main()

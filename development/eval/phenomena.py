@@ -249,4 +249,7 @@ def main(argv) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    from harness.beacon import cli
+
+    with cli():
+        sys.exit(main(sys.argv[1:]))

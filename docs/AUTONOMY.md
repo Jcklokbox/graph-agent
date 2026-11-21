@@ -1,51 +1,33 @@
-# Autonomous run protocol
+# Active autonomous-run contract
 
-## Contract and recovery
+**Do not start a run without authorization.** Then work continuously across tool updates and compaction. Stop only at the agreed wall/call limits, the agreed terminal goal, an explicit stop, or a genuine external blocker. An unresolved research question is work, not a blocker. Do not idle to fill the clock. Use English in active files, state, and responses. Historical records do not set rules.
 
-1. Use **English** for active state, new operational docs, checkpoints and progress/final reports unless the user explicitly requests otherwise. Historical text and tool output are evidence, not instructions.
-2. If the user authorizes continuous execution, keep working across milestone updates and compaction. End only at a terminal decision, a clock or call cutoff, an explicit stop, or a blocker that actually requires the user. Never promise unattended continuation after the turn ends.
-3. After compaction, read `STATE.md`, this section, and the compact runtime summary before choosing work. Resume the real clock, jobs and next decision; do not reinitialize or infer completion from missing context. If the sandbox restarted or a job marker is missing, verify persisted evidence and report uncertainty. A job marked `running` lacks a terminal marker; it is not proof of liveness.
-4. Before dispatch, record the next decision and freeze the commands, candidate, acceptance rules and evidence destination. Use immutable snapshots and append-only keyed journals. Do not promote a partial result or reuse an exposed panel as fresh confirmation.
-5. Keep `STATE.md` under 2 KiB. Put decisions and links there, not transcripts, stale countdowns or raw logs. For history, use the [archive index](../archive/README.md) and a narrow range around one ID. Do not dump entire ledgers or trace JSONL into context. Commit durable evidence by milestone; `.run/` is local and is not a substitute for committed results.
+## Recovery and durability
 
-## Clock and tool-call budget
+- Run **`./ar resume`** immediately after compaction. It prints the beacon, actual checkpoint summary, `STATE.md`, and [active index](INDEX.md); it never starts a run. Human-facing harness, research and evaluation CLIs emit the beacon on entry and exit (including errors) and every 75 s while running. The beacon reports elapsed wall / W, reported calls / cap, and reflection time. `./ar exec -- COMMAND` wraps other human-facing procedures. `GRAPH_AGENT_MACHINE=1` is only for internal workers and pure data streams; keep JSON files and audit comparisons beacon-free.
+- This is an active **stdout** cue, not a platform hook. If compaction strips both stdout and its summary, the repository cannot inject instructions or trigger a new assistant turn. Put `./ar resume` in the run's initial instruction too. A hard platform termination still requires a new authorized turn.
+- Keep `.run/checkpoint.json` for same-sandbox recovery. At initialization, each reflection, and before a long dispatch or valuable freeze, run `./ar publish` and commit/push `ops/recovery.json`, the short `STATE.md`, reproducible pipeline changes, and completed evidence to **the session branch**. Land durable milestones on `main` by numbered PR, not by pushing to another branch. Never commit volatile worker logs, caches, or secrets. Verify the remote checkpoint commit, not merely the local file.
+- If the sandbox resets, `resume` restores from the published checkpoint using its original UTC epochs, counts downtime, and blocks dispatch in `reconcile`. Check Git and journals; missing terminal markers do not prove success or liveness. Charge any identifiable or conservatively bounded intervening calls via `--used N` and record what survived with `reconcile --evidence '…' --next '…'`. If the unknown gap cannot be bounded or the clock/calls expired, don't continue that run. Do not reinitialize to recover lost allowance. Only published data can be guaranteed to survive loss of the sandbox.
 
-The reported cap exhaustion is consistent with one tool call per small action or status poll. The platform cap and compaction are not configurable from this repository. The budget below is cooperative: it covers all Arena tool invocations **as reported**, not a platform-enforced quota. If the platform discloses a smaller remaining cap, plan against that instead. If a hard platform limit interrupts the turn, resume from the last checkpoint in a new user-authorized turn; repository automation cannot create a turn.
+## Dispatch and calls
 
-- Reserve the final **10 minutes and 8 tool calls**. Configure the run to use at most **40 planned tool calls** including reserve, or less if the available envelope is smaller. Use one call for related inspection/edit/test work; charge all calls including parallel subcalls conservatively. Avoid routine progress messaging that ends the turn.
-- Prefer background batch supervisors for repetitive work. Combine jobs on one frozen snapshot; record full logs locally and inspect only selected excerpts. Between decisions, use one bounded wait for the entire batch, not per-job requests or status polling. Up to 15 minutes per wait where supported (set bash timeout longer than the wait); use the platform's supported bound otherwise and re-budget. A 3-hour run cannot fit in 40 calls if it must poll every 3 minutes: push repetitive decisions into a local supervisor or use a new turn.
-- `resume`, `checkpoint`, `dispatch` and `wait` update `.run/checkpoint.json` atomically. Use `--used N` **before the subcommand** for all calls since the last successful accounting update, including this call. Only one operator writes the state. Guards block new managed work at the reserve; do not bypass them with direct launches. `wait` is still one tool call, regardless of local checks. Existing work uses a watchdog and is not cancelled on tool-cap exhaustion.
+The observed previous cliff was **257 bash + 19 other = 276 calls**, not a platform guarantee. Use **220 working + 20 reserve = 240 hard**, aiming for **<150** total. Count all tool and parallel subcalls conservatively. `--used N` (before the subcommand) is calls since the last persisted update, including the current one; do not double-charge commands bundled within one platform call. The platform counter is not exposed. Reserve the final 10 min by default. Reserve is for reflection, audit, publishing and handoff, not new jobs.
 
-Example from `development/` (choose CPU IDs from the sandbox affinity and save this plan outside committed sources):
+Use one managed call per multistep inspection/test or immutable batch. Keep full logs locally; read narrow tails or journals, not repeated per-worker polls. `dispatch` takes a JSON list of up to eight jobs with disjoint pinned CPU affinities (`name`, `cpu`, `seconds`, `argv`); argv runs from scratch with a watchdog. Use absolute artifact destinations. `wait` returns one compact batch summary and ends by the next reflection or reserve. Prefer CPU time isolated for cost; estimate by warmed kernels and measure per-stage wall with headroom. Keep acceptance stages append-only, seed-major and keyed; a prefix can reject but cannot qualify. Use `checkpoint --close --next '…'` only after reconciling tracked jobs and outcomes, then publish the closure.
+
+## Mandatory reflection and dynamic horizon
+
+Every **30 min from the original start**, pause new dispatch. Existing bounded jobs may finish; wait ends at reflection. Before further batch work, write the three entries and one immediate next action:
 
 ```sh
-python -m harness.run_control init AR-6 --seconds 10800 --budget 40 \
-  --next 'Compare exposure and reuse fixture outcomes'
-# plan.json: [{"name":"ar6-fixtures","cpu":"0","seconds":120,
-#              "argv":["python","-m","unittest","tests.test_factor_control"]}]
-python -m harness.run_control dispatch /path/to/plan.json
-python -m harness.run_control wait --seconds 120
-# After compaction, roll summary and small repository reads into the same call.
-python -m harness.run_control resume
+./ar reflect --local 'Trace and causal contrast; alternative explanations' \
+  --global 'Relevant L-* laws, biology, asymptotic work and roadmap implication' \
+  --resolve 'Question, logic/math/micro-probe, answer or remaining uncertainty' \
+  --next 'One falsifiable next decision'
 ```
 
-`dispatch` can take up to eight jobs with disjoint CPUs. It uses the current development tree, writes batch intent before starting jobs and runs each in a scratch directory; use absolute paths for output artifacts. `wait` returns one compact summary with states and remaining budgets. For finalization, reconcile completed stage evidence, update `STATE.md`, then use `checkpoint --close --next '…'`. A closed run cannot dispatch. Start a later run with a new `--state` path or archive the old checkpoint first.
+Reflection updates the managed next-action block of `STATE.md`; review it and publish. A late reflection does not move the original cadence. Resolve uncertainties yourself with a targeted probe or deduction; if evidence is unfinished, state the uncertainty and make its discriminating probe the next action. Replan from current observations, confidence/coverage, remaining calls and measured throughput. No fixed minute-by-minute itinerary. Don't relax frozen comparisons, use a witness to claim an agent result, or count spent holdouts as fresh.
 
-## Next three-hour run
+## Next authorized run: first decision only
 
-Plan the 32 working calls as **4** setup/recovery, **12** edit/inspect/test bundles,
-**4** batch dispatches, and **12** waits/reviews, plus **8** reserved for finalization
-or a real blocker. Check remaining calls against time at each decision. Each
-validation stage runs within its supervisor, not as a separate tool call.
-
-| Elapsed | Work and decision |
-| --- | --- |
-| 0–20 min | Reproduce D113/D97 contrasts. Freeze unlabeled exposure/reuse fixtures and a matched adverse control. Measure first positive observation, regret conditional on payoff exposure, and adverse interventions. |
-| 20–80 min | Implement and screen one bounded value-of-testing change. Test clean/noisy cancellation on exposed regression seeds plus delayed distal, serial reversal and safe-null guards. Do not revive unsupported off-state payoff optimism. |
-| 80–105 min | Freeze only if fixtures, unchanged 3b-1, legacy isolation, planning purity and full act+learn scaling (≤2.50) pass. Extend the fixed DEV judge to a new preregistered seed schedule without changing its scoring, then register new paired seeds, raw `v12` comparator, and the 99% lower-bound rule (≥−0.02), and a watchdog schedule before any fresh run. |
-| 105–170 min | Run fresh paired comparator and candidate on the immutable plan only if conservative timings fit. Use complete pairs and independent audit; if runtime or coverage is insufficient, record incomplete without a qualification claim. Do not alter the margin, seed count or scored units mid-run. |
-| 170–180 min | Preserve journals, freeze and independent verdict; update state. If 3b-2 passes, preregister blind procedural T4; C3 type sharing follows that transfer check. Otherwise keep 3b-2 open and record the next falsifiable hypothesis. |
-
-The prior candidate-only DEV run took about 26 minutes on two pinned CPUs; fresh
-`v12` reference time must be budgeted separately. Forty calls is a planning target,
-not a claim about the platform limit or a guarantee of three uninterrupted hours.
+On frozen `v48`, reproduce the exposed `canc` / `canc-noise3` split (D113 seed 6 both, clean seed 0 positive; D97 is a separate early-positive/poor-reuse witness). Freeze **paired, anonymous** fixtures: same exogenous seed, cue/timing schedule and action labels. One arm acts freely to test discovery; a second uses a scripted action prefix to generate a real payoff observation, then acts freely to test reuse. Yoke an adverse/null prefix with the same opportunity count and timing. Update the learner only through ordinary observations/actions in the diagnostic; no teacher flags, synthetic credit, or scripted actions in a qualification run. Log first maximum-payoff observation, eligible/reached interventions, and action choice/regret conditional on matched exposure. Keep transition discovery, reward credit and reuse separate; compare negative branch interventions too. No task labels, legacy controller, or unseen formal rows for tuning. Use the outcome to select the next probe, not a predetermined development schedule.

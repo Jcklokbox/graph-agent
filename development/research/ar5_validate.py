@@ -57,4 +57,8 @@ def main():
     print(json.dumps(validate(a.gate),indent=2,sort_keys=True))
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    from harness.beacon import cli
+
+    with cli():
+        main()

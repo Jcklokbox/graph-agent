@@ -62,4 +62,7 @@ def gate_prune_old(x, sig):
 
 
 if __name__ == "__main__":
-    print(json.dumps(main(), indent=0))
+    from harness.beacon import cli
+
+    with cli():
+        print(json.dumps(main(), indent=0))

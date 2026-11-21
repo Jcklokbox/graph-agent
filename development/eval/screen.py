@@ -277,4 +277,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    from harness.beacon import cli
+
+    with cli():
+        main(sys.argv[1:])

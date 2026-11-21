@@ -28,7 +28,7 @@ def start(name, cmd, cpu="0,1", tree=None):
     os.makedirs(d)
     if not tree:
         h, snap = snapshot(HERE)
-    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", PG_TREE=h, PG_SNAP=snap,
+    env = dict(os.environ, GRAPH_AGENT_MACHINE="1", PYTHONDONTWRITEBYTECODE="1", PG_TREE=h, PG_SNAP=snap,
                PG_RUN=d, PG_RUNS=RUNS, PYTHONPATH=os.pathsep.join(
                    [snap, os.environ.get("PYTHONPATH", "/tmp/graph-agent-deps")]))
     inner = " ".join(shlex.quote(c) for c in cmd)
@@ -63,11 +63,14 @@ def wait(name, timeout=TAU_MAX, nbytes=B_MAX):
 
 
 if __name__ == "__main__":
-    a = sys.argv[1:]
-    if a[0] == "start":
-        cpu = a[a.index("--cpu") + 1] if "--cpu" in a else "0,1"
-        pre = a[:a.index("--")]
-        tree = pre[pre.index("--tree") + 1] if "--tree" in pre else None
-        start(a[1], a[a.index("--") + 1:], cpu, tree)
-    elif a[0] == "wait":
-        wait(a[1], *(a[2:4]))
+    from harness.beacon import cli
+
+    with cli():
+        a = sys.argv[1:]
+        if a[0] == "start":
+            cpu = a[a.index("--cpu") + 1] if "--cpu" in a else "0,1"
+            pre = a[:a.index("--")]
+            tree = pre[pre.index("--tree") + 1] if "--tree" in pre else None
+            start(a[1], a[a.index("--") + 1:], cpu, tree)
+        elif a[0] == "wait":
+            wait(a[1], *(a[2:4]))

@@ -39,4 +39,8 @@ def main():
     trace(a.out,a.suite,a.world,a.seed,a.steps)
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    from harness.beacon import cli
+
+    with cli():
+        main()

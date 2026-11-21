@@ -39,4 +39,8 @@ def main():
     print({k:v for k,v in m.items() if k not in ('outcome','channel_brier','rare_y','rare_forecast')},flush=True)
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    from harness.beacon import cli
+
+    with cli():
+        main()

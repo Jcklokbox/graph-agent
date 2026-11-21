@@ -30,7 +30,10 @@ def playback(name, out, n=200):
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__); p.add_argument('out')
-    a=p.parse_args()
-    for nm in ('sticky','savings'):
-        playback(nm,a.out)
+    from harness.beacon import cli
+
+    with cli():
+        p=argparse.ArgumentParser(description=__doc__); p.add_argument('out')
+        a=p.parse_args()
+        for nm in ('sticky','savings'):
+            playback(nm,a.out)

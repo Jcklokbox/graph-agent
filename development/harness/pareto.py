@@ -29,16 +29,19 @@ def effects(paths):
 
 
 if __name__ == "__main__":
-    i = sys.argv.index("--")
-    E = effects(sys.argv[1:i])
-    T = dict(kv.split(":") for kv in sys.argv[i + 1:])
-    ref = E["factor-L4-P-C"]
-    rows = sorted(ref)
-    print("| N_p | T_step s (savings, seed 0) | k = T_full/T_dev | tau_K(dev, full) over 10 rows | max |dEffect| |")
-    print("|---|---|---|---|---|")
-    for n in sorted(T, key=int):
-        a = "factor-L4-P-C" if n == "200" else f"factor-L4-P-C-N{n}"
-        x = [E[a][r] for r in rows]
-        y = [ref[r] for r in rows]
-        print(f"| {n} | {float(T[n]):.1f} | {float(T['200']) / float(T[n]):.2f} | "
-              f"{kendall(x, y):.3f} | {max(abs(u - v) for u, v in zip(x, y)):.3f} |")
+    from harness.beacon import cli
+
+    with cli():
+        i = sys.argv.index("--")
+        E = effects(sys.argv[1:i])
+        T = dict(kv.split(":") for kv in sys.argv[i + 1:])
+        ref = E["factor-L4-P-C"]
+        rows = sorted(ref)
+        print("| N_p | T_step s (savings, seed 0) | k = T_full/T_dev | tau_K(dev, full) over 10 rows | max |dEffect| |")
+        print("|---|---|---|---|---|")
+        for n in sorted(T, key=int):
+            a = "factor-L4-P-C" if n == "200" else f"factor-L4-P-C-N{n}"
+            x = [E[a][r] for r in rows]
+            y = [ref[r] for r in rows]
+            print(f"| {n} | {float(T[n]):.1f} | {float(T['200']) / float(T[n]):.2f} | "
+                  f"{kendall(x, y):.3f} | {max(abs(u - v) for u, v in zip(x, y)):.3f} |")

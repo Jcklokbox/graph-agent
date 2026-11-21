@@ -1,7 +1,7 @@
 # Graph Agent
 
 Start with [STATE.md](STATE.md) for the current research verdict and next decision.
-For autonomous runs, read [docs/AUTONOMY.md](docs/AUTONOMY.md) before dispatch.
+After compaction run `./ar resume`; use the [active English index](docs/INDEX.md).
 
 - `development/` — runnable models, benchmarks, tests, and keyed evidence.
 - [Archive index](archive/README.md) — historical sources; open only the relevant section.
